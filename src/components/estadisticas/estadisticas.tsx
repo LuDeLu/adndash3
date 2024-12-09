@@ -573,7 +573,7 @@ export default function Dashboard() {
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="overflow-hidden">
                 <CardHeader>
-                  <CardTitle>Top 5 Vendedores</CardTitle>
+                  <CardTitle>Mejores 5 Vendedores</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
