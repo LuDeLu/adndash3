@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import dynamic from 'next/dynamic'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { useAuth } from '@/app/auth/auth-context'
@@ -25,7 +25,7 @@ const MapaInteractivo = dynamic(
 )
 
 export default function Home() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [activeSection, setActiveSection] = useState('proyectos')
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
   const [selectedFloorNumber, setSelectedFloorNumber] = useState<number | null>(null)
@@ -45,18 +45,6 @@ export default function Home() {
     setSelectedFloorNumber(floorNumber || null)
     setActiveSection('proyectos/vista')
   }
-
-  useEffect(() => {
-    const checkSession = () => {
-      const expirationTime = localStorage.getItem('sessionExpiration');
-      if (expirationTime && new Date().getTime() > parseInt(expirationTime, 10)) {
-        logout();
-      }
-    };
-
-    const interval = setInterval(checkSession, 60000); // Check every minute
-    return () => clearInterval(interval);
-  }, [logout]);
 
   if (!user) {
     return <Login />
