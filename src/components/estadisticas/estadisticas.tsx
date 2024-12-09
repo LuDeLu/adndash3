@@ -31,9 +31,9 @@ const tabOptions = [
   { value: "detallesProyecto", label: "Detalles del Proyecto" },
   { value: "analisisVentas", label: "Análisis de Ventas" },
   { value: "estadisticasInmobiliarias", label: "Estadísticas Inmobiliarias" },
-  { value: "rendimientoMarketing", label: "Ren. de Marketing" },
+  { value: "rendimientoMarketing", label: "Rend. de Marketing" },
   { value: "financiero", label: "Análisis Financiero" },
-  { value: "rendimientoEquipo", label: "Ren. del Equipo" },
+  { value: "rendimientoEquipo", label: "Rend. del Equipo" },
   { value: "inventario", label: "Inventario" },
 ]
 
