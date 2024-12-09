@@ -1,0 +1,813 @@
+'use client'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import Image from 'next/image'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronLeft, ChevronRight, Download, FileText, Building, Car, FileSpreadsheet, FileBarChart } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Notyf } from 'notyf'
+import 'notyf/notyf.min.css'
+import { useAuth } from '@/app/auth/auth-context'
+
+let notyf: Notyf | null = null
+
+type ApartmentStatus = 'ocupado' | 'reservado' | 'libre' | 'bloqueado';
+
+type ApartmentData = {
+  buyer: string;
+  date: string;
+  price: string;
+  status: ApartmentStatus;
+  contractFile?: File | null;
+  phoneNumber?: string;
+  email?: string;
+  surface: string;
+};
+
+type ApartmentDataMap = {
+  [key: string]: ApartmentData;
+};
+
+type FloorData = {
+  apartments: ApartmentDataMap;
+  svgPaths: {
+    [key: string]: string;
+  };
+  viewBox?: string;
+};
+
+type UnitStats = {
+  disponibles: number;
+  reservadas: number;
+  vendidas: number;
+  bloqueadas: number;
+};
+
+const floorData: { [key: number]: FloorData } = {
+  1: {
+    apartments: {
+      '1A': { buyer: '', date: '', price: '$774.200', status: 'libre', surface: '181,55 m²' },
+      '1B': { buyer: '', date: '', price: '$820.900', status: 'libre', surface: '183,35 m²' },
+      '1C': { buyer: '', date: '', price: '$667.600', status: 'libre', surface: '154,25 m²' }
+    },
+    svgPaths: {
+      '1A': 'M136,509 L126,2004 L764,2001 L767,1918 L1209,1915 L1207,1999 L1218,2001 L1221,1692 L1635,1692 L1639,1544 L1224,1543 L1227,1291 L1430,1292 L1424,899 L1219,902 L1216,578 L506,575 L504,455 Z',
+      '1B': 'M3111,2317 L1421,2314 L1418,2007 L1209,2004 L1209,1680 L1635,1683 L2078,1683 L2084,1270 L3117,1270 Z',
+      '1C': 'M3111,1276 L3114,300 L2298,303 L2304,214 L1206,366 L1212,904 L1415,910 L1418,1288 L1674,1291 L1677,1115 L1879,1109 L1879,1285 Z'
+    },
+    viewBox: "0 0 3200 2400"
+  },
+  2: {
+    apartments: {
+      '2A': { buyer: '', date: '', price: '$610.000', status: 'libre', surface: '196,15 m²' },
+      '2B': { buyer: '', date: '', price: '$668.800', status: 'libre', surface: '201,05 m²' },
+      '2C': { buyer: '', date: '', price: '$468.800', status: 'libre', surface: '168,35 m²' },
+    },
+    svgPaths: {
+      '2A': "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
+      '2B': "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
+      '2C': "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
+    },
+    viewBox: "0 0 3200 2400"
+  },
+  3: {
+    apartments: {
+      '3A': { buyer: 'Luciano Florentino', date: '2023-09-27', price: '$631.900', status: 'ocupado', surface: '196,15 m²' },
+      '3B': { buyer: 'Pedro Ramírez', date: '2023-09-05', price: '$692.900', status: 'ocupado', surface: '201,05 m²' },
+      '3C': { buyer: '', date: '', price: '$469.800', status: 'libre', surface: '168,35 m²' },
+    },
+    svgPaths: {
+      '3A': "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
+      '3B': "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
+      '3C': "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
+    },
+    viewBox: "0 0 3200 2400"
+  },
+  4: {
+    apartments: {
+      '4A': { buyer: '', date: '', price: '$657.300', status: 'libre', surface: '196,15 m²' },
+      '4B': { buyer: '', date: '', price: '$717.000', status: 'libre', surface: '201,05 m²' },
+      '4C': { buyer: '', date: '', price: '$424.800', status: 'libre', surface: '168,35 m²' },
+    },
+    svgPaths: {
+      '4A': "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
+      '4B': "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
+      '4C': "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
+    },
+    viewBox: "0 0 3200 2400"
+  },
+  5: {
+    apartments: {
+      '5A': { buyer: 'Carlos Hernández', 'date': '2024-01-23', price: '$679.300', status: 'ocupado', surface: '196,15 m²' },
+      '5B': { buyer: 'Javier Martínez', date: '2023-11-20', price: '$741.100', status: 'ocupado', surface: '201,05 m²' },
+      '5C': { buyer: 'Laura Fernández', date: '2024-09-04', price: '$439.100', status: 'ocupado', surface: '168,35 m²' },
+    },
+    svgPaths: {
+      '5A': "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
+      '5B': "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
+      '5C': "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
+    },
+    viewBox: "0 0 3200 2400"
+  },
+  6: {
+    apartments: {
+      '6A': { buyer: '', date: '', price: '$696.200', status: 'libre', surface: '196,15 m²' },
+      '6B': { buyer: 'Mariano Nicolas Aldrede', date: '2023-07-14', price: '$759.500', status: 'ocupado', surface: '201,05 m²' },
+      '6C': { buyer: 'Isabel Rodríguez', date: '2023-12-25', price: '$450.100', status: 'reservado', surface: '168,35 m²' },
+    },
+    svgPaths: {
+      '6A': "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
+      '6B': "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
+      '6C': "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
+    },
+    viewBox: "0 0 3200 2400"
+  }, 
+  7: {
+    apartments: {
+      '7A': { buyer: '', date: '', price: '$696.200', status: 'libre', surface: '196,15 m²' },
+      '7B': { buyer: 'Mariano Nicolas Aldrede', date: '2023-07-14', price: '$759.500', status: 'ocupado', surface: '201,05 m²' },
+      '7C': { buyer: 'Isabel Rodríguez', date: '2023-12-25', price: '$450.100', status: 'reservado', surface: '168,35 m²' },
+    },
+    svgPaths: {
+      '7A': "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
+      '7B': "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
+      '7C': "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
+    },
+    viewBox: "0 0 3200 2400"
+  },
+  8: {
+    apartments: {
+      '8A': { buyer: '', date: '', price: '$696.200', status: 'libre', surface: '196,15 m²' },
+      '8B': { buyer: 'Mariano Nicolas Aldrede', date: '2023-07-14', price: '$759.500', status: 'ocupado', surface: '201,05 m²' },
+      '8C': { buyer: 'Isabel Rodríguez', date: '2023-12-25', price: '$450.100', status: 'reservado', surface: '168,35 m²' },
+    },
+    svgPaths: {
+      '8A': "M854,1776 L203,1786 L208,420 L605,414 L595,351 L1341,255 L1346,1304 L1754,1304 L1754,1447 L1346,1463 L1346,1702 L859,1712 Z",
+      '8B': "M1346,1447 L1341,1702 L1558,1712 L1558,1792 L1748,1792 L1748,2094 L3114,2094 L3108,1087 L2436,1087 L2431,1214 L2251,1220 L2256,1431 Z",
+      '8C': "M3119,1092 L2426,1082 L2426,1008 L2045,1018 L2039,838 L2436,817 L2442,626 L1965,626 L1976,838 L1817,838 L1817,1008 L1346,1008 L1346,255 L3124,22 Z",
+    },
+    viewBox: "0 0 3455 2250"
+  },
+  9: {
+    apartments: {
+      '9A': { buyer: '', date: '', price: '$696.200', status: 'libre', surface: '196,15 m²' },
+      '9B': { buyer: 'Mariano Nicolas Aldrede', date: '2023-07-14', price: '$759.500', status: 'ocupado', surface: '201,05 m²' },
+    },
+    svgPaths: {
+      '9A': "M22,342 L26,1335 L1599,1335 L1602,1054 L1449,1054 L1442,926 L1001,929 L1001,214 Z",
+      '9B': "M1342,1332 L1342,1613 L2345,1610 L2352,26 L1001,217 L994,342 L1175,346 L1178,679 L1783,683 L1783,1047 L1606,1051 L1606,1325 Z",
+    },
+    viewBox: "0 0 2220 1700"
+  },
+};
+
+const floorPlans: { [key: number]: string } = {
+  1: "/images/planos/plano_piso_1.svg",
+  2: "/images/planos/plano_piso_2-6.svg",
+  3: "/images/planos/plano_piso_2-6.svg",
+  4: "/images/planos/plano_piso_2-6.svg",
+  5: "/images/planos/plano_piso_2-6.svg",
+  6: "/images/planos/plano_piso_2-6.svg",
+  7: "/images/planos/plano_piso_2-6.svg",
+  8: "/images/planos/plano_piso_8.svg",
+  9: "/images/planos/plano_piso_9.svg",
+
+};
+
+const apartmentPDFs: { [key: string]: string } = {
+  '1A': '/planodepa/uf101.pdf',
+  '1B': '/planodepa/ufuf102.pdf',
+  '1C': '/planodepa/ufuf103.pdf',
+  '2A': '/planodepa/ufuf201-601.pdf',
+  '2B': '/planodepa/ufuf202-602.pdf',
+  '2C': '/planodepa/ufuf203-603.pdf',
+  '3A': '/planodepa/ufuf201-601.pdf',
+  '3B': '/planodepa/ufuf202-602.pdf',
+  '3C': '/planodepa/ufuf203-603.pdf',
+  '4A': '/planodepa/ufuf201-601.pdf',
+  '4B': '/planodepa/ufuf202-602.pdf',
+  '4C': '/planodepa/ufuf203-603.pdf',
+  '5A': '/planodepa/ufuf201-601.pdf',
+  '5B': '/planodepa/ufuf202-602.pdf',
+  '5C': '/planodepa/ufuf203-603.pdf',
+  '6A': '/planodepa/ufuf201-601.pdf',
+  '6B': '/planodepa/ufuf202-602.pdf',
+  '6C': '/planodepa/ufuf203-603.pdf',
+  '7A': '/planodepa/ufuf701.pdf',
+  '8A': '/planodepa/ufuf801.pdf',
+  '8B': '/planodepa/ufuf802.pdf',
+  '8C': '/planodepa/ufuf803.pdf',
+  '9A': '/planodepa/ufuf901.pdf',
+  '9B': '/planodepa/ufuf902.pdf'
+};
+
+const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+const statusColors = {
+  ocupado: '#f57f7f',
+  reservado: '#edcf53',
+  libre: '#87f5af',
+  bloqueado: '#7f7fff',
+};
+interface InteractiveFloorPlanProps {
+  projectId?: number;
+  floorNumber?: number | null;
+}
+
+export default function InteractiveFloorPlan({ projectId, floorNumber }: InteractiveFloorPlanProps) {
+  const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
+  const [selectedApartment, setSelectedApartment] = useState<string | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [activityLog, setActivityLog] = useState<string[]>([])
+  const { user } = useAuth()
+  const [action, setAction] = useState<'block' | 'reserve' | 'sell' | 'unblock' | 'directReserve' | 'cancelReservation' | 'release' | null>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    reservationOrder: null as File | null,
+    price: '',
+    note: ''
+  })
+  const [unitStats, setUnitStats] = useState<UnitStats>({
+    disponibles: 0,
+    reservadas: 0,
+    vendidas: 0,
+    bloqueadas: 0
+  })
+  const [confirmReservation, setConfirmReservation] = useState(false)
+  const [confirmCancelReservation, setConfirmCancelReservation] = useState(false)
+  const [confirmRelease, setConfirmRelease] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const updateUnitStats = useCallback(() => {
+    const currentFloorData = floorData[currentFloor];
+    if (!currentFloorData || !currentFloorData.apartments) {
+      setUnitStats({ disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 });
+      return;
+    }
+
+    const stats = Object.values(currentFloorData.apartments).reduce((acc, apartment) => {
+      if (apartment.status === 'libre') acc.disponibles++
+      else if (apartment.status === 'reservado') acc.reservadas++
+      else if (apartment.status === 'ocupado') acc.vendidas++
+      else if (apartment.status === 'bloqueado') acc.bloqueadas++
+      return acc
+    }, { disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 })
+    setUnitStats(stats)
+  }, [currentFloor])
+
+  useEffect(() => {
+    if (projectId) {
+      console.log(`Project ID: ${projectId}`);
+    }
+    if (floorNumber !== undefined && floorNumber !== null && currentFloor === 1) {
+      setCurrentFloor(floorNumber);
+    }
+    if (typeof window !== 'undefined' && !notyf) {
+      notyf = new Notyf({
+        duration: 3000,
+        position: { x: 'right', y: 'top' },
+      })
+    }
+    updateUnitStats()
+  }, [projectId, floorNumber, updateUnitStats, currentFloor])
+
+  useEffect(() => {
+    updateUnitStats()
+  }, [currentFloor, updateUnitStats])
+
+  const handleFloorClick = (floor: number) => {
+    setCurrentFloor(floor)
+    setSelectedApartment(null)
+    setIsModalOpen(false)
+    updateUnitStats()
+  }
+
+  const handleApartmentClick = (apartment: string) => {
+    setSelectedApartment(apartment)
+    setIsModalOpen(true)
+    setAction(null)
+    setFormData({
+      name: '',
+      phone: '',
+      email: '',
+      reservationOrder: null,
+      price: '',
+      note: ''
+    })
+    setConfirmReservation(false)
+    setConfirmCancelReservation(false)
+    setConfirmRelease(false)
+  }
+
+  const handleActionClick = (actionType: 'block' | 'reserve' | 'sell' | 'unblock' | 'directReserve' | 'cancelReservation' | 'release') => {
+    setAction(actionType)
+    if (actionType === 'reserve' && selectedApartment && floorData[currentFloor].apartments[selectedApartment].status === 'bloqueado') {
+      setConfirmReservation(true)
+    }
+    if (actionType === 'cancelReservation') {
+      setConfirmCancelReservation(true)
+    }
+    if (actionType === 'release') {
+      setConfirmRelease(true)
+    }
+  }
+
+
+  const handleFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (selectedApartment && floorData[currentFloor] && floorData[currentFloor].apartments) {
+      const apartment = floorData[currentFloor].apartments[selectedApartment];
+      const previousStatus = apartment.status;
+      
+      // Actualizar el precio si se ha modificado
+      if (formData.price && formData.price !== apartment.price) {
+        apartment.price = formData.price;
+      }
+
+      let activityMessage = '';
+
+      switch(action) {
+        case 'block':
+          apartment.status = 'bloqueado'
+          apartment.buyer = formData.name
+          apartment.phoneNumber = formData.phone
+          activityMessage = `${user?.name} bloqueó el departamento ${selectedApartment}`
+          if (notyf) notyf.success('Departamento bloqueado con éxito')
+          break;
+        case 'reserve':
+        case 'directReserve':
+          apartment.status = 'reservado'
+          if (previousStatus !== 'bloqueado') {
+            apartment.buyer = formData.name
+            apartment.phoneNumber = formData.phone
+          }
+          apartment.date = new Date().toISOString().split('T')[0]
+          activityMessage = `${user?.name} reservó el departamento ${selectedApartment}`
+          if (notyf) notyf.success('Departamento reservado con éxito')
+          break;
+        case 'sell':
+          apartment.status = 'ocupado'
+          apartment.contractFile = formData.reservationOrder
+          activityMessage = `${user?.name} vendió el departamento ${selectedApartment}`
+          if (notyf) notyf.success('Departamento vendido con éxito')
+          break;
+        case 'unblock':
+          if (formData.note) {
+            apartment.status = 'libre'
+            apartment.buyer = ''
+            apartment.phoneNumber = ''
+            apartment.date = ''
+            activityMessage = `${user?.name} liberó el bloqueo del departamento ${selectedApartment}. Nota: ${formData.note}`
+            if (notyf) notyf.success('Bloqueo liberado con éxito')
+          } else {
+            if (notyf) notyf.error('Se requiere una nota para liberar el bloqueo')
+            return
+          }
+          break;
+        case 'cancelReservation':
+          if (formData.note) {
+            apartment.status = 'libre'
+            apartment.buyer = ''
+            apartment.phoneNumber = ''
+            apartment.date = ''
+            activityMessage = `${user?.name} canceló la reserva del departamento ${selectedApartment}. Nota: ${formData.note}`
+            if (notyf) notyf.success('Reserva cancelada con éxito')
+          } else {
+            if (notyf) notyf.error('Se requiere una nota para cancelar la reserva')
+            return
+          }
+          break;
+        case 'release':
+          if (formData.note) {
+            apartment.status = 'libre'
+            apartment.buyer = ''
+            apartment.phoneNumber = ''
+            apartment.date = ''
+            apartment.contractFile = null
+            activityMessage = `${user?.name} liberó el departamento ${selectedApartment}. Nota: ${formData.note}`
+            if (notyf) notyf.success('Departamento liberado con éxito')
+          } else {
+            if (notyf) notyf.error('Se requiere una nota para liberar el departamento')
+            return
+          }
+          break;
+      }
+      
+      if (activityMessage) {
+        const timestamp = new Date().toLocaleString()
+        setActivityLog(prevLog => [`${timestamp} - ${activityMessage}`, ...prevLog])
+      }
+
+      updateUnitStats()
+      setIsModalOpen(false)
+      setAction(null)
+      setConfirmReservation(false)
+      setConfirmCancelReservation(false)
+      setConfirmRelease(false)
+      setFormData({
+        name: '',
+        phone: '',
+        email: '',
+        reservationOrder: null,
+        price: '',
+        note: ''
+      })
+    }
+  }
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setFormData(prev => ({ ...prev, reservationOrder: event.target.files![0] }))
+    }
+  }
+
+  const handleDownloadFloorPlan = () => {
+    if (!selectedApartment) return;
+  
+    const pdfPath = apartmentPDFs[selectedApartment];
+    if (!pdfPath) {
+      if (notyf) notyf.error('Plano no disponible');
+      return;
+    }
+
+    // Create a link element and trigger download
+    const link = document.createElement('a');
+    link.href = pdfPath;
+    link.download = `Plano_${selectedApartment}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  
+    if (notyf) notyf.success('Descargando plano...');
+  };
+
+  const handleDownloadAdditionalInfo = (type: string) => {
+    // Implement the download functionality for additional information
+    console.log(`Downloading ${type}...`)
+  }
+
+  const handleDownloadContract = (apartment: string) => {
+    const apartmentData = currentFloorData.apartments[apartment];
+    if (apartmentData.contractFile) {
+      // Aquí iría la lógica para descargar el archivo
+      // Por ahora, solo mostraremos un mensaje en la consola
+      console.log(`Descargando contrato para el departamento ${apartment}`);
+      if (notyf) notyf.success(`Descargando contrato para el departamento ${apartment}`);
+    } else {
+      console.log(`No hay contrato disponible para el departamento ${apartment}`);
+      if (notyf) notyf.error(`No hay contrato disponible para el departamento ${apartment}`);
+    }
+  }
+
+  const currentFloorData = floorData[currentFloor] || { apartments: {}, svgPaths: {} };
+  const totalUnits = Object.keys(currentFloorData.apartments).length
+
+  return (
+    <div>
+      <div className="min-h-screen bg-black text-white">
+        <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
+          <div className="p-4 md:p-6">
+            <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
+            <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+              <div className="flex items-center mb-4 md:mb-0">
+                <button 
+                  onClick={() => handleFloorClick(Math.max(1, currentFloor - 1))}
+                  className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                >
+                  <ChevronLeft />
+                </button>
+                <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
+                <button 
+                  onClick={() => handleFloorClick(Math.min(9, currentFloor + 1))}
+                  className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                >
+                  <ChevronRight />
+                </button>
+              </div>
+              <div className="flex flex-wrap justify-center gap-2">
+                {floors.map(floor => (
+                  <motion.button
+                    key={floor}
+                    onClick={() => handleFloorClick(floor)}
+                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold ${currentFloor === floor ? 'bg-zinc-800' : ''}`}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {floor}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          <div className="relative aspect-video -ml-9 md:-ml-9">
+            <Image
+              src={floorPlans[currentFloor]}
+              alt={`Plano del Piso ${currentFloor}`}
+              layout="fill"
+              objectFit="contain"
+              className="pointer-events-none"
+            />
+            <svg
+              viewBox={currentFloorData.viewBox || "-200 0 3200 2400"}
+              className="absolute top-0 left-0 w-full h-full"
+              style={{ pointerEvents: 'none' }}
+            >
+              <g transform="scale(1, 1) translate(-83, 10)">
+                <AnimatePresence>
+                  {Object.entries(currentFloorData.apartments).map(([apt, data])=> (
+                    <motion.path
+                      key={apt}
+                      d={currentFloorData.svgPaths[apt] || ''}
+                      fill={statusColors[data.status]}
+                      stroke="black"
+                      strokeWidth="10"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 0.5 }}
+                      exit={{ opacity: 0 }}
+                      whileHover={{ opacity: 0.8 }}
+                      whileTap={{ scale: 0.98 }}
+                      transition={{ duration: 0.2 }}
+                      onClick={() => handleApartmentClick(apt)}
+                      style={{ cursor: 'pointer', pointerEvents: 'all' }}
+                    />
+                  ))}
+                </AnimatePresence>
+              </g>
+            </svg>
+          </div>
+          
+          <div className="p-4">
+            <h3 className="text-lg font-bold">Plano del Piso {currentFloor}</h3>
+            <p className="text-zinc-400 text-sm">Selecciona los departamentos para ver su estado.</p>
+          </div>
+        </div>
+
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-2">Estado de las unidades</h4>
+            <div className="w-full h-8 bg-gray-700 rounded-full overflow-hidden flex">
+              <div 
+                className="bg-green-500 h-full" 
+                style={{ width: `${(unitStats.disponibles / totalUnits) * 100}%` }}
+                title={`Disponibles: ${unitStats.disponibles}`}
+              ></div>
+              <div 
+                className="bg-yellow-500 h-full" 
+                style={{ width: `${(unitStats.reservadas / totalUnits) * 100}%` }}
+                title={`Reservadas: ${unitStats.reservadas}`}
+              ></div>
+              <div 
+                className="bg-red-500 h-full" 
+                style={{ width: `${(unitStats.vendidas / totalUnits) * 100}%` }}
+                title={`Vendidas: ${unitStats.vendidas}`}
+              ></div>
+              <div 
+                className="bg-blue-500 h-full" 
+                style={{ width: `${(unitStats.bloqueadas / totalUnits) * 100}%` }}
+                title={`Bloqueadas: ${unitStats.bloqueadas}`}
+              ></div>
+            </div>
+            <div className="flex flex-col md:flex-row justify-between mt-2 text-sm">
+              <span>Disponibles: {unitStats.disponibles}</span>
+              <span>Reservadas: {unitStats.reservadas}</span>
+              <span>Vendidas: {unitStats.vendidas}</span>
+              <span>Bloqueadas: {unitStats.bloqueadas}</span>
+            </div>
+          </div>
+        </div>
+
+        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
+            <DialogHeader>
+              <DialogTitle>Detalles del departamento {selectedApartment}</DialogTitle>
+            </DialogHeader>
+            {selectedApartment && currentFloorData.apartments[selectedApartment] ? (
+              <div className="space-y-4">
+                <DialogDescription className="text-zinc-300">
+                  <p><strong>Estado:</strong> {currentFloorData.apartments[selectedApartment].status}</p>
+                  <p><strong>Precio:</strong> {currentFloorData.apartments[selectedApartment].price}</p>
+                  <p><strong>Superficie:</strong> {currentFloorData.apartments[selectedApartment].surface}</p>
+                  {currentFloorData.apartments[selectedApartment].buyer && (
+                    <>
+                      <p><strong>Comprador:</strong> {currentFloorData.apartments[selectedApartment].buyer}</p>
+                      <p><strong>Fecha:</strong> {currentFloorData.apartments[selectedApartment].date}</p>
+                      {currentFloorData.apartments[selectedApartment].phoneNumber && (
+                        <p><strong>Teléfono:</strong> {currentFloorData.apartments[selectedApartment].phoneNumber}</p>
+                      )}
+                      {currentFloorData.apartments[selectedApartment].email && (
+                        <p><strong>Email:</strong> {currentFloorData.apartments[selectedApartment].email}</p>
+                      )}
+                    </>
+                  )}
+                </DialogDescription>
+                {!action && (
+                  <div className="space-y-2">
+                    {currentFloorData.apartments[selectedApartment].status === 'libre' && (
+                      <>
+                        <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
+                          <Download className="mr-2 h-4 w-4" /> Descargar plano
+                        </Button>
+                        <Button onClick={() => handleActionClick('block')} className="bg-blue-600 hover:bg-blue-700 w-full">
+                          Bloquear
+                        </Button>
+                        <Button onClick={() => handleActionClick('directReserve')} className="bg-green-600 hover:bg-green-700 w-full">
+                          Reservar
+                        </Button>
+                      </>
+                    )}
+                    {currentFloorData.apartments[selectedApartment].status === 'bloqueado' && (
+                      <>
+                        <Button onClick={() => handleActionClick('reserve')} className="bg-green-600 hover:bg-green-700 w-full">
+                          Reservar
+                        </Button>
+                        <Button onClick={() => handleActionClick('unblock')} className="bg-red-600 hover:bg-red-700 w-full">
+                          Liberar Bloqueo
+                        </Button>
+                      </>
+                    )}
+                    {currentFloorData.apartments[selectedApartment].status === 'reservado' && (
+                      <>
+                        <Button onClick={() => handleActionClick('sell')} className="bg-green-600 hover:bg-green-700 w-full">
+                          Vender
+                        </Button>
+                        <Button onClick={() => handleActionClick('cancelReservation')} className="bg-red-600 hover:bg-red-700 w-full">
+                          Cancelar Reserva
+                        </Button>
+                      </>
+                    )}
+                    {currentFloorData.apartments[selectedApartment].status === 'ocupado' && (
+                      <>
+                        <Button onClick={() => handleDownloadContract(selectedApartment)} className="bg-blue-600 hover:bg-blue-700 w-full">
+                          Descargar contrato
+                        </Button>
+                        <Button onClick={() => handleActionClick('release')} className="bg-yellow-600 hover:bg-yellow-700 w-full">
+                          Liberar departamento
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+                {(action === 'block' || action === 'directReserve' || action === 'reserve' || action === 'sell') && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    {action !== 'sell' && (
+                      <>
+                        <div>
+                          <Label htmlFor="name" className="text-white">Nombre</Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({...formData, name: e.target.value})}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone" className="text-white">Teléfono</Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <Label htmlFor="price" className="text-white">Precio</Label>
+                      <Input
+                        id="price"
+                        type="text"
+                        value={formData.price || currentFloorData.apartments[selectedApartment].price}
+                        onChange={(e) => setFormData({...formData, price: e.target.value})}
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    {action === 'sell' && (
+                      <div>
+                        <Label htmlFor="reservationOrder" className="text-white">Contrato de Venta</Label>
+                        <Input
+                          id="reservationOrder"
+                          type="file"
+                          onChange={handleFileChange}
+                          required
+                          className="text-white bg-zinc-800 border-zinc-700"
+                          ref={fileInputRef}
+                        />
+                      </div>
+                    )}
+                    {/* Add optional note field for reservation cancellation */}
+                    {action === 'reserve' && (
+                      <div>
+                        <Label htmlFor="note" className="text-white">Nota (Opcional)</Label>
+                        <Textarea
+                          id="note"
+                          value={formData.note}
+                          onChange={(e) => setFormData({...formData, note: e.target.value})}
+                          className="text-white bg-zinc-800 border-zinc-700"
+                        />
+                      </div>
+                    )}
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700 w-full">
+                      {action === 'block' ? 'Confirmar Bloqueo' : 
+                       action === 'reserve' || action === 'directReserve' ? 'Confirmar Reserva' : 
+                       action === 'sell' ? 'Confirmar Venta' :
+                       'Confirmar'}
+                    </Button>
+                  </form>
+                )}
+                {(action === 'unblock' || action === 'cancelReservation') && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="note" className="text-white">Nota (Obligatoria)</Label>
+                      <Textarea
+                        id="note"
+                        value={formData.note}
+                        onChange={(e) => setFormData({...formData, note: e.target.value})}
+                        required
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    <Button type="submit" className="bg-red-600 hover:bg-red-700 w-full">
+                      {action === 'unblock' ? 'Confirmar Liberación' : 'Confirmar Cancelación de Reserva'}
+                    </Button>
+                  </form>
+                )}
+                {action === 'release' && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="note" className="text-white">Nota (Obligatoria)</Label>
+                      <Textarea
+                        id="note"
+                        value={formData.note}
+                        onChange={(e) => setFormData({...formData, note: e.target.value})}
+                        required
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    <Button type="submit" className="bg-yellow-600 hover:bg-yellow-700 w-full">
+                      Confirmar Liberación
+                    </Button>
+                  </form>
+                )}
+              </div>
+            ) : (
+              <p className="text-zinc-300">Este departamento está disponible.</p>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="text-white hover:bg-zinc-800 w-full">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-4">Información adicional</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Button onClick={() => handleDownloadAdditionalInfo('Presupuestos')} className="bg-slate-700 hover:bg-zinc-700">
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
+              </Button>
+              <Button onClick={() => handleDownloadAdditionalInfo('Plano del edificio')} className="bg-slate-700 hover:bg-zinc-700">
+                <Building className="mr-2 h-4 w-4" /> Plano del edificio
+              </Button>
+              <Button onClick={() => handleDownloadAdditionalInfo('Plano de la cochera')} className="bg-slate-700 hover:bg-zinc-700">
+                <Car className="mr-2 h-4 w-4" /> Plano de la cochera
+              </Button>
+              <Button onClick={() => handleDownloadAdditionalInfo('Brochure')} className="bg-slate-700 hover:bg-zinc-700">
+                <FileText className="mr-2 h-4 w-4" /> Brochure
+              </Button>
+              <Button onClick={() => handleDownloadAdditionalInfo('Ficha técnica')} className="bg-slate-700 hover:bg-zinc-700">
+                <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
+              </Button>
+            </div>
+          </div>
+          <div className="max-w-4xl mx-auto mb-8">
+            <div className="bg-zinc-900 p-4 rounded-lg">
+              <h4 className="font-semibold mb-4">Registro de Actividades</h4>
+              <div className="space-y-2 max-h-60 overflow-y-auto">
+                {activityLog.map((activity, index) => (
+                  <p key={index} className="text-sm text-zinc-300">{activity}</p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
