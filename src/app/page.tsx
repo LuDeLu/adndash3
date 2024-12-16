@@ -63,9 +63,9 @@ export default function Home() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-screen bg-black">
       <Navigation activeSection={activeSection} setActiveSection={setActiveSection} />
-      <main className="flex-1 overflow-auto p-6">
+      <main className="flex-1 overflow-auto p-6 bg-black text-white">
         {activeSection === 'proyectos' && (
           <Adn 
             onViewProject={handleViewProject} 

@@ -61,10 +61,10 @@ const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () 
     transition={{ type: "spring", stiffness: 400, damping: 17 }}
   >
     <Card 
-      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full bg-black"
+      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full max-w-[300px] mx-auto bg-black"
       onClick={onClick}
     >
-      <div className="relative h-[200px] overflow-hidden group">
+      <div className="relative h-[150px] overflow-hidden group">
         <div className="absolute inset-0 bg-black">
           <img
             src={project.image}
@@ -134,7 +134,7 @@ export function Adn({ onViewProject, onViewPlanes, onViewGallery }: AdnProps) {
 
   return (
     <div className="bg-black min-h-screen">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
         <AnimatePresence>
           {projects.map((project) => (
             <motion.div

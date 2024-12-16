@@ -315,11 +315,11 @@ export default function CombinedCalendar() {
   }, [user]);
 
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-background text-foreground">
+    <div className="h-screen flex flex-col md:flex-row bg-black text-white">
       <div className="flex-grow p-4 md:p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Calendario de {user?.name}</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Calendario de {user?.name}</h1>
             <div>
               <Button onClick={syncWithGoogleCalendar} className="mr-2 bg-secondary text-secondary-foreground hover:bg-secondary/90">
                 Sincronizar con Google
@@ -350,7 +350,7 @@ export default function CombinedCalendar() {
               center: 'title',
               right: 'dayGridMonth,timeGridWeek,timeGridDay'
             }}
-            events={events}
+            events={filteredEvents}
             dateClick={handleDateClick}
             eventClick={handleEventClick}
             editable={true}
@@ -368,12 +368,40 @@ export default function CombinedCalendar() {
             }}
             eventDrop={handleEventDrop}
             eventResize={handleEventResize}
+            themeSystem="standard"
           />
+          <style jsx global>{`
+            .fc {
+              background-color: #111;
+              color: #fff;
+            }
+            .fc-theme-standard td, .fc-theme-standard th {
+              border-color: #333;
+            }
+            .fc-theme-standard .fc-scrollgrid {
+              border-color: #333;
+            }
+            .fc-theme-standard .fc-list-day-cushion {
+              background-color: #222;
+            }
+            .fc .fc-button {
+              background-color: #333;
+              border-color: #444;
+              color: #fff;
+            }
+            .fc .fc-button:hover {
+              background-color: #444;
+            }
+            .fc .fc-button-primary:not(:disabled).fc-button-active, 
+            .fc .fc-button-primary:not(:disabled):active {
+              background-color: #555;
+            }
+          `}</style>
         </div>
       </div>
 
-      <div className="w-full md:w-96 bg-card text-card-foreground border-t md:border-l md:border-t-0 border-border p-4 overflow-y-auto">
-        <h2 className="text-2xl font-bold mb-4 text-foreground">Citas registradas</h2>
+      <div className="w-full md:w-96  text-white border-t md:border-l md:border-t-0  p-4 overflow-y-auto">
+        <h2 className="text-2xl font-bold mb-4 text-white">Citas registradas</h2>
         <Tabs value={filter} onValueChange={(value: string) => setFilter(value as "pendientes" | "cerrados" | "recordados")} className="mb-4">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="pendientes">Pendientes</TabsTrigger>
@@ -383,7 +411,7 @@ export default function CombinedCalendar() {
         </Tabs>
         <div className="space-y-4">
           {filteredEvents.map((event) => (
-            <Card key={event.id} className={`${event.completed ? 'bg-green-900' : event.reminded ? 'bg-yellow-900' : 'bg-card'}`}>
+            <Card key={event.id} className={`${event.completed ? 'bg-green-900' : event.reminded ? 'bg-yellow-900' : 'bg-gray-800'} text-white`}>
               <CardHeader>
                 <CardTitle className="text-lg">{event.title}</CardTitle>
                 <CardDescription>
@@ -428,7 +456,7 @@ export default function CombinedCalendar() {
       </div>
 
       <Dialog open={showEventModal} onOpenChange={setShowEventModal}>
-        <DialogContent className="sm:max-w-[425px] bg-card text-card-foreground">
+        <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white">
           <DialogHeader>
             <DialogTitle>{selectedEvent ? 'Editar Evento' : 'Agregar Nuevo Evento'}</DialogTitle>
           </DialogHeader>
