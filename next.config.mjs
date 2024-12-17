@@ -9,7 +9,7 @@ const nextConfig = {
         },
         {
           protocol: 'https',
-          hostname: 'nexorealestate.com.ar',
+          hostname: 'adndevelopers.com.ar',
           pathname: '/wp-content/uploads/**',
         }
       ],
