@@ -110,7 +110,7 @@ export default function UserManagement() {
                     <SelectContent>
                       <SelectItem value="user">Usuario</SelectItem>
                       <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="superadmin">Super Administrador</SelectItem>
+                      <SelectItem  value="superadmin" disabled>Programador</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

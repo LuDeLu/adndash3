@@ -97,6 +97,9 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
     { icon: <Map  className="h-5 w-5" />, label: "Ubicaciones", section: "mapa" },
     { icon: <Settings className="h-5 w-5" />, label: "Ajustes", section: "ajustes" },
 
+    ...(user?.rol === 'admin' ? [
+      { icon: <UserRoundCog className="h-5 w-5" />, label: "Usuarios", section: "usermanagement" },
+    ] : []),
     ...(user?.rol === 'superadmin' ? [
       { icon: <UserRoundCog className="h-5 w-5" />, label: "Usuarios", section: "usermanagement" },
       { icon: <UserRoundCog className="h-5 w-5" />, label: "Añadir Proyecto", section: "añadirproyecto" }
