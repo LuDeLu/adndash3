@@ -242,6 +242,7 @@ export default function MapaInteractivo() {
             <InteractiveFloorPlan 
               projectId={selectedProject.id}
               floorNumber={selectedFloorNumber}
+              onReturnToProjectModal={handleBackToMap}
             />
           )}
           {view === 'gallery' && selectedProject && (
