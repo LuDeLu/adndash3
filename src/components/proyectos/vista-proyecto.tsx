@@ -223,9 +223,10 @@ const statusColors = {
 interface InteractiveFloorPlanProps {
   projectId?: number;
   floorNumber?: number | null;
+  onReturnToProjectModal: () => void;
 }
 
-export default function InteractiveFloorPlan({ projectId, floorNumber }: InteractiveFloorPlanProps) {
+export default function InteractiveFloorPlan({ projectId, floorNumber, onReturnToProjectModal }: InteractiveFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedApartment, setSelectedApartment] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -477,6 +478,15 @@ export default function InteractiveFloorPlan({ projectId, floorNumber }: Interac
   return (
     <div>
       <div className="min-h-screen bg-black text-white">
+        <div className="max-w-4xl mx-auto mb-4">
+          <Button 
+            onClick={onReturnToProjectModal}
+            className="bg-zinc-700 hover:bg-zinc-600 text-white"
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Volver al proyecto
+          </Button>
+        </div>
         <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
           <div className="p-4 md:p-6">
             <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>

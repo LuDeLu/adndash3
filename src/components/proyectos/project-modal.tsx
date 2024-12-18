@@ -526,4 +526,3 @@ export function ProjectModal({ project, isOpen, onClose, onViewProject, onViewGa
     </AnimatePresence>
   )
 }
-

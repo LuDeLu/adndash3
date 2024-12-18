@@ -86,13 +86,24 @@ type AdnProps = {
   onViewProject: (projectId: number) => void
   onViewPlanes: (projectId: number, floorNumber?: number) => void
   onViewGallery: (projectId: number) => void
+  isProjectModalOpen: boolean
+  setIsProjectModalOpen: (isOpen: boolean) => void
+  selectedProjectId: number | null
+  setSelectedProjectId: (projectId: number | null) => void
 }
 
-export function Adn({ onViewProject, onViewPlanes, onViewGallery }: AdnProps) {
+export function Adn({ 
+  onViewProject, 
+  onViewPlanes, 
+  onViewGallery, 
+  isProjectModalOpen, 
+  setIsProjectModalOpen, 
+  selectedProjectId, 
+  setSelectedProjectId 
+}: AdnProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchProjects()
@@ -120,12 +131,14 @@ export function Adn({ onViewProject, onViewPlanes, onViewGallery }: AdnProps) {
   }
 
   const handleProjectClick = useCallback((projectId: number) => {
+    setIsProjectModalOpen(true)
     setSelectedProjectId(projectId)
-  }, [])
+  }, [setIsProjectModalOpen, setSelectedProjectId])
 
   const handleCloseModal = useCallback(() => {
+    setIsProjectModalOpen(false)
     setSelectedProjectId(null)
-  }, [])
+  }, [setIsProjectModalOpen, setSelectedProjectId])
 
   if (loading) return <div className="p-4">Cargando proyectos...</div>
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
@@ -156,9 +169,9 @@ export function Adn({ onViewProject, onViewPlanes, onViewGallery }: AdnProps) {
         {selectedProject && (
           <ProjectModal
             project={selectedProject}
-            isOpen={!!selectedProject}
+            isOpen={isProjectModalOpen}
             onClose={handleCloseModal}
-            onViewProject={onViewProject}
+            onViewProject={() => onViewProject(selectedProject.id)}
             onViewPlanes={onViewPlanes}
             onViewGallery={onViewGallery}
           />

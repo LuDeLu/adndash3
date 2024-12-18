@@ -29,10 +29,12 @@ export default function Home() {
   const [activeSection, setActiveSection] = useState('proyectos')
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
   const [selectedFloorNumber, setSelectedFloorNumber] = useState<number | null>(null)
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false)
 
   const handleViewProject = (projectId: number) => {
     setSelectedProjectId(projectId)
     setActiveSection('proyectos/vista')
+    setIsProjectModalOpen(false)
   }
 
   const handleViewGallery = (projectId: number) => {
@@ -44,6 +46,11 @@ export default function Home() {
     setSelectedProjectId(projectId)
     setSelectedFloorNumber(floorNumber || null)
     setActiveSection('proyectos/vista')
+  }
+
+  const handleReturnToProjectModal = () => {
+    setActiveSection('proyectos')
+    setIsProjectModalOpen(true)
   }
 
   useEffect(() => {
@@ -68,15 +75,20 @@ export default function Home() {
       <main className="flex-1 overflow-auto p-6 bg-black text-white">
         {activeSection === 'proyectos' && (
           <Adn 
-            onViewProject={handleViewProject} 
+            onViewProject={handleViewProject}
             onViewGallery={handleViewGallery}
             onViewPlanes={handleViewPlanes}
+            isProjectModalOpen={isProjectModalOpen}
+            setIsProjectModalOpen={setIsProjectModalOpen}
+            selectedProjectId={selectedProjectId}
+            setSelectedProjectId={setSelectedProjectId}
           />
         )}
         {activeSection === 'proyectos/vista' && (
           <InteractiveFloorPlan 
             projectId={selectedProjectId!} 
             floorNumber={selectedFloorNumber}
+            onReturnToProjectModal={handleReturnToProjectModal}
           />
         )}
         {activeSection === 'calendario' && <Calendario />}

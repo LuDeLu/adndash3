@@ -78,12 +78,12 @@ type Departamento = {
 const API_BASE_URL = 'https://adndashbackend.onrender.com/api';
 
 const departamentos: Departamento[] = [
-  { id: "1A", emprendimiento: "Suites & Residence", tipologia: "Monoambiente" },
-  { id: "2B", emprendimiento: "Palermo Boulevard", tipologia: "2 dormitorios" },
-  { id: "3C", emprendimiento: "Business Plaza", tipologia: "Local" },
-  { id: "4D", emprendimiento: "Palermo Apartments", tipologia: "1 dormitorio" },
-  { id: "5E", emprendimiento: "Suites & Residence", tipologia: "2 dormitorios" },
-  { id: "6F", emprendimiento: "Palermo Boulevard", tipologia: "3 dormitorios" }
+  { id: "302", emprendimiento: "Palermo Residence", tipologia: "4 ambientes" },
+  { id: "501", emprendimiento: "Palermo Boulevard", tipologia: "2 dormitorios" },
+  { id: "201", emprendimiento: "Business Plaza", tipologia: "Local" },
+  { id: "503", emprendimiento: "Palermo Apartments", tipologia: "1 dormitorio" },
+  { id: "200", emprendimiento: "Suites & Residence", tipologia: "2 dormitorios" },
+  { id: "303", emprendimiento: "Palermo Boulevard", tipologia: "3 dormitorios" }
 ]
 
 export function Clientes() {
@@ -362,7 +362,7 @@ export function Clientes() {
         const dep = departamentos.find(d => d.id === id)
         return `${dep?.emprendimiento} - ${dep?.tipologia} (${id})`
       }).join(', ')
-      const mensaje = `Hola ${clienteSeleccionado.nombre}, aquí tienes información sobre los departamentos seleccionados: ${departamentosInfo}`
+      const mensaje = `Hola ${clienteSeleccionado.nombre}, aquí tienes información sobre los departamentos seleccionados: ${departamentosInfo}. https://adndevelopers.com.ar/ficha302/`
       
       const phoneNumber = `54${clienteSeleccionado.caracteristica}${clienteSeleccionado.telefono}`
       
