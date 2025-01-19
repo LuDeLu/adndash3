@@ -1,5 +1,5 @@
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -16,8 +16,10 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useAuth } from "../../app/auth/auth-context"
 
 export const PanelMonitoreoTareas: React.FC = () => {
+  const { user } = useAuth()
   const [tareas, setTareas] = useState<Tarea[]>([
     {
       id: "1",
@@ -57,9 +59,9 @@ export const PanelMonitoreoTareas: React.FC = () => {
     },
   ])
 
-  const [todoItems, setTodoItems] = useState<TodoItem[]>([
+  const [todoItems, setTodoItems] = useState<(TodoItem & { enTransicion?: boolean; completadoPor?: string })[]>([
     { id: "1", texto: "Revisar planos de cimentación", completado: false },
-    { id: "2", texto: "Coordinar entrega de materiales", completado: true },
+    { id: "2", texto: "Coordinar entrega de materiales", completado: true, completadoPor: "Juan Pérez" },
     { id: "3", texto: "Actualizar cronograma de obra", completado: false },
   ])
 
@@ -74,7 +76,24 @@ export const PanelMonitoreoTareas: React.FC = () => {
   }
 
   const toggleTarea = (id: string) => {
-    setTodoItems(todoItems.map((item) => (item.id === id ? { ...item, completado: !item.completado } : item)))
+    setTodoItems(
+      todoItems.map((item) =>
+        item.id === id
+          ? {
+              ...item,
+              completado: !item.completado,
+              enTransicion: !item.completado,
+              completadoPor: !item.completado ? user?.name || "Usuario Desconocido" : undefined,
+            }
+          : item,
+      ),
+    )
+
+    if (!todoItems.find((item) => item.id === id)?.completado) {
+      setTimeout(() => {
+        setTodoItems((prevItems) => prevItems.map((item) => (item.id === id ? { ...item, enTransicion: false } : item)))
+      }, 100)
+    }
   }
 
   const confirmarEliminarTarea = (id: string) => {
@@ -89,7 +108,7 @@ export const PanelMonitoreoTareas: React.FC = () => {
   }
 
   const tareasPendientes = todoItems.filter((item) => !item.completado)
-  const tareasFinalizadas = todoItems.filter((item) => item.completado)
+  const tareasFinalizadas = todoItems.filter((item) => item.completado && !item.enTransicion)
 
   return (
     <div className="space-y-4">
@@ -132,7 +151,10 @@ export const PanelMonitoreoTareas: React.FC = () => {
                 {tareasPendientes.map((item) => (
                   <div key={item.id} className="flex items-center space-x-2">
                     <Checkbox id={item.id} checked={item.completado} onCheckedChange={() => toggleTarea(item.id)} />
-                    <label htmlFor={item.id} className="flex-grow">
+                    <label
+                      htmlFor={item.id}
+                      className={`flex-grow transition-all duration-3000 ease-in-out ${item.enTransicion ? "line-through text-muted-foreground" : ""}`}
+                    >
                       {item.texto}
                     </label>
                     <Button variant="ghost" size="sm" onClick={() => confirmarEliminarTarea(item.id)}>
@@ -162,6 +184,7 @@ export const PanelMonitoreoTareas: React.FC = () => {
                     <Checkbox id={item.id} checked={item.completado} onCheckedChange={() => toggleTarea(item.id)} />
                     <label htmlFor={item.id} className="flex-grow line-through text-muted-foreground">
                       {item.texto}
+                      <span className="ml-2 text-xs text-muted-foreground">(Completada por: {item.completadoPor})</span>
                     </label>
                     <Button variant="ghost" size="sm" onClick={() => confirmarEliminarTarea(item.id)}>
                       <Trash2 className="h-4 w-4" />
@@ -192,6 +215,22 @@ export const PanelMonitoreoTareas: React.FC = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <style jsx global>{`
+        @keyframes strikethrough {
+          from {
+            text-decoration-color: transparent;
+          }
+          to {
+            text-decoration-color: currentColor;
+          }
+        }
+        .line-through {
+          text-decoration: line-through;
+          text-decoration-color: transparent;
+          animation: strikethrough 3s linear forwards;
+        }
+      `}</style>
     </div>
   )
 }
