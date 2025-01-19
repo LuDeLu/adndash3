@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { format, addDays } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Edit, Trash2, CheckCircle, MessageCircle } from 'lucide-react'
 import { useAuth } from '@/app/auth/auth-context'
+import { toast } from 'react-hot-toast'
 
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
@@ -66,10 +67,12 @@ export default function CombinedCalendar() {
           googleEventId: event.googleEventId || null
         })));
       } else {
-        throw new Error('Failed to fetch events');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to fetch events');
       }
     } catch (error) {
       console.error('Error fetching events:', error);
+      toast.error('Failed to fetch events. Please try again.');
     }
   }, []);
 
@@ -109,13 +112,23 @@ export default function CombinedCalendar() {
           : `${API_BASE_URL}/events`;
         const method = selectedEvent ? 'PUT' : 'POST';
         
+        const eventData = {
+          title: newEvent.title,
+          client: newEvent.client,
+          start: newEvent.start.toISOString(),
+          end: newEvent.end.toISOString(),
+          completed: newEvent.completed,
+          reminded: newEvent.reminded,
+          googleEventId: newEvent.googleEventId
+        };
+        
         const response = await fetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
-          body: JSON.stringify(newEvent)
+          body: JSON.stringify(eventData)
         });
   
         if (response.ok) {
@@ -146,11 +159,14 @@ export default function CombinedCalendar() {
             googleEventId: null,
             classNames: []
           });
+          toast.success(selectedEvent ? 'Event updated successfully' : 'Event created successfully');
         } else {
-          throw new Error(`Failed to ${selectedEvent ? 'update' : 'create'} event`);
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to ${selectedEvent ? 'update' : 'create'} event`);
         }
       } catch (error) {
         console.error(`Error ${selectedEvent ? 'updating' : 'creating'} event:`, error);
+        toast.error(`Failed to ${selectedEvent ? 'update' : 'create'} event. Please try again.`);
       }
     }
   };
@@ -168,11 +184,14 @@ export default function CombinedCalendar() {
         setEvents(prev => prev.filter(e => e.id !== eventId));
         setSelectedEvent(null);
         setShowEventModal(false);
+        toast.success('Event deleted successfully');
       } else {
-        throw new Error('Failed to delete event');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete event');
       }
     } catch (error) {
       console.error('Error deleting event:', error);
+      toast.error('Failed to delete event. Please try again.');
     }
   };
 
@@ -196,11 +215,14 @@ export default function CombinedCalendar() {
         setEvents(prev =>
           prev.map(e => (e.id === eventId ? {...updatedEvent, classNames: getEventClassNames(updatedEvent)} : e))
         );
+        toast.success('Event status updated successfully');
       } else {
-        throw new Error('Failed to update event');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update event');
       }
     } catch (error) {
       console.error('Error updating event:', error);
+      toast.error('Failed to update event status. Please try again.');
     }
   };
 
@@ -224,11 +246,14 @@ export default function CombinedCalendar() {
         setEvents(prev =>
           prev.map(e => (e.id === eventId ? {...updatedEvent, classNames: getEventClassNames(updatedEvent)} : e))
         );
+        toast.success('Event reminder set successfully');
       } else {
-        throw new Error('Failed to update event');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update event');
       }
     } catch (error) {
       console.error('Error updating event:', error);
+      toast.error('Failed to set event reminder. Please try again.');
     }
   };
 
@@ -282,11 +307,14 @@ export default function CombinedCalendar() {
         setEvents(prev =>
           prev.map(e => (e.id === event.id ? updatedEvent : e))
         );
+        toast.success('Event dates updated successfully');
       } else {
-        throw new Error('Failed to update event');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to update event');
       }
     } catch (error) {
       console.error('Error updating event:', error);
+      toast.error('Failed to update event dates. Please try again.');
     }
   };
 
@@ -300,11 +328,14 @@ export default function CombinedCalendar() {
       });
       if (response.ok) {
         await fetchEvents();
+        toast.success('Events synced with Google Calendar successfully');
       } else {
-        throw new Error('Failed to sync with Google Calendar');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to sync with Google Calendar');
       }
     } catch (error) {
       console.error('Error syncing with Google Calendar:', error);
+      toast.error('Failed to sync with Google Calendar. Please try again.');
     }
   };
 
@@ -368,39 +399,11 @@ export default function CombinedCalendar() {
             }}
             eventDrop={handleEventDrop}
             eventResize={handleEventResize}
-            themeSystem="standard"
           />
-          <style jsx global>{`
-            .fc {
-              background-color: #111;
-              color: #fff;
-            }
-            .fc-theme-standard td, .fc-theme-standard th {
-              border-color: #333;
-            }
-            .fc-theme-standard .fc-scrollgrid {
-              border-color: #333;
-            }
-            .fc-theme-standard .fc-list-day-cushion {
-              background-color: #222;
-            }
-            .fc .fc-button {
-              background-color: #333;
-              border-color: #444;
-              color: #fff;
-            }
-            .fc .fc-button:hover {
-              background-color: #444;
-            }
-            .fc .fc-button-primary:not(:disabled).fc-button-active, 
-            .fc .fc-button-primary:not(:disabled):active {
-              background-color: #555;
-            }
-          `}</style>
         </div>
       </div>
 
-      <div className="w-full md:w-96  text-white border-t md:border-l md:border-t-0  p-4 overflow-y-auto">
+      <div className="w-full md:w-96 text-white border-t md:border-l md:border-t-0 p-4 overflow-y-auto">
         <h2 className="text-2xl font-bold mb-4 text-white">Citas registradas</h2>
         <Tabs value={filter} onValueChange={(value: string) => setFilter(value as "pendientes" | "cerrados" | "recordados")} className="mb-4">
           <TabsList className="grid w-full grid-cols-3">
@@ -459,6 +462,9 @@ export default function CombinedCalendar() {
         <DialogContent className="sm:max-w-[425px] bg-gray-800 text-white">
           <DialogHeader>
             <DialogTitle>{selectedEvent ? 'Editar Evento' : 'Agregar Nuevo Evento'}</DialogTitle>
+            <DialogDescription>
+              {selectedEvent ? 'Modifica los detalles del evento' : 'Ingresa los detalles del nuevo evento'}
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -534,4 +540,3 @@ export default function CombinedCalendar() {
     </div>
   )
 }
-

@@ -14,7 +14,7 @@ import InteractiveFloorPlan from '@/components/proyectos/vista-proyecto'
 import { MediaGalleryComponent } from '@/components/proyectos/galeria'
 import { SettingsDashboardComponent } from '@/components/usuarios/configuracion'
 import DocumentManagement from "@/components/administrativo/documentos"
-import { SeguimientoProyectosConstruccionComponent } from '@/components/administrativo/obras'
+import  SeguimientoProyectosConstruccionComponent  from '@/components/obras/obras'
 import UserManagement from '@/components/config/roles'
 import { AddProject } from '@/components/config/añadir-proyecto'
 
