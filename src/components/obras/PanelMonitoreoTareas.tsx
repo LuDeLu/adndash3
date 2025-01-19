@@ -184,8 +184,9 @@ export const PanelMonitoreoTareas: React.FC = () => {
                     <Checkbox id={item.id} checked={item.completado} onCheckedChange={() => toggleTarea(item.id)} />
                     <label htmlFor={item.id} className="flex-grow line-through text-muted-foreground">
                       {item.texto}
-                      <span className="ml-2 text-xs text-muted-foreground">(Completada por: {item.completadoPor})</span>
                     </label>
+                    <span className="ml-2 text-xs text-muted-foreground">(Completada por: {item.completadoPor})</span>
+
                     <Button variant="ghost" size="sm" onClick={() => confirmarEliminarTarea(item.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
