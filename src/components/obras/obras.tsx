@@ -33,7 +33,7 @@ const SeguimientoProyectosConstruccionComponent: React.FC = () => {
         interior: 40,
         exterior: 20,
       },
-      videoEnVivo: "https://www.earthcam.com/usa/newyork/timessquare/?cam=tsrobo3",
+      videoEnVivo: "https://220.254.144.230:50000/",
     },
     {
       id: "2",
