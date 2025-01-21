@@ -14,7 +14,8 @@ import { InformeProgresoDiario } from "@/components/obras/InformeProgresoDiario"
 import { SistemaAlertasNotificaciones } from "@/components/obras/SistemaAlertasNotificaciones"
 import { RepositorioDocumentos } from "@/components/obras/RepositorioDocumentos"
 import { VideoEnVivo } from "@/components/obras/VideoEnVivo"
-import type { Proyecto } from "@/types/index"
+import { Cronograma } from "@/components/obras/Cronograma"
+import type { Proyecto, Tarea } from "@/types/index"
 import { useAuth } from "@/app/auth/auth-context"
 
 const SeguimientoProyectosConstruccionComponent: React.FC = () => {
@@ -33,7 +34,7 @@ const SeguimientoProyectosConstruccionComponent: React.FC = () => {
         interior: 40,
         exterior: 20,
       },
-      videoEnVivo: "https://220.254.144.230:50000/",
+      videoEnVivo: "https://example.com/live/dome-palermo",
     },
     {
       id: "2",
@@ -50,7 +51,50 @@ const SeguimientoProyectosConstruccionComponent: React.FC = () => {
       videoEnVivo: "https://example.com/live/business-plaza",
     },
   ])
-  const [activeTab, setActiveTab] = useState("tareas")
+  const [activeTab, setActiveTab] = useState("resumen")
+
+  const [tareas] = useState<Tarea[]>([
+    {
+      id: "1",
+      nombre: "Cimentación",
+      inicio: new Date(2023, 0, 1),
+      fin: new Date(2023, 1, 15),
+      progreso: 100,
+      responsable: "Juan Pérez",
+      estado: "Completado",
+      descripcion: "Preparación y construcción de los cimientos del edificio.",
+    },
+    {
+      id: "2",
+      nombre: "Estructura",
+      inicio: new Date(2023, 1, 16),
+      fin: new Date(2023, 3, 15),
+      progreso: 75,
+      responsable: "María González",
+      estado: "En progreso",
+      descripcion: "Levantamiento de la estructura principal del edificio.",
+    },
+    {
+      id: "3",
+      nombre: "Techado",
+      inicio: new Date(2023, 3, 16),
+      fin: new Date(2023, 4, 31),
+      progreso: 25,
+      responsable: "Carlos Rodríguez",
+      estado: "En progreso",
+      descripcion: "Instalación del techo y sistemas de drenaje.",
+    },
+    {
+      id: "4",
+      nombre: "Trabajo Interior",
+      inicio: new Date(2023, 5, 1),
+      fin: new Date(2023, 7, 31),
+      progreso: 0,
+      responsable: "Ana Martínez",
+      estado: "Pendiente",
+      descripcion: "Acabados interiores, instalaciones eléctricas y de plomería.",
+    },
+  ])
 
   if (!proyectoSeleccionado) {
     return (
@@ -100,9 +144,10 @@ const SeguimientoProyectosConstruccionComponent: React.FC = () => {
               <SelectContent>
                 <SelectItem value="resumen">Resumen</SelectItem>
                 <SelectItem value="tareas">Monitoreo de Tareas</SelectItem>
+                <SelectItem value="cronograma">Cronograma</SelectItem>
                 <SelectItem value="progreso">Progreso Diario</SelectItem>
-                <SelectItem value="alertas">Alertas y Notificaciones</SelectItem>
-                <SelectItem value="documentos">Repositorio de Documentos</SelectItem>
+                <SelectItem value="alertas">Notificaciones</SelectItem>
+                <SelectItem value="documentos"> Documentos</SelectItem>
                 <SelectItem value="envivo">En Vivo</SelectItem>
               </SelectContent>
             </Select>
@@ -113,9 +158,10 @@ const SeguimientoProyectosConstruccionComponent: React.FC = () => {
             <TabsList className="hidden sm:flex">
               <TabsTrigger value="resumen">Resumen</TabsTrigger>
               <TabsTrigger value="tareas">Monitoreo de Tareas</TabsTrigger>
+              <TabsTrigger value="cronograma">Cronograma</TabsTrigger>
               <TabsTrigger value="progreso">Progreso Diario</TabsTrigger>
-              <TabsTrigger value="alertas">Alertas y Notificaciones</TabsTrigger>
-              <TabsTrigger value="documentos">Repositorio de Documentos</TabsTrigger>
+              <TabsTrigger value="alertas">Notificaciones</TabsTrigger>
+              <TabsTrigger value="documentos"> Documentos</TabsTrigger>
               <TabsTrigger value="envivo">En Vivo</TabsTrigger>
             </TabsList>
             <TabsContent value="resumen">
@@ -123,6 +169,9 @@ const SeguimientoProyectosConstruccionComponent: React.FC = () => {
             </TabsContent>
             <TabsContent value="tareas">
               <PanelMonitoreoTareas />
+            </TabsContent>
+            <TabsContent value="cronograma">
+              <Cronograma tareas={tareas} />
             </TabsContent>
             <TabsContent value="progreso">
               <InformeProgresoDiario />

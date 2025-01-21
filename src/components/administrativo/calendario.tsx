@@ -24,6 +24,7 @@ import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
 import timeGridPlugin from "@fullcalendar/timegrid"
 import interactionPlugin from "@fullcalendar/interaction"
+import { useAuth } from "@/app/auth/auth-context"
 
 type Event = {
   id: string
@@ -93,6 +94,7 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
 }
 
 export default function DemoCalendar() {
+  const { user } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -182,7 +184,7 @@ export default function DemoCalendar() {
       <div className="flex-grow p-4 md:p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-white">Calendario de Demostración</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white">Calendario de {user?.name || "Demostración"}</h1>
             <Button
               onClick={() => {
                 setSelectedEvent(null)
