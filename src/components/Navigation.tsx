@@ -2,26 +2,41 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { useRouter } from 'next/navigation'
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible"
-import { Home, Calendar, Users, BarChart, Settings, ChevronRight, Menu, PieChart, LineChart, LayoutDashboard, ImageIcon, DollarSignIcon, LogOut, User, ClipboardList, Pickaxe, UserRoundCog, Map, ChevronLeft } from 'lucide-react'
+import {
+  Home,
+  Calendar,
+  Users,
+  BarChart,
+  Settings,
+  Menu,
+  LayoutDashboard,
+  ImageIcon,
+  LogOut,
+  ClipboardList,
+  Pickaxe,
+  UserRoundCog,
+  Map,
+  ChevronLeft,
+  Headphones,
+} from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useAuth } from '@/app/auth/auth-context'
+import { useAuth } from "@/app/auth/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from "framer-motion"
 
 type NavigationProps = {
-  activeSection: string;
-  setActiveSection: (section: string) => void;
+  activeSection: string
+  setActiveSection: (section: string) => void
 }
 
 type NavItemProps = {
-  icon: React.ReactNode;
-  label: string;
-  section: string;
-  isMobile: boolean;
-  onClick: () => void;
+  icon: React.ReactNode
+  label: string
+  section: string
+  isMobile: boolean
+  onClick: () => void
 }
 
 export function Navigation({ activeSection, setActiveSection }: NavigationProps) {
@@ -33,19 +48,19 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
 
   useEffect(() => {
     const handleResize = () => {
-      const newIsMobile = window.innerWidth < 768;
-      setIsMobile(newIsMobile);
+      const newIsMobile = window.innerWidth < 768
+      setIsMobile(newIsMobile)
       if (!newIsMobile) {
-        setIsCollapsed(false);
+        setIsCollapsed(false)
       }
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    }
+    handleResize()
+    window.addEventListener("resize", handleResize)
+    return () => window.removeEventListener("resize", handleResize)
+  }, [])
 
   useEffect(() => {
-    if (!activeSection.startsWith('proyectos')) {
+    if (!activeSection.startsWith("proyectos")) {
       setIsProjectsOpen(false)
     }
   }, [activeSection])
@@ -76,7 +91,7 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
     return (
       <Button
         variant={activeSection === section ? "secondary" : "ghost"}
-        className={`w-full justify-start ${isCollapsed ? 'px-2' : ''}`}
+        className={`w-full justify-start ${isCollapsed ? "px-2" : ""}`}
         onClick={onClick}
       >
         {icon}
@@ -94,16 +109,19 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
     { icon: <ClipboardList className="h-5 w-5" />, label: "Archivos", section: "archivos" },
     { icon: <Pickaxe className="h-5 w-5" />, label: "Obras", section: "obras" },
     { icon: <ImageIcon className="h-5 w-5" />, label: "Galeria", section: "galeria" },
-    { icon: <Map  className="h-5 w-5" />, label: "Ubicaciones", section: "mapa" },
+    { icon: <Map className="h-5 w-5" />, label: "Ubicaciones", section: "mapa" },
+    { icon: <Headphones className="h-5 w-5" />, label: "Postventas", section: "postventas" },
     { icon: <Settings className="h-5 w-5" />, label: "Ajustes", section: "ajustes" },
 
-    ...(user?.rol === 'admin' ? [
-      { icon: <UserRoundCog className="h-5 w-5" />, label: "Usuarios", section: "usermanagement" },
-    ] : []),
-    ...(user?.rol === 'superadmin' ? [
-      { icon: <UserRoundCog className="h-5 w-5" />, label: "Usuarios", section: "usermanagement" },
-      { icon: <UserRoundCog className="h-5 w-5" />, label: "Añadir Proyecto", section: "añadirproyecto" }
-    ] : [])
+    ...(user?.rol === "admin"
+      ? [{ icon: <UserRoundCog className="h-5 w-5" />, label: "Usuarios", section: "usermanagement" }]
+      : []),
+    ...(user?.rol === "superadmin"
+      ? [
+          { icon: <UserRoundCog className="h-5 w-5" />, label: "Usuarios", section: "usermanagement" },
+          { icon: <UserRoundCog className="h-5 w-5" />, label: "Añadir Proyecto", section: "añadirproyecto" },
+        ]
+      : []),
   ]
 
   const handleLogout = () => {
@@ -111,7 +129,9 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
   }
 
   const UserInfo = () => (
-    <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'justify-start'} mb-4 bg-secondary p-4 rounded-lg`}>
+    <div
+      className={`flex items-center ${isCollapsed ? "justify-center" : "justify-start"} mb-4 bg-secondary p-4 rounded-lg`}
+    >
       <Avatar className="h-10 w-10">
         <AvatarImage src={user?.avatarUrl} alt={user?.name} />
         <AvatarFallback>{user?.name?.charAt(0)}</AvatarFallback>
@@ -129,18 +149,9 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
     <>
       <div className="flex items-center justify-between mb-6">
         <Link href="#" className="flex items-center gap-2" prefetch={false}>
-          {!isCollapsed && (
-            <span className="text-lg font-bold">
-              ADN Developers
-            </span>
-          )}
+          {!isCollapsed && <span className="text-lg font-bold">ADN Developers</span>}
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="rounded-full"
-        >
+        <Button variant="ghost" size="icon" onClick={() => setIsCollapsed(!isCollapsed)} className="rounded-full">
           <Menu className="h-4 w-4" />
         </Button>
       </div>
@@ -151,7 +162,7 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
             {...item}
             isMobile={false}
             onClick={() => {
-              if (item.section === 'proyectos' && activeSection === 'proyectos') {
+              if (item.section === "proyectos" && activeSection === "proyectos") {
                 setIsProjectsOpen(!isProjectsOpen)
               } else {
                 setActiveSection(item.section)
@@ -161,11 +172,7 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
         ))}
       </nav>
       <UserInfo />
-      <Button
-        variant="ghost"
-        className={`w-full justify-start ${isCollapsed ? 'px-2' : ''}`}
-        onClick={handleLogout}
-      >
+      <Button variant="ghost" className={`w-full justify-start ${isCollapsed ? "px-2" : ""}`} onClick={handleLogout}>
         <LogOut className="h-5 w-5" />
         {!isCollapsed && <span className="ml-2">Cerrar sesión</span>}
       </Button>
@@ -201,10 +208,10 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
                 onClick={() => setIsCollapsed(true)}
               />
               <motion.nav
-                initial={{ x: '-100%', opacity: 0 }}
+                initial={{ x: "-100%", opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
-                exit={{ x: '-100%', opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                exit={{ x: "-100%", opacity: 0 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="fixed inset-y-0 left-0 w-[65%] bg-background border-r border-border p-6 shadow-xl z-50 overflow-y-auto"
               >
                 <div className="flex flex-col h-full">
@@ -220,17 +227,13 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
                   </div>
                   <div className="flex-grow">
                     {navItems.map((item) => (
-                      <motion.div
-                        key={item.section}
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
+                      <motion.div key={item.section} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
                           variant={activeSection === item.section ? "secondary" : "ghost"}
                           className="w-full justify-start mb-4 text-lg"
                           onClick={() => {
-                            setActiveSection(item.section);
-                            setIsCollapsed(true);
+                            setActiveSection(item.section)
+                            setIsCollapsed(true)
                           }}
                         >
                           {item.icon}
@@ -241,15 +244,8 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
                   </div>
                   <div className="mt-auto">
                     <UserInfo />
-                    <motion.div
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start mt-4 text-lg"
-                        onClick={handleLogout}
-                      >
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button variant="ghost" className="w-full justify-start mt-4 text-lg" onClick={handleLogout}>
                         <LogOut className="h-5 w-5" />
                         <span className="ml-4">Cerrar sesión</span>
                       </Button>
@@ -261,11 +257,13 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
           )}
         </AnimatePresence>
       </>
-    );
+    )
   }
 
   return (
-    <div className={`bg-background border-r border-border p-4 flex flex-col h-screen transition-all duration-300 ${isCollapsed ? 'w-16' : 'w-64'}`}>
+    <div
+      className={`bg-background border-r border-border p-4 flex flex-col h-screen transition-all duration-300 ${isCollapsed ? "w-16" : "w-64"}`}
+    >
       <DesktopNavContent />
     </div>
   )

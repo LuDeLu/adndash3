@@ -30,6 +30,7 @@ import "notyf/notyf.min.css"
 import { useAuth } from "@/app/auth/auth-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import GarageView from "./garage-view"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 let notyf: Notyf | null = null
 
@@ -296,6 +297,18 @@ const statusColors = {
   libre: "#87f5af",
   bloqueado: "#7f7fff",
 }
+
+type ParkingSpotStatus = "ocupado" | "reservado" | "libre" | "bloqueado"
+
+type ParkingSpotData = {
+  id: string
+  status: ParkingSpotStatus
+  owner?: string
+  price: string
+}
+
+type ParkingSpotsState = { [key: number]: ParkingSpotData[] }
+
 interface InteractiveFloorPlanProps {
   projectId?: number
   floorNumber?: number | null
@@ -334,8 +347,65 @@ export default function InteractiveFloorPlan({
   const [confirmRelease, setConfirmRelease] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [assignedParkingSpots, setAssignedParkingSpots] = useState<{ [key: string]: string[] }>({})
+  const [parkingSpots, setParkingSpots] = useState<ParkingSpotsState>({
+    1: Array.from({ length: 13 }, (_, i) => ({
+      id: `A${i + 1}`,
+      status: i < 3 ? "ocupado" : "libre",
+      price: "$50,000",
+      owner: i < 3 ? `Apartment ${i + 1}A` : undefined,
+    })),
+    2: Array.from({ length: 13 }, (_, i) => ({
+      id: `B${i + 1}`,
+      status: i < 2 ? "ocupado" : "libre",
+      price: "$45,000",
+      owner: i < 2 ? `Apartment ${i + 1}B` : undefined,
+    })),
+    3: Array.from({ length: 13 }, (_, i) => ({
+      id: `C${i + 1}`,
+      status: i < 1 ? "ocupado" : "libre",
+      price: "$55,000",
+      owner: i < 1 ? `Apartment ${i + 1}C` : undefined,
+    })),
+    4: Array.from({ length: 13 }, (_, i) => ({
+      id: `D${i + 1}`,
+      status: "libre",
+      price: "$55,000",
+      owner: undefined,
+    })),
+    5: Array.from({ length: 13 }, (_, i) => ({
+      id: `E${i + 1}`,
+      status: "libre",
+      price: "$55,000",
+      owner: undefined,
+    })),
+    6: Array.from({ length: 13 }, (_, i) => ({
+      id: `F${i + 1}`,
+      status: "libre",
+      price: "$55,000",
+      owner: undefined,
+    })),
+    7: Array.from({ length: 13 }, (_, i) => ({
+      id: `G${i + 1}`,
+      status: "libre",
+      price: "$55,000",
+      owner: undefined,
+    })),
+    8: Array.from({ length: 13 }, (_, i) => ({
+      id: `H${i + 1}`,
+      status: "libre",
+      price: "$55,000",
+      owner: undefined,
+    })),
+    9: Array.from({ length: 13 }, (_, i) => ({
+      id: `I${i + 1}`,
+      status: "libre",
+      price: "$55,000",
+      owner: undefined,
+    })),
+  })
 
-  const updateUnitStats = useCallback(() => {
+  const updateUnitStats = useCallback((): void => {
     const currentFloorData = floorData[currentFloor]
     if (!currentFloorData || !currentFloorData.apartments) {
       setUnitStats({ disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 })
@@ -350,7 +420,7 @@ export default function InteractiveFloorPlan({
         else if (apartment.status === "bloqueado") acc.bloqueadas++
         return acc
       },
-      { disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 },
+      { disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 } as UnitStats,
     )
     setUnitStats(stats)
   }, [currentFloor])
@@ -369,11 +439,7 @@ export default function InteractiveFloorPlan({
       })
     }
     updateUnitStats()
-  }, [projectId, floorNumber, updateUnitStats, currentFloor])
-
-  useEffect(() => {
-    updateUnitStats()
-  }, [currentFloor, updateUnitStats])
+  }, [projectId, floorNumber, updateUnitStats, currentFloor]) // Added currentFloor to dependencies
 
   const handleFloorClick = (floor: number) => {
     setCurrentFloor(floor)
@@ -449,9 +515,6 @@ export default function InteractiveFloorPlan({
           apartment.date = new Date().toISOString().split("T")[0]
           activityMessage = `${user?.name} reservó el departamento ${selectedApartment}`
           if (notyf) notyf.success("Departamento reservado con éxito")
-          break
-        case "sell":
-          apartment.status = "ocupado"
           break
         case "sell":
           apartment.status = "ocupado"
@@ -569,8 +632,56 @@ export default function InteractiveFloorPlan({
   const currentFloorData = floorData[currentFloor] || { apartments: {}, svgPaths: {} }
   const totalUnits = Object.keys(currentFloorData.apartments).length
 
+  const handleAssignParkingSpot = (apartment: string, parkingSpot: string) => {
+    setAssignedParkingSpots((prev) => {
+      const updatedSpots = { ...prev }
+      if (!updatedSpots[apartment]) {
+        updatedSpots[apartment] = []
+      }
+      if (updatedSpots[apartment].length < 3 && !updatedSpots[apartment].includes(parkingSpot)) {
+        updatedSpots[apartment] = [...updatedSpots[apartment], parkingSpot]
+      }
+      return updatedSpots
+    })
+    // Update the parking spot status in the GarageView
+    setParkingSpots((prev) => {
+      const updatedSpots = { ...prev }
+      const level = Number.parseInt(parkingSpot.charAt(0))
+      if (updatedSpots[level]) {
+        const spotIndex = updatedSpots[level].findIndex((spot) => spot.id === parkingSpot)
+        if (spotIndex !== -1) {
+          updatedSpots[level][spotIndex].status = "ocupado"
+          updatedSpots[level][spotIndex].owner = apartment
+        }
+      }
+      return updatedSpots
+    })
+  }
+
+  const handleRemoveParkingSpot = (apartment: string, parkingSpot: string) => {
+    setAssignedParkingSpots((prev) => {
+      const updatedSpots = { ...prev }
+      if (updatedSpots[apartment]) {
+        updatedSpots[apartment] = updatedSpots[apartment].filter((spot) => spot !== parkingSpot)
+      }
+      return updatedSpots
+    })
+    setParkingSpots((prev) => {
+      const updatedSpots = { ...prev }
+      const level = Number.parseInt(parkingSpot.charAt(0))
+      if (updatedSpots[level]) {
+        const spotIndex = updatedSpots[level].findIndex((spot) => spot.id === parkingSpot)
+        if (spotIndex !== -1) {
+          updatedSpots[level][spotIndex].status = "libre"
+          updatedSpots[level][spotIndex].owner = undefined
+        }
+      }
+      return updatedSpots
+    })
+  }
+
   return (
-      <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 mb-8">
           <ChevronLeft className="mr-2 h-4 w-4" />
@@ -670,7 +781,13 @@ export default function InteractiveFloorPlan({
             </div>
           </TabsContent>
           <TabsContent value="garage">
-            <GarageView />
+            <GarageView
+              assignedParkingSpots={assignedParkingSpots}
+              onAssignParkingSpot={handleAssignParkingSpot}
+              onRemoveParkingSpot={handleRemoveParkingSpot}
+              parkingSpots={parkingSpots}
+              setParkingSpots={setParkingSpots}
+            />
           </TabsContent>
         </Tabs>
 
@@ -936,6 +1053,45 @@ export default function InteractiveFloorPlan({
                       Confirmar Liberación
                     </Button>
                   </form>
+                )}
+                {selectedApartment && (
+                  <div className="mt-4">
+                    <h4 className="font-semibold mb-2">Cocheras asignadas</h4>
+                    <div className="space-y-2">
+                      {assignedParkingSpots[selectedApartment]?.map((spot) => (
+                        <div key={spot} className="flex justify-between items-center">
+                          <span>{spot}</span>
+                          <Button
+                            onClick={() => handleRemoveParkingSpot(selectedApartment, spot)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Remover
+                          </Button>
+                        </div>
+                      ))}
+                      {(assignedParkingSpots[selectedApartment]?.length || 0) < 3 && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button className="bg-green-600 hover:bg-green-700 w-full">Asignar cochera</Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            {Object.entries(parkingSpots).flatMap(([level, spots]) =>
+                              spots
+                                .filter((spot) => spot.status === "libre")
+                                .map((spot) => (
+                                  <DropdownMenuItem
+                                    key={spot.id}
+                                    onSelect={() => handleAssignParkingSpot(selectedApartment!, spot.id)}
+                                  >
+                                    {spot.id}
+                                  </DropdownMenuItem>
+                                )),
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
