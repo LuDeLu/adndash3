@@ -678,7 +678,6 @@ export function Clientes() {
                         onChange={handleInputChange}
                         placeholder="Email del cliente"
                         className="col-span-3"
-                        required
                       />
                     </div>
                     <div className="grid items-center grid-cols-4 gap-4">
