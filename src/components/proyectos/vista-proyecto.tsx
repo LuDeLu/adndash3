@@ -591,7 +591,6 @@ export default function InteractiveFloorPlan({
               }
             })
           })
-
           // Añadir entrada al registro de actividades para liberación
           const timestamp = new Date().toLocaleString()
           const activityMessage = `${user?.name} liberó la cochera ${selectedParking} del departamento ${departmentReleased}`
