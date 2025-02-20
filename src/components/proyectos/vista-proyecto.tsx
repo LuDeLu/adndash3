@@ -424,16 +424,15 @@ export default function InteractiveFloorPlan({
   // Actualizar la función handleParkingAssignment
   const handleParkingAssignment = () => {
     if (selectedApartment) {
-      const updatedParkingSpots = parkingSpots.map((spot) => {
+      // En la función handleParkingAssignment, modificar la creación de updatedParkingSpots
+      const updatedParkingSpots = parkingSpots.map((spot): ParkingSpot => {
         if (selectedParkings[spot.id]) {
-          // Si está seleccionado, asignar
           return {
             ...spot,
             status: "ocupado",
             assignedTo: selectedApartment,
           }
         } else if (spot.assignedTo === selectedApartment) {
-          // Si estaba asignado a este apartamento pero ya no está seleccionado, desasignar
           return {
             ...spot,
             status: "libre",
