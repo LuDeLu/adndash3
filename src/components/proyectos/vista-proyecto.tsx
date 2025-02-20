@@ -878,15 +878,21 @@ export default function InteractiveFloorPlan({
 
   // Actualizar la función handleOpenParkingAssignment
   const handleOpenParkingAssignment = () => {
-    const initialSelectedParkings = currentFloorData.apartments[selectedApartment].assignedParkings.reduce(
-      (acc, parkingId) => {
-        acc[parkingId] = true
-        return acc
-      },
-      {} as { [key: string]: boolean },
-    )
-    setSelectedParkings(initialSelectedParkings)
-    setShowParkingAssignment(true)
+    if (selectedApartment && currentFloorData.apartments[selectedApartment]) {
+      const initialSelectedParkings = currentFloorData.apartments[selectedApartment].assignedParkings.reduce(
+        (acc, parkingId) => {
+          acc[parkingId] = true
+          return acc
+        },
+        {} as { [key: string]: boolean },
+      )
+      setSelectedParkings(initialSelectedParkings)
+      setShowParkingAssignment(true)
+    } else {
+      // Manejar el caso en que selectedApartment es null o el apartamento no existe
+      console.error("No se ha seleccionado un apartamento válido")
+      if (notyf) notyf.error("No se ha seleccionado un apartamento válido")
+    }
   }
 
   return (
@@ -1290,7 +1296,11 @@ export default function InteractiveFloorPlan({
                         </Button>
                       </>
                     )}
-                    <Button onClick={handleOpenParkingAssignment} className="bg-purple-600 hover:bg-purple-700 w-full">
+                    <Button
+                      onClick={handleOpenParkingAssignment}
+                      className="bg-purple-600 hover:bg-purple-700 w-full"
+                      disabled={!selectedApartment}
+                    >
                       Asignar cocheras
                     </Button>
                   </div>
