@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
@@ -29,8 +31,11 @@ import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { useAuth } from "@/app/auth/auth-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import GarageView from "./garage-view"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
+
+// Añadir estas importaciones al principio del archivo
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 let notyf: Notyf | null = null
 
@@ -45,6 +50,7 @@ type ApartmentData = {
   phoneNumber?: string
   email?: string
   surface: string
+  assignedParkings: string[]
 }
 
 type ApartmentDataMap = {
@@ -66,12 +72,12 @@ type UnitStats = {
   bloqueadas: number
 }
 
-const floorData: { [key: number]: FloorData } = {
+const initialFloorData: { [key: number]: FloorData } = {
   1: {
     apartments: {
-      "1A": { buyer: "", date: "", price: "$774.200", status: "libre", surface: "181,55 m²" },
-      "1B": { buyer: "", date: "", price: "$820.900", status: "libre", surface: "183,35 m²" },
-      "1C": { buyer: "", date: "", price: "$667.600", status: "libre", surface: "154,25 m²" },
+      "1A": { buyer: "", date: "", price: "$774.200", status: "libre", surface: "181,55 m²", assignedParkings: [] },
+      "1B": { buyer: "", date: "", price: "$820.900", status: "libre", surface: "183,35 m²", assignedParkings: [] },
+      "1C": { buyer: "", date: "", price: "$667.600", status: "libre", surface: "154,25 m²", assignedParkings: [] },
     },
     svgPaths: {
       "1A": "M136,509 L126,2004 L764,2001 L767,1918 L1209,1915 L1207,1999 L1218,2001 L1221,1692 L1635,1692 L1639,1544 L1224,1543 L1227,1291 L1430,1292 L1424,899 L1219,902 L1216,578 L506,575 L504,455 Z",
@@ -82,9 +88,9 @@ const floorData: { [key: number]: FloorData } = {
   },
   2: {
     apartments: {
-      "2A": { buyer: "", date: "", price: "$610.000", status: "libre", surface: "196,15 m²" },
-      "2B": { buyer: "", date: "", price: "$668.800", status: "libre", surface: "201,05 m²" },
-      "2C": { buyer: "", date: "", price: "$468.800", status: "libre", surface: "168,35 m²" },
+      "2A": { buyer: "", date: "", price: "$610.000", status: "libre", surface: "196,15 m²", assignedParkings: [] },
+      "2B": { buyer: "", date: "", price: "$668.800", status: "libre", surface: "201,05 m²", assignedParkings: [] },
+      "2C": { buyer: "", date: "", price: "$468.800", status: "libre", surface: "168,35 m²", assignedParkings: [] },
     },
     svgPaths: {
       "2A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
@@ -101,9 +107,17 @@ const floorData: { [key: number]: FloorData } = {
         price: "$631.900",
         status: "ocupado",
         surface: "196,15 m²",
+        assignedParkings: [],
       },
-      "3B": { buyer: "Pedro Ramírez", date: "2023-09-05", price: "$692.900", status: "ocupado", surface: "201,05 m²" },
-      "3C": { buyer: "", date: "", price: "$469.800", status: "libre", surface: "168,35 m²" },
+      "3B": {
+        buyer: "Pedro Ramírez",
+        date: "2023-09-05",
+        price: "$692.900",
+        status: "ocupado",
+        surface: "201,05 m²",
+        assignedParkings: [],
+      },
+      "3C": { buyer: "", date: "", price: "$469.800", status: "libre", surface: "168,35 m²", assignedParkings: [] },
     },
     svgPaths: {
       "3A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
@@ -114,9 +128,9 @@ const floorData: { [key: number]: FloorData } = {
   },
   4: {
     apartments: {
-      "4A": { buyer: "", date: "", price: "$657.300", status: "libre", surface: "196,15 m²" },
-      "4B": { buyer: "", date: "", price: "$717.000", status: "libre", surface: "201,05 m²" },
-      "4C": { buyer: "", date: "", price: "$424.800", status: "libre", surface: "168,35 m²" },
+      "4A": { buyer: "", date: "", price: "$657.300", status: "libre", surface: "196,15 m²", assignedParkings: [] },
+      "4B": { buyer: "", date: "", price: "$717.000", status: "libre", surface: "201,05 m²", assignedParkings: [] },
+      "4C": { buyer: "", date: "", price: "$424.800", status: "libre", surface: "168,35 m²", assignedParkings: [] },
     },
     svgPaths: {
       "4A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
@@ -133,6 +147,7 @@ const floorData: { [key: number]: FloorData } = {
         price: "$679.300",
         status: "ocupado",
         surface: "196,15 m²",
+        assignedParkings: [],
       },
       "5B": {
         buyer: "Javier Martínez",
@@ -140,6 +155,7 @@ const floorData: { [key: number]: FloorData } = {
         price: "$741.100",
         status: "ocupado",
         surface: "201,05 m²",
+        assignedParkings: [],
       },
       "5C": {
         buyer: "Laura Fernández",
@@ -147,6 +163,7 @@ const floorData: { [key: number]: FloorData } = {
         price: "$439.100",
         status: "ocupado",
         surface: "168,35 m²",
+        assignedParkings: [],
       },
     },
     svgPaths: {
@@ -158,13 +175,14 @@ const floorData: { [key: number]: FloorData } = {
   },
   6: {
     apartments: {
-      "6A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²" },
+      "6A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
       "6B": {
         buyer: "Mariano Nicolas Aldrede",
         date: "2023-07-14",
         price: "$759.500",
         status: "ocupado",
         surface: "201,05 m²",
+        assignedParkings: [],
       },
       "6C": {
         buyer: "Isabel Rodríguez",
@@ -172,6 +190,7 @@ const floorData: { [key: number]: FloorData } = {
         price: "$450.100",
         status: "reservado",
         surface: "168,35 m²",
+        assignedParkings: [],
       },
     },
     svgPaths: {
@@ -183,13 +202,14 @@ const floorData: { [key: number]: FloorData } = {
   },
   7: {
     apartments: {
-      "7A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²" },
+      "7A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
       "7B": {
         buyer: "Mariano Nicolas Aldrede",
         date: "2023-07-14",
         price: "$759.500",
         status: "ocupado",
         surface: "201,05 m²",
+        assignedParkings: [],
       },
       "7C": {
         buyer: "Isabel Rodríguez",
@@ -197,6 +217,7 @@ const floorData: { [key: number]: FloorData } = {
         price: "$450.100",
         status: "reservado",
         surface: "168,35 m²",
+        assignedParkings: [],
       },
     },
     svgPaths: {
@@ -208,13 +229,14 @@ const floorData: { [key: number]: FloorData } = {
   },
   8: {
     apartments: {
-      "8A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²" },
+      "8A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
       "8B": {
         buyer: "Mariano Nicolas Aldrede",
         date: "2023-07-14",
         price: "$759.500",
         status: "ocupado",
         surface: "201,05 m²",
+        assignedParkings: [],
       },
       "8C": {
         buyer: "Isabel Rodríguez",
@@ -222,6 +244,7 @@ const floorData: { [key: number]: FloorData } = {
         price: "$450.100",
         status: "reservado",
         surface: "168,35 m²",
+        assignedParkings: [],
       },
     },
     svgPaths: {
@@ -233,13 +256,14 @@ const floorData: { [key: number]: FloorData } = {
   },
   9: {
     apartments: {
-      "9A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²" },
+      "9A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
       "9B": {
         buyer: "Mariano Nicolas Aldrede",
         date: "2023-07-14",
         price: "$759.500",
         status: "ocupado",
         surface: "201,05 m²",
+        assignedParkings: [],
       },
     },
     svgPaths: {
@@ -298,22 +322,46 @@ const statusColors = {
   bloqueado: "#7f7fff",
 }
 
-type ParkingSpotStatus = "ocupado" | "reservado" | "libre" | "bloqueado"
+// Añadir estas constantes cerca del inicio del archivo, junto con las otras definiciones
 
-type ParkingSpotData = {
-  id: string
-  status: ParkingSpotStatus
-  owner?: string
-  price: string
+const garageLevels = [1, 2, 3]
+
+const garagePlans = {
+  1: "/images/planos/cochera1.svg",
+  2: "/images/planos/cochera2.svg",
+  3: "/images/planos/cochera3.svg",
 }
 
-type ParkingSpotsState = { [key: number]: ParkingSpotData[] }
+// Actualizar la definición de ParkingSpot para incluir el nivel
+type ParkingSpot = {
+  id: string
+  level: number
+  status: "libre" | "ocupado"
+  assignedTo: string | null
+  path: string
+}
 
 interface InteractiveFloorPlanProps {
   projectId?: number
   floorNumber?: number | null
   onReturnToProjectModal: () => void
 }
+
+const parkingSpotPaths = [
+  "M571,885 L640,1391 L737,1405 L817,1369 L753,869 L668,865 Z",
+  "M862,845 L926,1349 L1039,1373 L1120,1321 L1055,841 L1007,816 L951,824 L910,833 Z",
+  "M1164,811 L1221,1311 L1318,1319 L1394,1303 L1418,1255 L1350,779 L1245,783 Z",
+  "M1455,763 L1531,1271 L1636,1279 L1717,1243 L1644,730 Z",
+  "M1761,722 L1826,1227 L1911,1243 L2011,1214 L1943,694 Z",
+  "M2060,685 L2140,1193 L2229,1209 L2318,1177 L2253,660 Z",
+  "M2374,654 L2447,1150 L2544,1158 L2625,1122 L2552,625 Z",
+  "M2681,639 L2754,1107 L2850,1115 L2931,1083 L2862,578 L2681,607 Z",
+  "M2992,560 L3064,1064 L3165,1076 L3250,1036 L3169,535 Z",
+  "M3520,1198 L4020,1198 L4020,1384 L3520,1392 L3488,1307 Z",
+  "M3512,1497 L4020,1501 L4028,1670 L3524,1687 L3496,1586 Z",
+  "M1253,2522 L1435,2522 L1427,2009 L1338,1985 L1245,2017 Z",
+  "M1552,2013 L1552,2518 L1741,2522 L1729,2017 L1644,1989 Z",
+]
 
 export default function InteractiveFloorPlan({
   projectId,
@@ -347,65 +395,220 @@ export default function InteractiveFloorPlan({
   const [confirmRelease, setConfirmRelease] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [assignedParkingSpots, setAssignedParkingSpots] = useState<{ [key: string]: string[] }>({})
-  const [parkingSpots, setParkingSpots] = useState<ParkingSpotsState>({
-    1: Array.from({ length: 13 }, (_, i) => ({
-      id: `A${i + 1}`,
-      status: i < 3 ? "ocupado" : "libre",
-      price: "$50,000",
-      owner: i < 3 ? `Apartment ${i + 1}A` : undefined,
-    })),
-    2: Array.from({ length: 13 }, (_, i) => ({
-      id: `B${i + 1}`,
-      status: i < 2 ? "ocupado" : "libre",
-      price: "$45,000",
-      owner: i < 2 ? `Apartment ${i + 1}B` : undefined,
-    })),
-    3: Array.from({ length: 13 }, (_, i) => ({
-      id: `C${i + 1}`,
-      status: i < 1 ? "ocupado" : "libre",
-      price: "$55,000",
-      owner: i < 1 ? `Apartment ${i + 1}C` : undefined,
-    })),
-    4: Array.from({ length: 13 }, (_, i) => ({
-      id: `D${i + 1}`,
-      status: "libre",
-      price: "$55,000",
-      owner: undefined,
-    })),
-    5: Array.from({ length: 13 }, (_, i) => ({
-      id: `E${i + 1}`,
-      status: "libre",
-      price: "$55,000",
-      owner: undefined,
-    })),
-    6: Array.from({ length: 13 }, (_, i) => ({
-      id: `F${i + 1}`,
-      status: "libre",
-      price: "$55,000",
-      owner: undefined,
-    })),
-    7: Array.from({ length: 13 }, (_, i) => ({
-      id: `G${i + 1}`,
-      status: "libre",
-      price: "$55,000",
-      owner: undefined,
-    })),
-    8: Array.from({ length: 13 }, (_, i) => ({
-      id: `H${i + 1}`,
-      status: "libre",
-      price: "$55,000",
-      owner: undefined,
-    })),
-    9: Array.from({ length: 13 }, (_, i) => ({
-      id: `I${i + 1}`,
-      status: "libre",
-      price: "$55,000",
-      owner: undefined,
-    })),
-  })
+  const [selectedParking, setSelectedParking] = useState<string | null>(null)
 
-  const updateUnitStats = useCallback((): void => {
+  // Dentro de la función del componente, añadir este nuevo estado
+  const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
+
+  // Actualizar la inicialización de parkingSpots
+  const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>(
+    parkingSpotPaths.map((path, index) => ({
+      id: `P${index + 1}`,
+      level: 1, // Asignar todos al nivel 1
+      status: "libre",
+      assignedTo: null,
+      path: path,
+    })),
+  )
+  const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
+  const [floorData, setFloorData] = useState(initialFloorData)
+
+  // Añadir este nuevo estado dentro de la función del componente
+  const [showParkingAssignment, setShowParkingAssignment] = useState(false)
+  // Actualizar el estado selectedParkings para que sea un objeto en lugar de un array
+  const [selectedParkings, setSelectedParkings] = useState<{ [key: string]: boolean }>({})
+
+  // Añadir este estado cerca de los otros estados del componente
+  const [isParkingInfoModalOpen, setIsParkingInfoModalOpen] = useState(false)
+
+  // Actualizar la función handleParkingAssignment
+  const handleParkingAssignment = () => {
+    if (selectedApartment) {
+      const updatedParkingSpots = parkingSpots.map((spot) => {
+        if (selectedParkings[spot.id]) {
+          // Si está seleccionado, asignar
+          return {
+            ...spot,
+            status: "ocupado",
+            assignedTo: selectedApartment,
+          }
+        } else if (spot.assignedTo === selectedApartment) {
+          // Si estaba asignado a este apartamento pero ya no está seleccionado, desasignar
+          return {
+            ...spot,
+            status: "libre",
+            assignedTo: null,
+          }
+        }
+        return spot
+      })
+
+      setParkingSpots(updatedParkingSpots)
+
+      setFloorData((prevData) => ({
+        ...prevData,
+        [currentFloor]: {
+          ...prevData[currentFloor],
+          apartments: {
+            ...prevData[currentFloor].apartments,
+            [selectedApartment]: {
+              ...prevData[currentFloor].apartments[selectedApartment],
+              assignedParkings: updatedParkingSpots
+                .filter((spot) => spot.assignedTo === selectedApartment)
+                .map((spot) => spot.id),
+            },
+          },
+        },
+      }))
+
+      // Añadir entrada al registro de actividades
+      const timestamp = new Date().toLocaleString()
+      const assignedParkings = Object.keys(selectedParkings).filter((id) => selectedParkings[id])
+      const unassignedParkings = updatedParkingSpots
+        .filter((spot) => spot.status === "libre" && !selectedParkings[spot.id])
+        .map((spot) => spot.id)
+
+      let activityMessage = `${user?.name} `
+      if (assignedParkings.length > 0) {
+        activityMessage += `asignó las cocheras ${assignedParkings.join(", ")} `
+      }
+      if (unassignedParkings.length > 0) {
+        activityMessage += `${assignedParkings.length > 0 ? "y " : ""}desasignó las cocheras ${unassignedParkings.join(", ")} `
+      }
+      activityMessage += `del departamento ${selectedApartment}`
+
+      setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
+
+      if (notyf) notyf.success("Cocheras actualizadas con éxito")
+    }
+    setShowParkingAssignment(false)
+  }
+
+  // Actualizar la función handleParkingClick
+  const handleParkingClick = (parkingId: string, level: number) => {
+    if (level === 1) {
+      const clickedSpot = parkingSpots.find((spot) => spot.id === parkingId)
+      if (clickedSpot) {
+        setSelectedParking(parkingId)
+        setCurrentGarageLevel(level)
+        if (clickedSpot.status === "ocupado") {
+          setIsParkingInfoModalOpen(true)
+        } else {
+          setIsParkingModalOpen(true)
+        }
+      }
+    }
+  }
+
+  // Añadir esta nueva función para manejar la desasignación
+  const handleParkingUnassignment = () => {
+    if (selectedParking) {
+      const spot = parkingSpots.find((s) => s.id === selectedParking)
+      if (spot && spot.assignedTo) {
+        // Desasignar la cochera
+        setParkingSpots((spots) =>
+          spots.map((s) => (s.id === selectedParking ? { ...s, status: "libre", assignedTo: null } : s)),
+        )
+
+        // Remover la cochera del departamento
+        setFloorData((prevData) => {
+          const updatedData = { ...prevData }
+          Object.keys(updatedData).forEach((floor) => {
+            Object.keys(updatedData[floor].apartments).forEach((apt) => {
+              if (updatedData[floor].apartments[apt].assignedParkings.includes(selectedParking)) {
+                updatedData[floor].apartments[apt] = {
+                  ...updatedData[floor].apartments[apt],
+                  assignedParkings: updatedData[floor].apartments[apt].assignedParkings.filter(
+                    (id) => id !== selectedParking,
+                  ),
+                }
+              }
+            })
+          })
+          return updatedData
+        })
+
+        // Añadir entrada al registro de actividades
+        const timestamp = new Date().toLocaleString()
+        const activityMessage = `${user?.name} desasignó la cochera ${selectedParking} del departamento ${spot.assignedTo}`
+        setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
+
+        if (notyf) notyf.success(`Cochera ${selectedParking} desasignada con éxito`)
+      }
+      setIsParkingInfoModalOpen(false)
+      setSelectedParking(null)
+    }
+  }
+
+  // Actualizar la función handleParkingAssignment2
+  const handleParkingAssignment2 = (apartmentId: string | null) => {
+    if (selectedParking) {
+      setParkingSpots((spots) =>
+        spots.map((spot) =>
+          spot.id === selectedParking && spot.level === currentGarageLevel
+            ? { ...spot, status: apartmentId ? "ocupado" : "libre", assignedTo: apartmentId }
+            : spot,
+        ),
+      )
+
+      if (apartmentId) {
+        const [floor, apartment] = apartmentId.split("-")
+        setFloorData((prevData) => ({
+          ...prevData,
+          [floor]: {
+            ...prevData[floor],
+            apartments: {
+              ...prevData[floor].apartments,
+              [apartment]: {
+                ...prevData[floor].apartments[apartment],
+                assignedParkings: [
+                  ...prevData[floor].apartments[apartment].assignedParkings.filter((id) => id !== selectedParking),
+                  selectedParking,
+                ],
+              },
+            },
+          },
+        }))
+
+        // Añadir entrada al registro de actividades para asignación
+        const timestamp = new Date().toLocaleString()
+        const activityMessage = `${user?.name} asignó la cochera ${selectedParking} al departamento ${apartmentId}`
+        setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
+      } else {
+        // Si se está liberando la cochera, removerla de cualquier departamento que la tenga asignada
+        setFloorData((prevData) => {
+          const updatedData = { ...prevData }
+          let departmentReleased = ""
+          Object.keys(updatedData).forEach((floor) => {
+            Object.keys(updatedData[floor].apartments).forEach((apt) => {
+              if (updatedData[floor].apartments[apt].assignedParkings.includes(selectedParking)) {
+                departmentReleased = `${floor}-${apt}`
+              }
+              updatedData[floor].apartments[apt] = {
+                ...updatedData[floor].apartments[apt],
+                assignedParkings: updatedData[floor].apartments[apt].assignedParkings.filter(
+                  (id) => id !== selectedParking,
+                ),
+              }
+            })
+          })
+
+          // Añadir entrada al registro de actividades para liberación
+          const timestamp = new Date().toLocaleString()
+          const activityMessage = `${user?.name} liberó la cochera ${selectedParking} del departamento ${departmentReleased}`
+          setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
+
+          return updatedData
+        })
+      }
+    }
+
+    setIsParkingModalOpen(false)
+    setSelectedParking(null)
+    if (notyf) notyf.success(apartmentId ? "Cochera asignada con éxito" : "Cochera liberada con éxito")
+  }
+
+  const updateUnitStats = useCallback(() => {
     const currentFloorData = floorData[currentFloor]
     if (!currentFloorData || !currentFloorData.apartments) {
       setUnitStats({ disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 })
@@ -420,10 +623,10 @@ export default function InteractiveFloorPlan({
         else if (apartment.status === "bloqueado") acc.bloqueadas++
         return acc
       },
-      { disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 } as UnitStats,
+      { disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 },
     )
     setUnitStats(stats)
-  }, [currentFloor])
+  }, [currentFloor, floorData])
 
   useEffect(() => {
     if (projectId) {
@@ -439,7 +642,11 @@ export default function InteractiveFloorPlan({
       })
     }
     updateUnitStats()
-  }, [projectId, floorNumber, updateUnitStats, currentFloor]) // Added currentFloor to dependencies
+  }, [projectId, floorNumber, updateUnitStats, currentFloor])
+
+  useEffect(() => {
+    updateUnitStats()
+  }, [updateUnitStats])
 
   const handleFloorClick = (floor: number) => {
     setCurrentFloor(floor)
@@ -515,6 +722,9 @@ export default function InteractiveFloorPlan({
           apartment.date = new Date().toISOString().split("T")[0]
           activityMessage = `${user?.name} reservó el departamento ${selectedApartment}`
           if (notyf) notyf.success("Departamento reservado con éxito")
+          break
+        case "sell":
+          apartment.status = "ocupado"
           break
         case "sell":
           apartment.status = "ocupado"
@@ -611,10 +821,10 @@ export default function InteractiveFloorPlan({
     if (notyf) notyf.success("Descargando plano...")
   }
 
-  const handleDownloadAdditionalInfo = (type: string) => {
-    // Implement the download functionality for additional information
+  const handleDownloadAdditionalInfo = useCallback((type: string) => {
     console.log(`Downloading ${type}...`)
-  }
+    if (notyf) notyf.success(`Descargando ${type}...`)
+  }, [])
 
   const handleDownloadContract = (apartment: string) => {
     const apartmentData = currentFloorData.apartments[apartment]
@@ -632,52 +842,41 @@ export default function InteractiveFloorPlan({
   const currentFloorData = floorData[currentFloor] || { apartments: {}, svgPaths: {} }
   const totalUnits = Object.keys(currentFloorData.apartments).length
 
-  const handleAssignParkingSpot = (apartment: string, parkingSpot: string) => {
-    setAssignedParkingSpots((prev) => {
-      const updatedSpots = { ...prev }
-      if (!updatedSpots[apartment]) {
-        updatedSpots[apartment] = []
-      }
-      if (updatedSpots[apartment].length < 3 && !updatedSpots[apartment].includes(parkingSpot)) {
-        updatedSpots[apartment] = [...updatedSpots[apartment], parkingSpot]
-      }
-      return updatedSpots
-    })
-    // Update the parking spot status in the GarageView
-    setParkingSpots((prev) => {
-      const updatedSpots = { ...prev }
-      const level = Number.parseInt(parkingSpot.charAt(0))
-      if (updatedSpots[level]) {
-        const spotIndex = updatedSpots[level].findIndex((spot) => spot.id === parkingSpot)
-        if (spotIndex !== -1) {
-          updatedSpots[level][spotIndex].status = "ocupado"
-          updatedSpots[level][spotIndex].owner = apartment
-        }
-      }
-      return updatedSpots
-    })
+  const getTextX = (id: string) => {
+    const spotIndex = Number.parseInt(id.slice(1)) - 1
+    if (spotIndex < 9) {
+      return parkingSpotPaths[spotIndex].split(" ")[1]
+    } else if (spotIndex === 9) {
+      return "3770"
+    } else if (spotIndex === 10) {
+      return "3770"
+    } else {
+      return "1500"
+    }
   }
 
-  const handleRemoveParkingSpot = (apartment: string, parkingSpot: string) => {
-    setAssignedParkingSpots((prev) => {
-      const updatedSpots = { ...prev }
-      if (updatedSpots[apartment]) {
-        updatedSpots[apartment] = updatedSpots[apartment].filter((spot) => spot !== parkingSpot)
-      }
-      return updatedSpots
-    })
-    setParkingSpots((prev) => {
-      const updatedSpots = { ...prev }
-      const level = Number.parseInt(parkingSpot.charAt(0))
-      if (updatedSpots[level]) {
-        const spotIndex = updatedSpots[level].findIndex((spot) => spot.id === parkingSpot)
-        if (spotIndex !== -1) {
-          updatedSpots[level][spotIndex].status = "libre"
-          updatedSpots[level][spotIndex].owner = undefined
-        }
-      }
-      return updatedSpots
-    })
+  const getTextY = (id: string) => {
+    const spotIndex = Number.parseInt(id.slice(1)) - 1
+    if (spotIndex < 9) {
+      return parkingSpotPaths[spotIndex].split(" ")[2]
+    } else if (spotIndex === 9 || spotIndex === 10) {
+      return "1300"
+    } else {
+      return "2300"
+    }
+  }
+
+  // Actualizar la función handleOpenParkingAssignment
+  const handleOpenParkingAssignment = () => {
+    const initialSelectedParkings = currentFloorData.apartments[selectedApartment].assignedParkings.reduce(
+      (acc, parkingId) => {
+        acc[parkingId] = true
+        return acc
+      },
+      {} as { [key: string]: boolean },
+    )
+    setSelectedParkings(initialSelectedParkings)
+    setShowParkingAssignment(true)
   }
 
   return (
@@ -701,6 +900,7 @@ export default function InteractiveFloorPlan({
               Cochera
             </TabsTrigger>
           </TabsList>
+          {/* Dentro del TabsContent para "garage", reemplazar el contenido existente con esto: */}
           <TabsContent value="apartments">
             <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
               <div className="p-4 md:p-6">
@@ -781,50 +981,186 @@ export default function InteractiveFloorPlan({
             </div>
           </TabsContent>
           <TabsContent value="garage">
-            <GarageView
-              assignedParkingSpots={assignedParkingSpots}
-              onAssignParkingSpot={handleAssignParkingSpot}
-              onRemoveParkingSpot={handleRemoveParkingSpot}
-              parkingSpots={parkingSpots}
-              setParkingSpots={setParkingSpots}
-            />
+            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
+              <div className="p-4 md:p-6">
+                <h2 className="text-xl md:text-2xl font-semibold mb-4">
+                  Mapa de Cocheras - Nivel {currentGarageLevel}
+                </h2>
+                <div className="flex justify-center space-x-4 mb-4">
+                  {garageLevels.map((level) => (
+                    <Button
+                      key={level}
+                      onClick={() => setCurrentGarageLevel(level)}
+                      variant={currentGarageLevel === level ? "default" : "outline"}
+                    >
+                      Nivel {level}
+                    </Button>
+                  ))}
+                </div>
+                <div className="relative aspect-video">
+                  {currentGarageLevel === 1 ? (
+                    <>
+                      <div className="relative aspect-video overflow-hidden">
+                        <div className="absolute inset-0 scale-100 origin-center">
+                          <Image
+                            src={garagePlans[currentGarageLevel] || "/placeholder.svg"}
+                            alt={`Plano de Cocheras Nivel ${currentGarageLevel}`}
+                            layout="fill"
+                            objectFit="cover"
+                          />
+                        </div>
+                        <svg viewBox="90 450 4400 2600" className="absolute top-0 left-0 w-full h-full">
+                          {parkingSpots
+                            .filter((spot) => spot.level === currentGarageLevel)
+                            .map((spot) => (
+                              <g
+                                key={spot.id}
+                                onClick={() => handleParkingClick(spot.id, spot.level)}
+                                style={{ cursor: "pointer" }}
+                              >
+                                <path
+                                  d={spot.path}
+                                  fill={
+                                    spot.status === "libre" ? "rgba(135, 245, 175, 0.3)" : "rgba(245, 127, 127, 0.3)"
+                                  }
+                                  stroke={spot.status === "libre" ? "#22c55e" : "#ef4444"}
+                                  strokeWidth="3"
+                                />
+                                <text
+                                  x={getTextX(spot.id)}
+                                  y={getTextY(spot.id)}
+                                  textAnchor="middle"
+                                  fill="white"
+                                  fontSize="40"
+                                  dominantBaseline="middle"
+                                  stroke="black"
+                                  strokeWidth="1"
+                                >
+                                  {spot.id}
+                                </text>
+                                {spot.assignedTo && (
+                                  <text
+                                    x={getTextX(spot.id)}
+                                    y={Number.parseInt(getTextY(spot.id)) + 60}
+                                    textAnchor="middle"
+                                    fill="white"
+                                    fontSize="30"
+                                    dominantBaseline="middle"
+                                    stroke="black"
+                                    strokeWidth="1"
+                                  >
+                                    {spot.assignedTo}
+                                  </text>
+                                )}
+                              </g>
+                            ))}
+                        </svg>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-full bg-zinc-800">
+                      <p className="text-xl text-zinc-400">No hay cocheras disponibles en este nivel aún</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-zinc-900 p-4 rounded-lg">
-            <h4 className="font-semibold mb-2">Estado de las unidades</h4>
-            <div className="w-full h-8 bg-gray-700 rounded-full overflow-hidden flex">
-              <div
-                className="bg-green-500 h-full"
-                style={{ width: `${(unitStats.disponibles / totalUnits) * 100}%` }}
-                title={`Disponibles: ${unitStats.disponibles}`}
-              ></div>
-              <div
-                className="bg-yellow-500 h-full"
-                style={{ width: `${(unitStats.reservadas / totalUnits) * 100}%` }}
-                title={`Reservadas: ${unitStats.reservadas}`}
-              ></div>
-              <div
-                className="bg-red-500 h-full"
-                style={{ width: `${(unitStats.vendidas / totalUnits) * 100}%` }}
-                title={`Vendidas: ${unitStats.vendidas}`}
-              ></div>
-              <div
-                className="bg-blue-500 h-full"
-                style={{ width: `${(unitStats.bloqueadas / totalUnits) * 100}%` }}
-                title={`Bloqueadas: ${unitStats.bloqueadas}`}
-              ></div>
+        <Dialog
+          open={isParkingModalOpen}
+          onOpenChange={() => {
+            setIsParkingModalOpen(false)
+            setSelectedParking(null)
+          }}
+        >
+          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+            <DialogHeader>
+              <DialogTitle>
+                {selectedParking && parkingSpots.find((spot) => spot.id === selectedParking)?.status === "ocupado"
+                  ? `Liberar Cochera ${selectedParking} (Nivel 1)`
+                  : `Asignar Cochera ${selectedParking} (Nivel 1)`}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {selectedParking && (
+                <div className="mb-4">
+                  <p className="font-semibold">
+                    Estado: {parkingSpots.find((spot) => spot.id === selectedParking)?.status}
+                  </p>
+                  {parkingSpots.find((spot) => spot.id === selectedParking)?.assignedTo && (
+                    <p className="font-semibold">
+                      Asignada a: {parkingSpots.find((spot) => spot.id === selectedParking)?.assignedTo}
+                    </p>
+                  )}
+                </div>
+              )}
+              <h3 className="mb-4">
+                {selectedParking && parkingSpots.find((spot) => spot.id === selectedParking)?.status === "ocupado"
+                  ? "¿Estás seguro de que quieres liberar esta cochera?"
+                  : "Selecciona un departamento para asignar la cochera:"}
+              </h3>
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                {selectedParking && parkingSpots.find((spot) => spot.id === selectedParking)?.status === "ocupado" ? (
+                  <Button onClick={() => handleParkingAssignment2(null)} className="w-full bg-red-600 hover:bg-red-700">
+                    Liberar Cochera
+                  </Button>
+                ) : (
+                  <>
+                    {Object.entries(floorData).map(([floor, data]) => (
+                      <div key={floor}>
+                        <h4 className="font-bold mt-2 mb-1">Piso {floor}</h4>
+                        {Object.keys(data.apartments).map((aptId) => (
+                          <Button
+                            key={`${floor}-${aptId}`}
+                            onClick={() => handleParkingAssignment2(`${floor}-${aptId}`)}
+                            className="w-full bg-blue-600 hover:bg-blue-700 mb-1"
+                          >
+                            Asignar a {aptId}
+                          </Button>
+                        ))}
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col md:flex-row justify-between mt-2 text-sm">
-              <span>Disponibles: {unitStats.disponibles}</span>
-              <span>Reservadas: {unitStats.reservadas}</span>
-              <span>Vendidas: {unitStats.vendidas}</span>
-              <span>Bloqueadas: {unitStats.bloqueadas}</span>
-            </div>
-          </div>
-        </div>
+          </DialogContent>
+        </Dialog>
 
+        {/* Añadir este nuevo modal después del modal de asignación de cocheras existente */}
+        <Dialog
+          open={isParkingInfoModalOpen}
+          onOpenChange={() => {
+            setIsParkingInfoModalOpen(false)
+            setSelectedParking(null)
+          }}
+        >
+          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+            <DialogHeader>
+              <DialogTitle>Información de la Cochera {selectedParking}</DialogTitle>
+            </DialogHeader>
+            <div className="py-4">
+              {selectedParking && (
+                <div className="space-y-4">
+                  <p className="font-semibold">
+                    Estado: {parkingSpots.find((spot) => spot.id === selectedParking)?.status}
+                  </p>
+                  <p className="font-semibold">
+                    Asignada a: {parkingSpots.find((spot) => spot.id === selectedParking)?.assignedTo}
+                  </p>
+                  <Button onClick={handleParkingUnassignment} className="w-full bg-red-600 hover:bg-red-700">
+                    Desasignar Cochera
+                  </Button>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modificar el contenido del DialogContent para el modal de detalles del departamento */}
+        {/* Reemplazar el contenido existente con este: */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
             <DialogHeader>
@@ -862,6 +1198,18 @@ export default function InteractiveFloorPlan({
                       )}
                     </>
                   )}
+                  {/* Actualizar la visualización de las cocheras asignadas en los detalles del apartamento */}
+                  <p>
+                    <strong>Cocheras asignadas:</strong>{" "}
+                    {currentFloorData.apartments[selectedApartment].assignedParkings.length > 0
+                      ? currentFloorData.apartments[selectedApartment].assignedParkings
+                          .map((parkingId) => {
+                            const parking = parkingSpots.find((spot) => spot.id === parkingId)
+                            return parking ? `${parkingId} (Nivel ${parking.level})` : parkingId
+                          })
+                          .join(", ")
+                      : "Ninguna"}
+                  </p>
                 </DialogDescription>
                 {!action && (
                   <div className="space-y-2">
@@ -932,6 +1280,49 @@ export default function InteractiveFloorPlan({
                         </Button>
                       </>
                     )}
+                    <Button onClick={handleOpenParkingAssignment} className="bg-purple-600 hover:bg-purple-700 w-full">
+                      Asignar cocheras
+                    </Button>
+                  </div>
+                )}
+                {showParkingAssignment && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Seleccionar cocheras:</h3>
+                    <ScrollArea className="h-[200px] rounded-md border p-4">
+                      {parkingSpots
+                        .filter((spot) => spot.status === "libre" || spot.assignedTo === selectedApartment)
+                        .map((spot) => (
+                          <div key={spot.id} className="flex items-center space-x-2 mb-2">
+                            <Checkbox
+                              id={spot.id}
+                              checked={selectedParkings[spot.id] || false}
+                              onCheckedChange={(checked) => {
+                                setSelectedParkings((prev) => ({
+                                  ...prev,
+                                  [spot.id]: checked === true,
+                                }))
+                              }}
+                            />
+                            <label
+                              htmlFor={spot.id}
+                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              Cochera {spot.id} {spot.assignedTo === selectedApartment ? "(Asignada)" : ""}
+                            </label>
+                          </div>
+                        ))}
+                    </ScrollArea>
+                    <div className="flex justify-end space-x-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowParkingAssignment(false)
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button onClick={handleParkingAssignment}>Actualizar asignaciones</Button>
+                    </div>
                   </div>
                 )}
                 {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
@@ -1054,45 +1445,6 @@ export default function InteractiveFloorPlan({
                     </Button>
                   </form>
                 )}
-                {selectedApartment && (
-                  <div className="mt-4">
-                    <h4 className="font-semibold mb-2">Cocheras asignadas</h4>
-                    <div className="space-y-2">
-                      {assignedParkingSpots[selectedApartment]?.map((spot) => (
-                        <div key={spot} className="flex justify-between items-center">
-                          <span>{spot}</span>
-                          <Button
-                            onClick={() => handleRemoveParkingSpot(selectedApartment, spot)}
-                            className="bg-red-600 hover:bg-red-700"
-                          >
-                            Remover
-                          </Button>
-                        </div>
-                      ))}
-                      {(assignedParkingSpots[selectedApartment]?.length || 0) < 3 && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button className="bg-green-600 hover:bg-green-700 w-full">Asignar cochera</Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent>
-                            {Object.entries(parkingSpots).flatMap(([level, spots]) =>
-                              spots
-                                .filter((spot) => spot.status === "libre")
-                                .map((spot) => (
-                                  <DropdownMenuItem
-                                    key={spot.id}
-                                    onSelect={() => handleAssignParkingSpot(selectedApartment!, spot.id)}
-                                  >
-                                    {spot.id}
-                                  </DropdownMenuItem>
-                                )),
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </div>
-                  </div>
-                )}
               </div>
             ) : (
               <p className="text-zinc-300">Este departamento está disponible.</p>
@@ -1100,7 +1452,10 @@ export default function InteractiveFloorPlan({
             <DialogFooter>
               <Button
                 variant="outline"
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setShowParkingAssignment(false)
+                }}
                 className="text-white hover:bg-zinc-800 w-full"
               >
                 Cerrar
@@ -1114,37 +1469,37 @@ export default function InteractiveFloorPlan({
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Button
                 onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
-                className="bg-slate-700 hover:bg-zinc-700"
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
               >
                 <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
               </Button>
               <Button
                 onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
-                className="bg-slate-700 hover:bg-zinc-700"
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
               >
                 <Building className="mr-2 h-4 w-4" /> Plano del edificio
               </Button>
               <Button
                 onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
-                className="bg-slate-700 hover:bg-zinc-700"
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
               >
                 <Car className="mr-2 h-4 w-4" /> Plano de la cochera
               </Button>
               <Button
                 onClick={() => handleDownloadAdditionalInfo("Brochure")}
-                className="bg-slate-700 hover:bg-zinc-700"
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
               >
                 <FileText className="mr-2 h-4 w-4" /> Brochure
               </Button>
               <Button
                 onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
-                className="bg-slate-700 hover:bg-zinc-700"
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
               >
                 <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
               </Button>
             </div>
           </div>
-          <div className="max-w-4xl mx-auto mb-8">
+          <div className="max-w-4xl mx-auto mb-8 mt-8">
             <div className="bg-zinc-900 p-4 rounded-lg">
               <h4 className="font-semibold mb-4">Registro de Actividades</h4>
               <div className="space-y-2 max-h-60 overflow-y-auto">
