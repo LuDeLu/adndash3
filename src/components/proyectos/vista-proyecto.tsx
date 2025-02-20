@@ -555,23 +555,28 @@ export default function InteractiveFloorPlan({
       )
 
       if (apartmentId) {
-        const [floor, apartment] = apartmentId.split("-")
-        setFloorData((prevData) => ({
-          ...prevData,
-          [floor]: {
-            ...prevData[floor],
-            apartments: {
-              ...prevData[floor].apartments,
-              [apartment]: {
-                ...prevData[floor].apartments[apartment],
-                assignedParkings: [
-                  ...prevData[floor].apartments[apartment].assignedParkings.filter((id) => id !== selectedParking),
-                  selectedParking,
-                ],
+        const [floorStr, apartment] = apartmentId.split("-")
+        const floor = Number.parseInt(floorStr)
+
+        setFloorData((prevData) => {
+          const newData = { ...prevData }
+          if (newData[floor] && newData[floor].apartments && apartment) {
+            newData[floor] = {
+              ...newData[floor],
+              apartments: {
+                ...newData[floor].apartments,
+                [apartment]: {
+                  ...newData[floor].apartments[apartment],
+                  assignedParkings: [
+                    ...newData[floor].apartments[apartment].assignedParkings.filter((id) => id !== selectedParking),
+                    selectedParking,
+                  ],
+                },
               },
-            },
-          },
-        }))
+            }
+          }
+          return newData
+        })
 
         // Añadir entrada al registro de actividades para asignación
         const timestamp = new Date().toLocaleString()
@@ -580,20 +585,22 @@ export default function InteractiveFloorPlan({
       } else {
         // Si se está liberando la cochera, removerla de cualquier departamento que la tenga asignada
         setFloorData((prevData) => {
-          const updatedData = { ...prevData }
+          const newData = { ...prevData }
           let departmentReleased = ""
-          Object.keys(updatedData).forEach((floor) => {
-            Object.keys(updatedData[floor].apartments).forEach((apt) => {
-              if (updatedData[floor].apartments[apt].assignedParkings.includes(selectedParking)) {
-                departmentReleased = `${floor}-${apt}`
-              }
-              updatedData[floor].apartments[apt] = {
-                ...updatedData[floor].apartments[apt],
-                assignedParkings: updatedData[floor].apartments[apt].assignedParkings.filter(
-                  (id) => id !== selectedParking,
-                ),
-              }
-            })
+
+          Object.entries(newData).forEach(([floorStr, floorData]) => {
+            const floor = Number.parseInt(floorStr)
+            if (newData[floor] && newData[floor].apartments) {
+              Object.entries(floorData.apartments).forEach(([apt, aptData]) => {
+                if (aptData.assignedParkings.includes(selectedParking)) {
+                  departmentReleased = `${floor}-${apt}`
+                  newData[floor].apartments[apt] = {
+                    ...aptData,
+                    assignedParkings: aptData.assignedParkings.filter((id) => id !== selectedParking),
+                  }
+                }
+              })
+            }
           })
 
           // Añadir entrada al registro de actividades para liberación
@@ -601,7 +608,7 @@ export default function InteractiveFloorPlan({
           const activityMessage = `${user?.name} liberó la cochera ${selectedParking} del departamento ${departmentReleased}`
           setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
 
-          return updatedData
+          return newData
         })
       }
     }
