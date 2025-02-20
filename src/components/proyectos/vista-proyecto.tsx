@@ -511,26 +511,30 @@ export default function InteractiveFloorPlan({
 
         // Remover la cochera del departamento
         setFloorData((prevData) => {
-          const updatedData = { ...prevData }
+          const updatedData = { ...prevData } as typeof initialFloorData
           Object.keys(updatedData).forEach((floor) => {
-            Object.keys(updatedData[floor].apartments).forEach((apt) => {
-              if (updatedData[floor].apartments[apt].assignedParkings.includes(selectedParking)) {
-                updatedData[floor].apartments[apt] = {
-                  ...updatedData[floor].apartments[apt],
-                  assignedParkings: updatedData[floor].apartments[apt].assignedParkings.filter(
-                    (id) => id !== selectedParking,
-                  ),
+            const floorNum = Number.parseInt(floor)
+            if (updatedData[floorNum] && updatedData[floorNum].apartments) {
+              Object.keys(updatedData[floorNum].apartments).forEach((apt) => {
+                if (updatedData[floorNum].apartments[apt].assignedParkings.includes(selectedParking)) {
+                  updatedData[floorNum].apartments[apt] = {
+                    ...updatedData[floorNum].apartments[apt],
+                    assignedParkings: updatedData[floorNum].apartments[apt].assignedParkings.filter(
+                      (id) => id !== selectedParking,
+                    ),
+                  }
                 }
-              }
-            })
+              })
+            }
           })
+
+          // Añadir entrada al registro de actividades para liberación
+          const timestamp = new Date().toLocaleString()
+          const activityMessage = `${user?.name} desasignó la cochera ${selectedParking} del departamento ${spot.assignedTo}`
+          setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
+
           return updatedData
         })
-
-        // Añadir entrada al registro de actividades
-        const timestamp = new Date().toLocaleString()
-        const activityMessage = `${user?.name} desasignó la cochera ${selectedParking} del departamento ${spot.assignedTo}`
-        setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
 
         if (notyf) notyf.success(`Cochera ${selectedParking} desasignada con éxito`)
       }
@@ -591,6 +595,7 @@ export default function InteractiveFloorPlan({
               }
             })
           })
+
           // Añadir entrada al registro de actividades para liberación
           const timestamp = new Date().toLocaleString()
           const activityMessage = `${user?.name} liberó la cochera ${selectedParking} del departamento ${departmentReleased}`
