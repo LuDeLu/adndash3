@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { format, addDays } from "date-fns"
 import { es } from "date-fns/locale"
 import { Button } from "@/components/ui/button"
@@ -16,8 +16,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Plus, Edit, Trash2, CheckCircle, MessageCircle } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Plus, Edit, Trash2, CheckCircle, MessageCircle, FolderSyncIcon as Sync } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 import FullCalendar from "@fullcalendar/react"
@@ -34,6 +34,7 @@ type Event = {
   client: string
   completed: boolean
   reminded: boolean
+  googleEventId?: string
 }
 
 type Client = {
@@ -47,13 +48,11 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
   const [isOther, setIsOther] = useState(false)
 
   useEffect(() => {
-    // En una aplicación real, aquí se haría una llamada a la API para obtener los clientes
-    setClients([
-      { id: "Lucas Baez", nombre: "Lucas", apellido: "Baez" },
-      { id: "Nicolas Mazzotti", nombre: "Nicolas", apellido: "Mazzotti" },
-      { id: "Sofia Ortiz", nombre: "Sofia", apellido: "Ortiz" },
-      { id: "Noumeira Alberdi", nombre: "Noumeira", apellido: "Alberdi" },
-    ])
+    // Fetch clients from the API
+    fetch("https://adndashbackend.onrender.com/api/clientes")
+      .then((response) => response.json())
+      .then((data) => setClients(data))
+      .catch((error) => console.error("Error fetching clients:", error))
   }, [])
 
   const handleChange = (newValue: string) => {
@@ -93,7 +92,7 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
   )
 }
 
-export default function DemoCalendar() {
+export default function Calendar() {
   const { user } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [showEventModal, setShowEventModal] = useState(false)
@@ -108,6 +107,34 @@ export default function DemoCalendar() {
     reminded: false,
   })
   const [filter, setFilter] = useState<"pendientes" | "cerrados" | "recordados">("pendientes")
+
+  useEffect(() => {
+    fetchEvents()
+  }, [])
+
+  const fetchEvents = async () => {
+    try {
+      const response = await fetch("https://adndashbackend.onrender.com/api/events", {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setEvents(
+          data.map((event: any) => ({
+            ...event,
+            start: new Date(event.start),
+            end: new Date(event.end),
+          })),
+        )
+      } else {
+        console.error("Failed to fetch events")
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error)
+    }
+  }
 
   const handleDateClick = (arg: any) => {
     setNewEvent({
@@ -127,41 +154,135 @@ export default function DemoCalendar() {
     }
   }
 
-  const handleAddOrEditEvent = () => {
+  const handleAddOrEditEvent = async () => {
     if (newEvent.title && newEvent.client && newEvent.start && newEvent.end) {
       const eventToAdd: Event = {
         ...newEvent,
         id: selectedEvent ? selectedEvent.id : Date.now().toString(),
       }
 
-      setEvents((prev) =>
-        selectedEvent ? prev.map((e) => (e.id === eventToAdd.id ? eventToAdd : e)) : [...prev, eventToAdd],
-      )
+      try {
+        const url = selectedEvent
+          ? `https://adndashbackend.onrender.com/api/events/${selectedEvent.id}`
+          : "https://adndashbackend.onrender.com/api/events"
+        const method = selectedEvent ? "PUT" : "POST"
 
-      setShowEventModal(false)
-      setSelectedEvent(null)
-      setNewEvent({
-        id: "",
-        title: "",
-        client: "",
-        start: new Date(),
-        end: new Date(),
-        completed: false,
-        reminded: false,
-      })
+        const response = await fetch(url, {
+          method: method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify(eventToAdd),
+        })
+
+        if (response.ok) {
+          await fetchEvents()
+          setShowEventModal(false)
+          setSelectedEvent(null)
+          setNewEvent({
+            id: "",
+            title: "",
+            client: "",
+            start: new Date(),
+            end: new Date(),
+            completed: false,
+            reminded: false,
+          })
+        } else {
+          console.error("Failed to add/edit event")
+        }
+      } catch (error) {
+        console.error("Error adding/editing event:", error)
+      }
     }
   }
 
-  const handleDeleteEvent = (eventId: string) => {
-    setEvents((prev) => prev.filter((e) => e.id !== eventId))
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const response = await fetch(`https://adndashbackend.onrender.com/api/events/${eventId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (response.ok) {
+        await fetchEvents()
+      } else {
+        console.error("Failed to delete event")
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error)
+    }
   }
 
-  const handleCompleteEvent = (eventId: string) => {
-    setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, completed: !e.completed } : e)))
+  const handleCompleteEvent = async (eventId: string) => {
+    const eventToUpdate = events.find((e) => e.id === eventId)
+    if (eventToUpdate) {
+      try {
+        const response = await fetch(`https://adndashbackend.onrender.com/api/events/${eventId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ ...eventToUpdate, completed: !eventToUpdate.completed }),
+        })
+
+        if (response.ok) {
+          await fetchEvents()
+        } else {
+          console.error("Failed to update event")
+        }
+      } catch (error) {
+        console.error("Error updating event:", error)
+      }
+    }
   }
 
-  const handleRemindEvent = (eventId: string) => {
-    setEvents((prev) => prev.map((e) => (e.id === eventId ? { ...e, reminded: true } : e)))
+  const handleRemindEvent = async (eventId: string) => {
+    const eventToUpdate = events.find((e) => e.id === eventId)
+    if (eventToUpdate) {
+      try {
+        const response = await fetch(`https://adndashbackend.onrender.com/api/events/${eventId}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({ ...eventToUpdate, reminded: true }),
+        })
+
+        if (response.ok) {
+          await fetchEvents()
+        } else {
+          console.error("Failed to update event")
+        }
+      } catch (error) {
+        console.error("Error updating event:", error)
+      }
+    }
+  }
+
+  const handleSyncWithGoogleCalendar = async () => {
+    try {
+      const response = await fetch("https://adndashbackend.onrender.com/api/events/sync", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (response.ok) {
+        await fetchEvents()
+        console.log("Synced with Google Calendar successfully")
+      } else {
+        console.error("Failed to sync with Google Calendar")
+      }
+    } catch (error) {
+      console.error("Error syncing with Google Calendar:", error)
+    }
   }
 
   const filteredEvents = events.filter((event) => {
@@ -185,24 +306,29 @@ export default function DemoCalendar() {
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl md:text-3xl font-bold text-white">Calendario de {user?.name || "Demostración"}</h1>
-            <Button
-              onClick={() => {
-                setSelectedEvent(null)
-                setNewEvent({
-                  id: "",
-                  title: "",
-                  client: "",
-                  start: new Date(),
-                  end: new Date(),
-                  completed: false,
-                  reminded: false,
-                })
-                setShowEventModal(true)
-              }}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Plus className="mr-2 h-4 w-4" /> Agregar Evento
-            </Button>
+            <div className="flex space-x-2">
+              <Button
+                onClick={() => {
+                  setSelectedEvent(null)
+                  setNewEvent({
+                    id: "",
+                    title: "",
+                    client: "",
+                    start: new Date(),
+                    end: new Date(),
+                    completed: false,
+                    reminded: false,
+                  })
+                  setShowEventModal(true)
+                }}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Plus className="mr-2 h-4 w-4" /> Agregar Evento
+              </Button>
+              <Button onClick={handleSyncWithGoogleCalendar} className="bg-blue-600 text-white hover:bg-blue-700">
+                <Sync className="mr-2 h-4 w-4" /> Sincronizar con Google
+              </Button>
+            </div>
           </div>
           <FullCalendar
             plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
