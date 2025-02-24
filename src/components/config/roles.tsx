@@ -31,7 +31,7 @@ export default function UserManagement() {
     setLoading(true)
     setError(null)
     try {
-      const response = await fetch('http://localhost:3001/api/users', {
+      const response = await fetch('https://adndashbackend.onrender.com/api/users', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -53,7 +53,7 @@ export default function UserManagement() {
 
   const handleRoleChange = async (userId: number, newRole: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/users/${userId}/role`, {
+      const response = await fetch(`https://adndashbackend.onrender.com/api/users/${userId}/role`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
