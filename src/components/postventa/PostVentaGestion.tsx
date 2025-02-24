@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from 'axios'
 import type { Reclamo } from "../../types/postVenta"
 import IngresoReclamo from "./IngresoReclamo"
 import ListaReclamos from "./ListaReclamos"
@@ -32,10 +31,15 @@ export default function PostVentaGestion() {
   const fetchReclamos = async () => {
     setIsLoading(true)
     try {
-      const response = await axios.get<Reclamo[]>(`${API_BASE_URL}/postventa`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      const response = await fetch(`${API_BASE_URL}/postventa`, {
+        headers: { 
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
-      setReclamos(response.data)
+      if (!response.ok) throw new Error('Error al cargar los reclamos');
+      const data = await response.json();
+      setReclamos(data)
     } catch (error) {
       console.error("Error fetching reclamos:", error)
       notyf.error("Error al cargar los reclamos")
@@ -46,10 +50,17 @@ export default function PostVentaGestion() {
 
   const agregarReclamo = async (nuevoReclamo: Omit<Reclamo, 'id'>) => {
     try {
-      const response = await axios.post<Reclamo>(`${API_BASE_URL}/postventa`, nuevoReclamo, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      const response = await fetch(`${API_BASE_URL}/postventa`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(nuevoReclamo)
       });
-      setReclamos(prevReclamos => [...prevReclamos, response.data])
+      if (!response.ok) throw new Error('Error al crear el reclamo');
+      const data = await response.json();
+      setReclamos(prevReclamos => [...prevReclamos, data])
       notyf.success("Reclamo creado con éxito")
     } catch (error) {
       console.error("Error creating reclamo:", error)
@@ -59,11 +70,18 @@ export default function PostVentaGestion() {
 
   const actualizarReclamo = async (reclamoActualizado: Reclamo) => {
     try {
-      const response = await axios.put<Reclamo>(`${API_BASE_URL}/postventa/${reclamoActualizado.id}`, reclamoActualizado, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      const response = await fetch(`${API_BASE_URL}/postventa/${reclamoActualizado.id}`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(reclamoActualizado)
       });
-      setReclamos(prevReclamos => prevReclamos.map(r => r.id === response.data.id ? response.data : r))
-      setReclamoSeleccionado(response.data)
+      if (!response.ok) throw new Error('Error al actualizar el reclamo');
+      const data = await response.json();
+      setReclamos(prevReclamos => prevReclamos.map(r => r.id === data.id ? data : r))
+      setReclamoSeleccionado(data)
       notyf.success("Reclamo actualizado con éxito")
     } catch (error) {
       console.error("Error updating reclamo:", error)
@@ -73,9 +91,15 @@ export default function PostVentaGestion() {
 
   const handleEnviarCorreo = async (reclamo: Reclamo, tipo: "nuevo_reclamo" | "actualizacion_estado") => {
     try {
-      await axios.post(`${API_BASE_URL}/postventa/enviar-correo`, { reclamo, tipo }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      const response = await fetch(`${API_BASE_URL}/postventa/enviar-correo`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reclamo, tipo })
       });
+      if (!response.ok) throw new Error('Error al enviar el correo');
       notyf.success("Correo enviado con éxito")
     } catch (error) {
       console.error("Error sending email:", error)

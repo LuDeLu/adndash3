@@ -38,6 +38,7 @@
     "@react-oauth/google": "^0.12.1",
     "@shadcn/ui": "^0.0.4",
     "@vercel/speed-insights": "^1.1.0",
+    "axios": "^1.7.9",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
