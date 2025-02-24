@@ -2,13 +2,28 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Reclamo } from "../../types/postVenta"
+import { Loader2 } from 'lucide-react'
 
 type ListaReclamosProps = {
   reclamos: Reclamo[]
   onSeleccionarReclamo: (reclamo: Reclamo) => void
+  isLoading: boolean
 }
 
-export default function ListaReclamos({ reclamos, onSeleccionarReclamo }: ListaReclamosProps) {
+export default function ListaReclamos({ reclamos, onSeleccionarReclamo, isLoading }: ListaReclamosProps) {
+  if (isLoading) {
+    return (
+      <Card className="bg-card text-card-foreground">
+        <CardHeader>
+          <CardTitle>Cargando Reclamos...</CardTitle>
+        </CardHeader>
+        <CardContent className="flex justify-center items-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="bg-card text-card-foreground">
       <CardHeader>
@@ -29,7 +44,7 @@ export default function ListaReclamos({ reclamos, onSeleccionarReclamo }: ListaR
             </TableHeader>
             <TableBody>
               {reclamos.map((reclamo) => (
-                <TableRow key={reclamo.ticket}>
+                <TableRow key={reclamo.id}>
                   <TableCell>{reclamo.ticket}</TableCell>
                   <TableCell>{reclamo.cliente}</TableCell>
                   <TableCell>{reclamo.edificio}</TableCell>
@@ -49,4 +64,3 @@ export default function ListaReclamos({ reclamos, onSeleccionarReclamo }: ListaR
     </Card>
   )
 }
-

@@ -1,4 +1,4 @@
-import { useState } from "react"
+import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -6,11 +6,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import type { Reclamo } from "../../types/postVenta"
 
 type IngresoReclamoProps = {
-  onNuevoReclamo: (reclamo: Reclamo) => void
+  onNuevoReclamo: (reclamo: Omit<Reclamo, "id">) => void
 }
 
 export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) {
-  const [nuevoReclamo, setNuevoReclamo] = useState<Omit<Reclamo, "ticket" | "fechaIngreso" | "estado">>({
+  const [nuevoReclamo, setNuevoReclamo] = useState<Omit<Reclamo, "id" | "ticket" | "fechaIngreso" | "estado">>({
     cliente: "",
     telefono: "",
     edificio: "",
@@ -20,19 +20,19 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
   })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setNuevoReclamo({
-      ...nuevoReclamo,
-      [e.target.name]: e.target.value,
-    })
+    const { name, value } = e.target
+    setNuevoReclamo(prev => ({ ...prev, [name]: value }))
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    const ticket = `T${Math.floor(Math.random() * 10000)
-      .toString()
-      .padStart(4, "0")}`
-    const fechaIngreso = new Date().toISOString().split("T")[0]
-    onNuevoReclamo({ ...nuevoReclamo, ticket, fechaIngreso, estado: "Ingresado" } as Reclamo)
+    const reclamoCompleto: Omit<Reclamo, "id"> = {
+      ...nuevoReclamo,
+      estado: "Ingresado",
+      fechaIngreso: new Date().toISOString().split('T')[0],
+      ticket: `T${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`,
+    }
+    onNuevoReclamo(reclamoCompleto)
     setNuevoReclamo({
       cliente: "",
       telefono: "",
@@ -57,7 +57,6 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
             value={nuevoReclamo.cliente}
             onChange={handleInputChange}
             required
-            className="bg-input text-foreground"
           />
           <Input
             name="telefono"
@@ -65,7 +64,6 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
             value={nuevoReclamo.telefono}
             onChange={handleInputChange}
             required
-            className="bg-input text-foreground"
           />
           <Input
             name="edificio"
@@ -73,7 +71,6 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
             value={nuevoReclamo.edificio}
             onChange={handleInputChange}
             required
-            className="bg-input text-foreground"
           />
           <Input
             name="unidadFuncional"
@@ -81,7 +78,6 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
             value={nuevoReclamo.unidadFuncional}
             onChange={handleInputChange}
             required
-            className="bg-input text-foreground"
           />
           <Textarea
             name="detalle"
@@ -89,14 +85,12 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
             value={nuevoReclamo.detalle}
             onChange={handleInputChange}
             required
-            className="bg-input text-foreground"
           />
           <Textarea
             name="comentario"
             placeholder="Comentario"
             value={nuevoReclamo.comentario}
             onChange={handleInputChange}
-            className="bg-input text-foreground"
           />
           <Button type="submit" className="w-full">
             Ingresar Reclamo
@@ -106,4 +100,3 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
     </Card>
   )
 }
-

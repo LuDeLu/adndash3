@@ -1,5 +1,6 @@
 "use client"
 
+import type React from "react"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -61,23 +62,25 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
 
   const agregarInspeccion = () => {
     const nuevaInspeccion = reclamo.inspeccion
-      ? { ...reclamo.inspeccion, items: [...reclamo.inspeccion.items, inspeccion] }
-      : { items: [inspeccion], observaciones: "", fechaProgramada: "" }
+      ? {
+          ...reclamo.inspeccion,
+          items: [...reclamo.inspeccion.items, inspeccion],
+        }
+      : {
+          items: [inspeccion],
+          observaciones: "",
+          fechaProgramada: new Date().toISOString().split('T')[0],
+        };
 
     const reclamoActualizado: Reclamo = {
       ...reclamo,
       inspeccion: nuevaInspeccion,
       estado: "En Inspección" as EstadoReclamo,
-    }
-    onActualizarReclamo(reclamoActualizado)
-    setInspeccion({
-      ambiente: "",
-      lugar: "",
-      item: "",
-      descripcionCliente: "",
-      resultado: "Corresponde",
-    })
-  }
+    };
+
+    // Asegúrate de que onActualizarReclamo está definido correctamente en las props
+    onActualizarReclamo(reclamoActualizado);
+  };
 
   const agregarOrdenTrabajo = () => {
     const reclamoActualizado: Reclamo = {
@@ -86,7 +89,6 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
       estado: "En Reparación" as EstadoReclamo,
     }
     onActualizarReclamo(reclamoActualizado)
-    // Limpiar el formulario después de agregar la orden de trabajo
     setOrdenTrabajo({
       responsable: "",
       fechaTrabajo: "",
@@ -437,8 +439,7 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
                     <strong>Fecha de Visita Acordada:</strong> {reclamo.actaConformidad.fechaVisitaAcordada}
                   </p>
                   <p>
-                    <strong>Fecha Acordada Orden de Inspección:</strong>{" "}
-                    {reclamo.actaConformidad.fechaAcordadaOrdenInspeccion}
+                    <strong>Fecha Acordada Orden de Inspección:</strong> {reclamo.actaConformidad.fechaAcordadaOrdenInspeccion}
                   </p>
                   <p>
                     <strong>Fecha Término OT:</strong> {reclamo.actaConformidad.fechaTerminoOT}
@@ -450,8 +451,7 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
                     <strong>Responsable:</strong> {reclamo.actaConformidad.responsable}
                   </p>
                   <p>
-                    <strong>Solicitudes Solucionadas:</strong>{" "}
-                    {reclamo.actaConformidad.solicitudesSolucionadas.join(", ")}
+                    <strong>Solicitudes Solucionadas:</strong> {reclamo.actaConformidad.solicitudesSolucionadas.join(", ")}
                   </p>
                   <p>
                     <strong>Conformidad del Cliente:</strong> {reclamo.actaConformidad.conformidadCliente ? "Sí" : "No"}
@@ -471,4 +471,3 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
     </Card>
   )
 }
-

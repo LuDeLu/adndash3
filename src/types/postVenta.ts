@@ -31,6 +31,7 @@ export type ActaConformidad = {
 }
 
 export type Reclamo = {
+  id: string
   ticket: string
   cliente: string
   telefono: string
@@ -41,14 +42,11 @@ export type Reclamo = {
   detalle: string
   comentario: string
   estado: EstadoReclamo
-  inspeccion?: OrdenInspeccion
+  inspeccion?: {
+    items: ItemInspeccion[]
+    observaciones: string
+    fechaProgramada: string
+  }
   ordenTrabajo?: OrdenTrabajo
   actaConformidad?: ActaConformidad
 }
-
-export type OrdenInspeccion = {
-  items: ItemInspeccion[]
-  observaciones: string
-  fechaProgramada: string
-}
-

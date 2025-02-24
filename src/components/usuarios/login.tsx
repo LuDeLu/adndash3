@@ -16,7 +16,7 @@ export default function Login() {
   const [password, setPassword] = useState("")
   const { login } = useAuth()
 
-  const API_BASE_URL = "https://adndashbackend.onrender.com/api"
+  const API_BASE_URL = "http://localhost:3001/api"
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
