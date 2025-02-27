@@ -1,14 +1,22 @@
+export type TipoOcupante = "Inquilino" | "Propietario"
 export type EstadoReclamo = "Ingresado" | "En Inspección" | "En Reparación" | "Solucionado" | "No Corresponde"
+export type ResultadoInspeccion = "Corresponde" | "No Corresponde" | "Re Inspección" | "Solucionado en Visita"
 
-export type ItemInspeccion = {
+export interface ItemInspeccion {
   ambiente: string
   lugar: string
   item: string
   descripcionCliente: string
-  resultado: "Corresponde" | "No Corresponde" | "Re Inspección" | "Solucionado en Visita"
+  resultado: ResultadoInspeccion
 }
 
-export type OrdenTrabajo = {
+export interface Inspeccion {
+  items: ItemInspeccion[]
+  observaciones: string
+  fechaProgramada: string
+}
+
+export interface OrdenTrabajo {
   responsable: string
   fechaTrabajo: string
   horaTrabajo: string
@@ -16,7 +24,7 @@ export type OrdenTrabajo = {
   observacionesEjecucion: string
 }
 
-export type ActaConformidad = {
+export interface ActaConformidad {
   fechaSolicitud: string
   fechaIngreso: string
   fechaVisitaAcordada: string
@@ -30,23 +38,22 @@ export type ActaConformidad = {
   telefonoRecepcion: string
 }
 
-export type Reclamo = {
-  id: string
+export interface Reclamo {
+  id: string | number
   ticket: string
   cliente: string
   telefono: string
   edificio: string
   unidadFuncional: string
+  tipoOcupante: TipoOcupante
   fechaIngreso: string
   fechaVisita?: string
+  horaVisita?: string
   detalle: string
-  comentario: string
+  comentario?: string
   estado: EstadoReclamo
-  inspeccion?: {
-    items: ItemInspeccion[]
-    observaciones: string
-    fechaProgramada: string
-  }
+  inspeccion?: Inspeccion
   ordenTrabajo?: OrdenTrabajo
   actaConformidad?: ActaConformidad
 }
+

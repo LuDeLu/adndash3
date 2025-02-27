@@ -15,12 +15,14 @@ type AuthContextType = {
   login: (user: User, token: string, googleAccessToken: string) => void
   logout: () => void
   getGoogleAccessToken: () => string | null
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
   const SESSION_TIMEOUT = 6 * 60 * 60 * 1000 // 6 hours in milliseconds
 
@@ -42,13 +44,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (storedUser) {
       setUser(JSON.parse(storedUser))
     }
+    setIsLoading(false)
   }, [])
 
   const login = (userData: User, token: string, googleAccessToken: string) => {
     setUser(userData)
     localStorage.setItem("user", JSON.stringify(userData))
     localStorage.setItem("token", token)
-    localStorage.setItem("googleAccessToken", googleAccessToken)
+
+    // Only store googleAccessToken if it exists (for Google login)
+    if (googleAccessToken) {
+      localStorage.setItem("googleAccessToken", googleAccessToken)
+    }
+
     resetLogoutTimer()
   }
 
@@ -81,7 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [resetLogoutTimer])
 
-  return <AuthContext.Provider value={{ user, login, logout, getGoogleAccessToken }}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={{ user, login, logout, getGoogleAccessToken, isLoading }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export const useAuth = () => {
