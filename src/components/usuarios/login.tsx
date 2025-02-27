@@ -105,7 +105,7 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>ADN Developers Dashboard</CardTitle>
-          <CardDescription>Accede a tu cuenta para gestionar proyectos</CardDescription>
+          <CardDescription>Accede a tu cuenta para gestionar el Dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
