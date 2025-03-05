@@ -67,7 +67,7 @@ ${detallesSeleccionados.length > 0 ? detallesSeleccionados.map((d, i) => `${i + 
 • El técnico asignado es Yoni.
 • Por favor, asegúrese de que la propiedad esté accesible en el horario indicado.
 
-Si necesita reprogramar la visita o tiene alguna consulta, responda a este mensaje o comuníquese con nuestro departamento de Postventa.
+Si necesita reprogramar la visita o tiene alguna consulta, responda a este mensaje o comuníquese con nuestro departamento de Postventa con 24 horas de antelación.
 
 Atentamente,
 *Equipo de Postventa*
