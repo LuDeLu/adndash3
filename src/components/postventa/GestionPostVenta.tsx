@@ -24,6 +24,7 @@ export default function GestionPostVenta() {
   const [reclamos, setReclamos] = useState<Reclamo[]>([])
   const [reclamoSeleccionado, setReclamoSeleccionado] = useState<Reclamo | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [reclamosSeleccionados, setReclamosSeleccionados] = useState<(string | number)[]>([])
 
   useEffect(() => {
     fetchReclamos()
@@ -91,13 +92,47 @@ export default function GestionPostVenta() {
     }
   }
 
+  const handleEliminarReclamo = async (id: string | number) => {
+    try {
+      await axios.delete(`${API_BASE_URL}/postventa/${id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      setReclamos((prevReclamos) => prevReclamos.filter((r) => r.id !== id))
+      if (reclamoSeleccionado && reclamoSeleccionado.id === id) {
+        setReclamoSeleccionado(null)
+      }
+      notyf.success("Reclamo eliminado con éxito")
+    } catch (error) {
+      console.error("Error deleting reclamo:", error)
+      notyf.error("Error al eliminar el reclamo")
+    }
+  }
+
+  const handleEditarReclamo = (reclamo: Reclamo) => {
+    setReclamoSeleccionado(reclamo)
+  }
+
+  const toggleSeleccionReclamo = (id: string | number) => {
+    setReclamosSeleccionados((prev) =>
+      prev.includes(id) ? prev.filter((reclamoId) => reclamoId !== id) : [...prev, id],
+    )
+  }
+
   return (
     <div className="container mx-auto p-4 text-foreground">
       <h1 className="text-3xl font-bold mb-8 text-primary">Gestión de Post Venta ADN Developers</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <IngresoReclamo onNuevoReclamo={agregarReclamo} />
-        <ListaReclamos reclamos={reclamos} onSeleccionarReclamo={setReclamoSeleccionado} isLoading={isLoading} />
+        <ListaReclamos
+          reclamos={reclamos}
+          onSeleccionarReclamo={setReclamoSeleccionado}
+          isLoading={isLoading}
+          onEliminarReclamo={handleEliminarReclamo}
+          onEditarReclamo={handleEditarReclamo}
+          reclamosSeleccionados={reclamosSeleccionados}
+          toggleSeleccionReclamo={toggleSeleccionReclamo}
+        />
       </div>
 
       {reclamoSeleccionado && (
