@@ -1,24 +1,24 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import axios from 'axios'
+import axios from "axios"
 import type { Reclamo } from "../../types/postVenta"
 import IngresoReclamo from "./IngresoReclamo"
 import ListaReclamos from "./ListaReclamos"
 import DetalleReclamo from "./DetalleReclamo"
-import { Notyf } from 'notyf'
-import 'notyf/notyf.min.css'
+import { Notyf } from "notyf"
+import "notyf/notyf.min.css"
 
 let notyf: Notyf
 
-if (typeof window !== 'undefined') {
+if (typeof window !== "undefined") {
   notyf = new Notyf({
     duration: 3000,
-    position: { x: 'right', y: 'top' },
+    position: { x: "right", y: "top" },
   })
 }
 
-const API_BASE_URL = 'https://adndashbackend.onrender.com/api';
+const API_BASE_URL = "https://adndashbackend.onrender.com/api"
 
 export default function GestionPostVenta() {
   const [reclamos, setReclamos] = useState<Reclamo[]>([])
@@ -33,8 +33,8 @@ export default function GestionPostVenta() {
     setIsLoading(true)
     try {
       const response = await axios.get<Reclamo[]>(`${API_BASE_URL}/postventa`, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
       setReclamos(response.data)
     } catch (error) {
       console.error("Error fetching reclamos:", error)
@@ -44,12 +44,12 @@ export default function GestionPostVenta() {
     }
   }
 
-  const agregarReclamo = async (nuevoReclamo: Omit<Reclamo, 'id'>) => {
+  const agregarReclamo = async (nuevoReclamo: Omit<Reclamo, "id">) => {
     try {
       const response = await axios.post<Reclamo>(`${API_BASE_URL}/postventa`, nuevoReclamo, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      setReclamos(prevReclamos => [...prevReclamos, response.data])
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+      setReclamos((prevReclamos) => [...prevReclamos, response.data])
       notyf.success("Reclamo creado con éxito")
     } catch (error) {
       console.error("Error creating reclamo:", error)
@@ -59,10 +59,14 @@ export default function GestionPostVenta() {
 
   const actualizarReclamo = async (reclamoActualizado: Reclamo) => {
     try {
-      const response = await axios.put<Reclamo>(`${API_BASE_URL}/postventa/${reclamoActualizado.id}`, reclamoActualizado, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      setReclamos(prevReclamos => prevReclamos.map(r => r.id === response.data.id ? response.data : r))
+      const response = await axios.put<Reclamo>(
+        `${API_BASE_URL}/postventa/${reclamoActualizado.id}`,
+        reclamoActualizado,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        },
+      )
+      setReclamos((prevReclamos) => prevReclamos.map((r) => (r.id === response.data.id ? response.data : r)))
       setReclamoSeleccionado(response.data)
       notyf.success("Reclamo actualizado con éxito")
     } catch (error) {
@@ -73,9 +77,13 @@ export default function GestionPostVenta() {
 
   const handleEnviarCorreo = async (reclamo: Reclamo, tipo: "nuevo_reclamo" | "actualizacion_estado") => {
     try {
-      await axios.post(`${API_BASE_URL}/postventa/enviar-correo`, { reclamo, tipo }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
+      await axios.post(
+        `${API_BASE_URL}/postventa/enviar-correo`,
+        { reclamo, tipo },
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        },
+      )
       notyf.success("Correo enviado con éxito")
     } catch (error) {
       console.error("Error sending email:", error)
@@ -89,11 +97,7 @@ export default function GestionPostVenta() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <IngresoReclamo onNuevoReclamo={agregarReclamo} />
-        <ListaReclamos 
-          reclamos={reclamos} 
-          onSeleccionarReclamo={setReclamoSeleccionado}
-          isLoading={isLoading}
-        />
+        <ListaReclamos reclamos={reclamos} onSeleccionarReclamo={setReclamoSeleccionado} isLoading={isLoading} />
       </div>
 
       {reclamoSeleccionado && (
@@ -106,3 +110,4 @@ export default function GestionPostVenta() {
     </div>
   )
 }
+

@@ -50,6 +50,7 @@ export interface Reclamo {
   fechaVisita?: string
   horaVisita?: string
   detalle: string
+  detalles?: string[] // Campo adicional para múltiples detalles
   comentario?: string
   estado: EstadoReclamo
   inspeccion?: Inspeccion

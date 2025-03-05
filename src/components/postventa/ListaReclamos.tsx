@@ -10,10 +10,22 @@ import { es } from "date-fns/locale"
 type ListaReclamosProps = {
   reclamos: Reclamo[]
   onSeleccionarReclamo: (reclamo: Reclamo) => void
+  onEliminarReclamo: (id: string | number) => void
+  onEditarReclamo: (reclamo: Reclamo) => void
+  reclamosSeleccionados: (string | number)[]
+  toggleSeleccionReclamo: (id: string | number) => void
   isLoading: boolean
 }
 
-export default function ListaReclamos({ reclamos, onSeleccionarReclamo, isLoading }: ListaReclamosProps) {
+export default function ListaReclamos({
+  reclamos,
+  onSeleccionarReclamo,
+  onEliminarReclamo,
+  onEditarReclamo,
+  reclamosSeleccionados,
+  toggleSeleccionReclamo,
+  isLoading,
+}: ListaReclamosProps) {
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
       case "Ingresado":
@@ -72,6 +84,9 @@ export default function ListaReclamos({ reclamos, onSeleccionarReclamo, isLoadin
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-[50px]">
+                    <span className="sr-only">Seleccionar</span>
+                  </TableHead>
                   <TableHead>Ticket</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead className="hidden md:table-cell">Edificio</TableHead>
@@ -84,6 +99,14 @@ export default function ListaReclamos({ reclamos, onSeleccionarReclamo, isLoadin
               <TableBody>
                 {reclamos.map((reclamo) => (
                   <TableRow key={reclamo.id} className="hover:bg-muted/50">
+                    <TableCell>
+                      <input
+                        type="checkbox"
+                        checked={reclamosSeleccionados.includes(reclamo.id)}
+                        onChange={() => toggleSeleccionReclamo(reclamo.id)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                    </TableCell>
                     <TableCell className="font-medium">{reclamo.ticket}</TableCell>
                     <TableCell>{reclamo.cliente}</TableCell>
                     <TableCell className="hidden md:table-cell">{reclamo.edificio}</TableCell>
@@ -100,15 +123,64 @@ export default function ListaReclamos({ reclamos, onSeleccionarReclamo, isLoadin
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => onSeleccionarReclamo(reclamo)}
-                        className="flex items-center"
-                      >
-                        <Eye className="h-3.5 w-3.5 mr-1" />
-                        Ver
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => onSeleccionarReclamo(reclamo)}
+                          className="flex items-center"
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1" />
+                          Ver
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onEditarReclamo(reclamo)}
+                          className="flex items-center"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mr-1"
+                          >
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                          </svg>
+                          Editar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => onEliminarReclamo(reclamo.id)}
+                          className="flex items-center"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mr-1"
+                          >
+                            <path d="M3 6h18"></path>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                          </svg>
+                          Eliminar
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

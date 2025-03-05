@@ -36,6 +36,7 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
   const [view, setView] = useState<View>("month")
   const [date, setDate] = useState(new Date())
 
+  // Modificar la función eventos para manejar fechas inválidas
   const eventos = useMemo<EventoCalendario[]>(() => {
     return reclamos
       .filter(
@@ -46,20 +47,56 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
           reclamo.horaVisita.trim() !== "",
       )
       .map((reclamo) => {
-        const [hours, minutes] = reclamo.horaVisita.split(":")
-        const startDate = new Date(reclamo.fechaVisita)
-        startDate.setHours(Number.parseInt(hours, 10), Number.parseInt(minutes, 10))
+        try {
+          const [hours, minutes] = reclamo.horaVisita.split(":")
+          const startDate = new Date(reclamo.fechaVisita)
 
-        const endDate = new Date(startDate)
-        endDate.setHours(endDate.getHours() + 2) // Asumimos que cada visita dura 2 horas
+          // Verificar que la fecha base sea válida
+          if (isNaN(startDate.getTime())) {
+            console.warn("Fecha de visita inválida:", reclamo.fechaVisita)
+            // Usar la fecha actual como fallback
+            const fallbackDate = new Date()
+            return {
+              id: `visita-${reclamo.id}`,
+              title: `${reclamo.ticket} - ${reclamo.cliente} (fecha inválida)`,
+              start: fallbackDate,
+              end: new Date(fallbackDate.getTime() + 2 * 60 * 60 * 1000),
+              reclamo: reclamo,
+              estado: reclamo.estado,
+            }
+          }
 
-        return {
-          id: `visita-${reclamo.id}`,
-          title: `${reclamo.ticket} - ${reclamo.cliente}`,
-          start: startDate,
-          end: endDate,
-          reclamo: reclamo,
-          estado: reclamo.estado,
+          // Verificar que las horas y minutos sean números válidos
+          if (isNaN(Number.parseInt(hours, 10)) || isNaN(Number.parseInt(minutes, 10))) {
+            console.warn("Hora de visita inválida:", reclamo.horaVisita)
+            startDate.setHours(9, 0) // Usar 9:00 AM como hora predeterminada
+          } else {
+            startDate.setHours(Number.parseInt(hours, 10), Number.parseInt(minutes, 10))
+          }
+
+          const endDate = new Date(startDate)
+          endDate.setHours(endDate.getHours() + 2) // Asumimos que cada visita dura 2 horas
+
+          return {
+            id: `visita-${reclamo.id}`,
+            title: `${reclamo.ticket} - ${reclamo.cliente}`,
+            start: startDate,
+            end: endDate,
+            reclamo: reclamo,
+            estado: reclamo.estado,
+          }
+        } catch (error) {
+          console.error("Error al procesar fecha de reclamo:", error, reclamo)
+          // Usar la fecha actual como fallback
+          const fallbackDate = new Date()
+          return {
+            id: `visita-${reclamo.id}`,
+            title: `${reclamo.ticket} - ${reclamo.cliente} (error de fecha)`,
+            start: fallbackDate,
+            end: new Date(fallbackDate.getTime() + 2 * 60 * 60 * 1000),
+            reclamo: reclamo,
+            estado: reclamo.estado,
+          }
         }
       })
   }, [reclamos])

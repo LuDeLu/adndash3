@@ -15,6 +15,10 @@ import { Input } from "@/components/ui/input"
 import { Loader2, Calendar, List, Search, RefreshCw, AlertCircle } from "lucide-react"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import EnviarReclamosSeleccionados from "./EnviarReclamosSeleccionados"
 
 let notyf: Notyf
 
@@ -47,6 +51,11 @@ export default function PostVentaGestion() {
   const [vistaActiva, setVistaActiva] = useState("lista")
   const [busqueda, setBusqueda] = useState("")
   const [isRefreshing, setIsRefreshing] = useState(false)
+
+  const [reclamosSeleccionados, setReclamosSeleccionados] = useState<(string | number)[]>([])
+  const [reclamoEnEdicion, setReclamoEnEdicion] = useState<Reclamo | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null)
 
   useEffect(() => {
     fetchReclamos()
@@ -113,27 +122,46 @@ export default function PostVentaGestion() {
 
   const agregarReclamo = async (nuevoReclamo: Omit<Reclamo, "id">) => {
     try {
+      // Asegurarse de que detalles sea un array
+      const reclamoParaEnviar = {
+        ...nuevoReclamo,
+        detalles: Array.isArray(nuevoReclamo.detalles) ? nuevoReclamo.detalles : [],
+      }
+
+      console.log("Enviando reclamo:", JSON.stringify(reclamoParaEnviar))
+
       const response = await fetch(`${API_BASE_URL}/postventa`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(nuevoReclamo),
+        body: JSON.stringify(reclamoParaEnviar),
       })
-      if (!response.ok) throw new Error("Error al crear el reclamo")
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error("Error response:", errorData)
+        throw new Error(errorData.message || "Error al crear el reclamo")
+      }
+
       const data = await response.json()
       setReclamos((prevReclamos) => [...prevReclamos, data])
       setReclamosFiltrados((prevReclamos) => [...prevReclamos, data])
       notyf.success("Reclamo creado con éxito")
     } catch (error) {
       console.error("Error creating reclamo:", error)
-      notyf.error("Error al crear el reclamo")
+      notyf.error(error instanceof Error ? error.message : "Error al crear el reclamo")
     }
   }
 
   const actualizarReclamo = async (reclamoActualizado: Reclamo) => {
     try {
+      // Asegurarse de que detalles sea un array si no está definido
+      if (!reclamoActualizado.detalles) {
+        reclamoActualizado.detalles = []
+      }
+
       const response = await fetch(`${API_BASE_URL}/postventa/${reclamoActualizado.id}`, {
         method: "PUT",
         headers: {
@@ -169,6 +197,73 @@ export default function PostVentaGestion() {
     } catch (error) {
       console.error("Error sending email:", error)
       notyf.error("Error al enviar el correo")
+    }
+  }
+
+  const toggleSeleccionReclamo = (id: string | number) => {
+    setReclamosSeleccionados((prev) =>
+      prev.includes(id) ? prev.filter((reclamoId) => reclamoId !== id) : [...prev, id],
+    )
+  }
+
+  const handleEditarReclamo = (reclamo: Reclamo) => {
+    setReclamoEnEdicion(reclamo)
+    setShowEditModal(true)
+  }
+
+  const handleEliminarReclamo = (id: string | number) => {
+    setShowDeleteConfirm(String(id))
+  }
+
+  const confirmarEliminacion = async () => {
+    if (!showDeleteConfirm) return
+
+    try {
+      await axios.delete(`${API_BASE_URL}/postventa/${showDeleteConfirm}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+
+      setReclamos((prev) => prev.filter((r) => String(r.id) !== showDeleteConfirm))
+      setReclamosFiltrados((prev) => prev.filter((r) => String(r.id) !== showDeleteConfirm))
+
+      // Si el reclamo eliminado estaba seleccionado, quitarlo de la selección
+      if (reclamosSeleccionados.includes(showDeleteConfirm)) {
+        setReclamosSeleccionados((prev) => prev.filter((id) => id !== showDeleteConfirm))
+      }
+
+      // Si el reclamo eliminado era el que se estaba viendo, limpiar la selección
+      if (reclamoSeleccionado && String(reclamoSeleccionado.id) === showDeleteConfirm) {
+        setReclamoSeleccionado(null)
+      }
+
+      notyf.success("Reclamo eliminado con éxito")
+      setShowDeleteConfirm(null)
+    } catch (error) {
+      console.error("Error eliminando reclamo:", error)
+      notyf.error("Error al eliminar el reclamo")
+    }
+  }
+
+  const guardarEdicionReclamo = async (reclamoEditado: Reclamo) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/postventa/${reclamoEditado.id}`, reclamoEditado, {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      })
+
+      setReclamos((prev) => prev.map((r) => (r.id === reclamoEditado.id ? response.data : r)))
+      setReclamosFiltrados((prev) => prev.map((r) => (r.id === reclamoEditado.id ? response.data : r)))
+
+      // Si el reclamo editado era el que se estaba viendo, actualizar la vista
+      if (reclamoSeleccionado && reclamoSeleccionado.id === reclamoEditado.id) {
+        setReclamoSeleccionado(response.data)
+      }
+
+      notyf.success("Reclamo actualizado con éxito")
+      setShowEditModal(false)
+      setReclamoEnEdicion(null)
+    } catch (error) {
+      console.error("Error actualizando reclamo:", error)
+      notyf.error("Error al actualizar el reclamo")
     }
   }
 
@@ -215,6 +310,10 @@ export default function PostVentaGestion() {
             <ListaReclamos
               reclamos={reclamosFiltrados}
               onSeleccionarReclamo={setReclamoSeleccionado}
+              onEliminarReclamo={handleEliminarReclamo}
+              onEditarReclamo={handleEditarReclamo}
+              reclamosSeleccionados={reclamosSeleccionados}
+              toggleSeleccionReclamo={toggleSeleccionReclamo}
               isLoading={isLoading}
             />
           </div>
@@ -224,6 +323,24 @@ export default function PostVentaGestion() {
           <CalendarioReclamos reclamos={reclamosFiltrados} onEventClick={setReclamoSeleccionado} />
         </TabsContent>
       </Tabs>
+
+      {reclamosSeleccionados.length > 0 && (
+        <div className="mt-4">
+          <Card>
+            <CardContent className="pt-6 pb-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h3 className="text-lg font-semibold">Reclamos seleccionados: {reclamosSeleccionados.length}</h3>
+                  <p className="text-sm text-muted-foreground">Seleccione los reclamos que desea enviar por WhatsApp</p>
+                </div>
+                <EnviarReclamosSeleccionados
+                  reclamos={reclamosFiltrados.filter((r) => reclamosSeleccionados.includes(r.id))}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {reclamoSeleccionado ? (
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -249,6 +366,103 @@ export default function PostVentaGestion() {
           </CardContent>
         </Card>
       )}
+
+      {/* Modal de confirmación de eliminación */}
+      <Dialog open={!!showDeleteConfirm} onOpenChange={(open) => !open && setShowDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              ¿Está seguro que desea eliminar este reclamo? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmarEliminacion}>
+              Eliminar
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de edición de reclamo */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Editar Reclamo</DialogTitle>
+          </DialogHeader>
+          {reclamoEnEdicion && (
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-cliente">Cliente</Label>
+                  <Input
+                    id="edit-cliente"
+                    value={reclamoEnEdicion.cliente}
+                    onChange={(e) => setReclamoEnEdicion({ ...reclamoEnEdicion, cliente: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-telefono">Teléfono</Label>
+                  <Input
+                    id="edit-telefono"
+                    value={reclamoEnEdicion.telefono}
+                    onChange={(e) => setReclamoEnEdicion({ ...reclamoEnEdicion, telefono: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-edificio">Edificio</Label>
+                  <Input
+                    id="edit-edificio"
+                    value={reclamoEnEdicion.edificio}
+                    onChange={(e) => setReclamoEnEdicion({ ...reclamoEnEdicion, edificio: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-uf">Unidad Funcional</Label>
+                  <Input
+                    id="edit-uf"
+                    value={reclamoEnEdicion.unidadFuncional}
+                    onChange={(e) => setReclamoEnEdicion({ ...reclamoEnEdicion, unidadFuncional: e.target.value })}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-detalle">Detalle</Label>
+                <Textarea
+                  id="edit-detalle"
+                  value={reclamoEnEdicion.detalle}
+                  onChange={(e) => setReclamoEnEdicion({ ...reclamoEnEdicion, detalle: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-comentario">Comentario</Label>
+                <Textarea
+                  id="edit-comentario"
+                  value={reclamoEnEdicion.comentario}
+                  onChange={(e) => setReclamoEnEdicion({ ...reclamoEnEdicion, comentario: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditModal(false)
+                    setReclamoEnEdicion(null)
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button onClick={() => guardarEdicionReclamo(reclamoEnEdicion)}>Guardar Cambios</Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

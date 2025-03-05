@@ -5,9 +5,8 @@ import type { Reclamo } from "../../types/postVenta"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 
-type EnviarInformacionTrabajadorProps = {
-  reclamo?: Reclamo
-  reclamos?: Reclamo[]
+type EnviarReclamosSeleccionadosProps = {
+  reclamos: Reclamo[]
 }
 
 const WhatsAppLogo = () => (
@@ -16,7 +15,7 @@ const WhatsAppLogo = () => (
   </svg>
 )
 
-export default function EnviarInformacionTrabajador({ reclamo, reclamos = [] }: EnviarInformacionTrabajadorProps) {
+export default function EnviarReclamosSeleccionados({ reclamos }: EnviarReclamosSeleccionadosProps) {
   const formatearFecha = (fecha: string | undefined, hora: string | undefined) => {
     if (!fecha) return "No programada"
     const fechaObj = new Date(fecha)
@@ -43,21 +42,19 @@ ${reclamo.detalles.map((d, i) => `  ${i + 1}. ${d}`).join("\n")}
 }
 ${reclamo.comentario ? `Comentario: ${reclamo.comentario}\n` : ""}
 Fecha de visita: ${formatearFecha(reclamo.fechaVisita, reclamo.horaVisita)}
-Responsable: Yoni
 `.trim()
   }
 
   const generarMensaje = () => {
-    if (reclamo) {
-      return generarInformacionReclamo(reclamo)
-    } else if (reclamos && reclamos.length > 0) {
-      return reclamos
-        .map((r, i) => {
-          return `--- RECLAMO ${i + 1}: ${r.ticket} ---\n${generarInformacionReclamo(r)}`
-        })
-        .join("\n\n")
+    if (reclamos.length === 0) {
+      return "No hay reclamos seleccionados"
     }
-    return "No hay reclamos seleccionados"
+
+    return reclamos
+      .map((r, i) => {
+        return `--- RECLAMO ${i + 1}: ${r.ticket} ---\n${generarInformacionReclamo(r)}`
+      })
+      .join("\n\n")
   }
 
   const enviarPorWhatsApp = (esGrupo: boolean) => {
@@ -75,9 +72,10 @@ Responsable: Yoni
         <Button
           variant="outline"
           className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white border-green-600 hover:border-green-700 transition-colors duration-200"
+          disabled={reclamos.length === 0}
         >
           <WhatsAppLogo />
-          <span className="ml-2">Enviar info</span>
+          <span className="ml-2">Enviar {reclamos.length} reclamo(s)</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[350px]">
@@ -89,25 +87,23 @@ Responsable: Yoni
         </DialogHeader>
         <div className="py-4">
           <p className="text-center text-gray-600">
-            {reclamos && reclamos.length > 0
+            {reclamos.length > 0
               ? `Enviar ${reclamos.length} reclamo(s) seleccionado(s)`
-              : reclamo
-                ? "Enviar información del reclamo actual"
-                : "No hay reclamos seleccionados"}
+              : "No hay reclamos seleccionados"}
           </p>
         </div>
         <div className="flex justify-center space-x-4">
           <Button
             onClick={() => enviarPorWhatsApp(false)}
             className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white transition-colors duration-200"
-            disabled={!reclamo && (!reclamos || reclamos.length === 0)}
+            disabled={reclamos.length === 0}
           >
             <Send className="mr-2 h-4 w-4" /> Contacto
           </Button>
           <Button
             onClick={() => enviarPorWhatsApp(true)}
             className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white transition-colors duration-200"
-            disabled={!reclamo && (!reclamos || reclamos.length === 0)}
+            disabled={reclamos.length === 0}
           >
             <Users className="mr-2 h-4 w-4" /> Grupo
           </Button>

@@ -14,7 +14,17 @@ import "react-datepicker/dist/react-datepicker.css"
 import { es } from "date-fns/locale/es"
 import type { Reclamo, ItemInspeccion, OrdenTrabajo, ActaConformidad, EstadoReclamo } from "../../types/postVenta"
 import EnviarInformacionTrabajador from "./EnviarInformacionTrabajador"
-import { User, Phone, Building, Hash, Calendar, FileText, Clipboard, PenToolIcon as Tool, CheckSquare } from 'lucide-react'
+import {
+  User,
+  Phone,
+  Building,
+  Hash,
+  Calendar,
+  FileText,
+  Clipboard,
+  PenToolIcon as Tool,
+  CheckSquare,
+} from "lucide-react"
 
 registerLocale("es", es)
 
@@ -34,7 +44,7 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
   })
 
   const [ordenTrabajo, setOrdenTrabajo] = useState<OrdenTrabajo>({
-    responsable: "",
+    responsable: "Yoni",
     fechaTrabajo: "",
     horaTrabajo: "",
     tiempoEstimado: "",
@@ -48,25 +58,51 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
     fechaAcordadaOrdenInspeccion: "",
     fechaTerminoOT: "",
     fechaTerminoEjecucion: "",
-    responsable: "",
+    responsable: "Yoni",
     solicitudesSolucionadas: [],
     conformidadCliente: false,
     nombreRecepcion: "",
     telefonoRecepcion: "",
   })
 
+  // Modificar la función de inicialización de fechaHoraVisita para manejar fechas inválidas
   const [fechaHoraVisita, setFechaHoraVisita] = useState<Date | null>(() => {
     if (reclamo.fechaVisita && reclamo.horaVisita) {
-      const [hours, minutes] = reclamo.horaVisita.split(":")
-      const date = new Date(reclamo.fechaVisita)
-      date.setHours(Number.parseInt(hours, 10), Number.parseInt(minutes, 10))
-      return date
+      try {
+        // Crear la fecha correctamente para evitar problemas de zona horaria
+        const [year, month, day] = reclamo.fechaVisita.split("-").map(Number)
+        const [hours, minutes] = reclamo.horaVisita.split(":").map(Number)
+
+        // Verificar que los valores sean válidos
+        if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hours) || isNaN(minutes)) {
+          console.warn("Fecha u hora inválida:", reclamo.fechaVisita, reclamo.horaVisita)
+          return null
+        }
+
+        // Crear la fecha con los componentes individuales
+        const date = new Date()
+        date.setFullYear(year)
+        date.setMonth(month - 1) // Los meses en JavaScript son 0-indexed
+        date.setDate(day)
+        date.setHours(hours, minutes, 0, 0)
+
+        // Verificar que la fecha resultante sea válida
+        if (isNaN(date.getTime())) {
+          console.warn("Fecha resultante inválida:", date)
+          return null
+        }
+
+        return date
+      } catch (error) {
+        console.error("Error al parsear la fecha:", error)
+        return null
+      }
     }
     return null
   })
 
   const handleInspeccionChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setInspeccion({ ...inspeccion, [e.target.name]: e.target.value })
+    setInspeccion({ ...inspeccion, [e.target.name]: e.target.value as any })
   }
 
   const handleOrdenTrabajoChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -80,8 +116,20 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
   const handleFechaHoraVisitaChange = (date: Date | null) => {
     setFechaHoraVisita(date)
     if (date) {
-      const fechaVisita = date.toISOString().split("T")[0]
-      const horaVisita = date.toTimeString().slice(0, 5) // Formato HH:mm
+      // Crear una nueva fecha con la zona horaria local para evitar problemas de offset
+      const localDate = new Date(date.getTime())
+
+      // Formatear la fecha correctamente (YYYY-MM-DD)
+      const year = localDate.getFullYear()
+      const month = String(localDate.getMonth() + 1).padStart(2, "0")
+      const day = String(localDate.getDate()).padStart(2, "0")
+      const fechaVisita = `${year}-${month}-${day}`
+
+      // Formatear la hora (HH:mm)
+      const hours = String(localDate.getHours()).padStart(2, "0")
+      const minutes = String(localDate.getMinutes()).padStart(2, "0")
+      const horaVisita = `${hours}:${minutes}`
+
       actualizarFechaHoraVisita(fechaVisita, horaVisita)
     }
   }
@@ -131,7 +179,7 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
     }
     onActualizarReclamo(reclamoActualizado)
     setOrdenTrabajo({
-      responsable: "",
+      responsable: "Yoni",
       fechaTrabajo: "",
       horaTrabajo: "",
       tiempoEstimado: "",
@@ -257,6 +305,23 @@ function InformacionReclamo({ reclamo, fechaHoraVisita, handleFechaHoraVisitaCha
         </Label>
         <Textarea id="detalle" value={reclamo.detalle} readOnly className="bg-muted" />
       </div>
+
+      {reclamo.detalles && reclamo.detalles.length > 0 && (
+        <div>
+          <Label className="flex items-center mb-2">
+            <FileText className="mr-2 h-4 w-4" />
+            Detalles Adicionales
+          </Label>
+          <div className="space-y-2 border rounded-md p-3 bg-muted">
+            {reclamo.detalles.map((detalle, index) => (
+              <div key={index} className="flex items-start">
+                <span className="font-medium mr-2">{index + 1}.</span>
+                <span>{detalle}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div>
         <Label htmlFor="comentario" className="flex items-center mb-2">
           <FileText className="mr-2 h-4 w-4" />
@@ -448,7 +513,12 @@ interface ConformidadReclamoProps {
   finalizarReclamo: () => void
 }
 
-function ConformidadReclamo({ reclamo, actaConformidad, handleActaConformidadChange, finalizarReclamo }: ConformidadReclamoProps) {
+function ConformidadReclamo({
+  reclamo,
+  actaConformidad,
+  handleActaConformidadChange,
+  finalizarReclamo,
+}: ConformidadReclamoProps) {
   return (
     <div className="space-y-4">
       {reclamo.estado === "En Reparación" && (
