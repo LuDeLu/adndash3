@@ -36,7 +36,7 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
   const [view, setView] = useState<View>("month")
   const [date, setDate] = useState(new Date())
 
-  // Modificar la función eventos para manejar fechas inválidas
+  // Modificar la función eventos para no usar UTC:
   const eventos = useMemo<EventoCalendario[]>(() => {
     return reclamos
       .filter(
@@ -48,11 +48,12 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
       )
       .map((reclamo) => {
         try {
-          const [hours, minutes] = reclamo.horaVisita.split(":")
-          const startDate = new Date(reclamo.fechaVisita)
+          // Parsear la fecha y hora
+          const [year, month, day] = reclamo.fechaVisita.split("-").map(Number)
+          const [hours, minutes] = reclamo.horaVisita.split(":").map(Number)
 
-          // Verificar que la fecha base sea válida
-          if (isNaN(startDate.getTime())) {
+          // Verificar que los componentes de la fecha sean válidos
+          if (isNaN(year) || isNaN(month) || isNaN(day)) {
             console.warn("Fecha de visita inválida:", reclamo.fechaVisita)
             // Usar la fecha actual como fallback
             const fallbackDate = new Date()
@@ -66,12 +67,16 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
             }
           }
 
+          // Crear la fecha
+          const startDate = new Date(year, month - 1, day)
+
           // Verificar que las horas y minutos sean números válidos
-          if (isNaN(Number.parseInt(hours, 10)) || isNaN(Number.parseInt(minutes, 10))) {
+          if (isNaN(hours) || isNaN(minutes)) {
             console.warn("Hora de visita inválida:", reclamo.horaVisita)
-            startDate.setHours(9, 0) // Usar 9:00 AM como hora predeterminada
+            // Usar 9:00 AM como hora predeterminada
+            startDate.setHours(9, 0, 0, 0)
           } else {
-            startDate.setHours(Number.parseInt(hours, 10), Number.parseInt(minutes, 10))
+            startDate.setHours(hours, minutes, 0, 0)
           }
 
           const endDate = new Date(startDate)
@@ -336,4 +341,3 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
     </Card>
   )
 }
-

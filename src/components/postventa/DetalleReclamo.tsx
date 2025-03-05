@@ -80,11 +80,7 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
         }
 
         // Crear la fecha con los componentes individuales
-        const date = new Date()
-        date.setFullYear(year)
-        date.setMonth(month - 1) // Los meses en JavaScript son 0-indexed
-        date.setDate(day)
-        date.setHours(hours, minutes, 0, 0)
+        const date = new Date(year, month - 1, day, hours, minutes)
 
         // Verificar que la fecha resultante sea válida
         if (isNaN(date.getTime())) {
@@ -116,20 +112,18 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
   const handleFechaHoraVisitaChange = (date: Date | null) => {
     setFechaHoraVisita(date)
     if (date) {
-      // Crear una nueva fecha con la zona horaria local para evitar problemas de offset
-      const localDate = new Date(date.getTime())
-
       // Formatear la fecha correctamente (YYYY-MM-DD)
-      const year = localDate.getFullYear()
-      const month = String(localDate.getMonth() + 1).padStart(2, "0")
-      const day = String(localDate.getDate()).padStart(2, "0")
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, "0")
+      const day = String(date.getDate()).padStart(2, "0")
       const fechaVisita = `${year}-${month}-${day}`
 
       // Formatear la hora (HH:mm)
-      const hours = String(localDate.getHours()).padStart(2, "0")
-      const minutes = String(localDate.getMinutes()).padStart(2, "0")
+      const hours = String(date.getHours()).padStart(2, "0")
+      const minutes = String(date.getMinutes()).padStart(2, "0")
       const horaVisita = `${hours}:${minutes}`
 
+      console.log(`Fecha seleccionada: ${fechaVisita}, Hora: ${horaVisita}`)
       actualizarFechaHoraVisita(fechaVisita, horaVisita)
     }
   }
@@ -346,6 +340,8 @@ function InformacionReclamo({ reclamo, fechaHoraVisita, handleFechaHoraVisitaCha
           placeholderText="Seleccione fecha y hora"
           locale="es"
           timeCaption="Hora"
+          // Deshabilitar la conversión automática de zona horaria
+          disabledKeyboardNavigation
         />
       </div>
       <EnviarInformacionTrabajador reclamo={reclamo} />
