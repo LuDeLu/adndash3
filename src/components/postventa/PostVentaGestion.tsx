@@ -41,7 +41,7 @@ if (typeof window !== "undefined") {
   })
 }
 
-const API_BASE_URL = "https://adndashbackend.onrender.com/api"
+const API_BASE_URL = "http://localhost:3001/api"
 
 export default function PostVentaGestion() {
   const [reclamos, setReclamos] = useState<Reclamo[]>([])

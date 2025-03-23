@@ -18,6 +18,7 @@ import SeguimientoProyectosConstruccionComponent from "@/components/obras/obras"
 import UserManagement from "@/components/config/roles"
 import { AddProject } from "@/components/config/añadir-proyecto"
 import PostVentaGestion from "@/components/postventa/PostVentaGestion"
+import UserMenu from "@/components/UserMenu" // Importamos el nuevo componente
 
 // Importación dinámica del componente MapaInteractivo
 const MapaInteractivo = dynamic(() => import("@/components/mapa/MapaInteractivo"), { ssr: false })
@@ -71,6 +72,11 @@ export default function Home() {
     <div className="flex h-screen bg-black">
       <Navigation activeSection={activeSection} setActiveSection={setActiveSection} />
       <main className="flex-1 overflow-auto p-6 bg-black text-white">
+        {/* Añadimos el UserMenu en la parte superior derecha */}
+        <div className="flex justify-end mb-4">
+          <UserMenu />
+        </div>
+
         {activeSection === "proyectos" && (
           <Adn
             onViewProject={handleViewProject}
