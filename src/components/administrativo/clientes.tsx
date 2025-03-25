@@ -103,7 +103,7 @@ type Departamento = {
   tipologia: string
 }
 
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashbackend.onrender.com/api"
 
 const departamentos: Departamento[] = [
   { id: "302", emprendimiento: "Palermo Residence", tipologia: "4 ambientes" },

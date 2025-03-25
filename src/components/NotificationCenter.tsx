@@ -31,7 +31,7 @@ export default function NotificationCenter() {
   const fetchNotifications = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:3001/api/notifications", {
+      const response = await fetch("https://adndashbackend.onrender.com/api/notifications", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -64,7 +64,7 @@ export default function NotificationCenter() {
   // Marcar notificación como leída
   const markAsRead = async (id: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/${id}/read`, {
+      const response = await fetch(`https://adndashbackend.onrender.com/api/notifications/${id}/read`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -87,7 +87,7 @@ export default function NotificationCenter() {
   // Marcar todas las notificaciones como leídas
   const markAllAsRead = async () => {
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/read-all`, {
+      const response = await fetch(`https://adndashbackend.onrender.com/api/notifications/read-all`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
