@@ -65,7 +65,7 @@ if (typeof window !== "undefined") {
   })
 }
 
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashbackend.onrender.com/api"
 
 // Componente para mostrar estadísticas rápidas
 const EstadisticasRapidas = ({ reclamos }: { reclamos: Reclamo[] }) => {
