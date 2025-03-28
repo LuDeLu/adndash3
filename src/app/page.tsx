@@ -18,7 +18,8 @@ import SeguimientoProyectosConstruccionComponent from "@/components/obras/obras"
 import UserManagement from "@/components/config/roles"
 import { AddProject } from "@/components/config/añadir-proyecto"
 import PostVentaGestion from "@/components/postventa/PostVentaGestion"
-import UserMenu from "@/components/UserMenu" // Importamos el nuevo componente
+import UserMenu from "@/components/UserMenu"
+import { ApprovalForm } from "@/components/checklist/approval-form" // Importar el componente de aprobaciones
 
 // Importación dinámica del componente MapaInteractivo
 const MapaInteractivo = dynamic(() => import("@/components/mapa/MapaInteractivo"), { ssr: false })
@@ -76,7 +77,6 @@ export default function Home() {
         <div className="flex justify-end mb-4">
           <UserMenu />
         </div>
-
         {activeSection === "proyectos" && (
           <Adn
             onViewProject={handleViewProject}
@@ -108,7 +108,7 @@ export default function Home() {
         {activeSection === "añadirproyecto" && <AddProject />}
         {activeSection === "mapa" && <MapaInteractivo />}
         {activeSection === "postventas" && <PostVentaGestion />}
-
+        {activeSection === "aprobaciones" && <ApprovalForm />} {/* Añadir el componente de aprobaciones */}
         <SpeedInsights />
       </main>
     </div>

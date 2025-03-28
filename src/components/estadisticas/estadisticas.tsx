@@ -1,711 +1,1042 @@
 "use client"
-
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, ScatterChart, Scatter, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ComposedChart, Radar } from 'recharts'
-import { ArrowUpIcon, ArrowDownIcon, DollarSignIcon, UsersIcon, HomeIcon, TargetIcon, TrendingUpIcon, BarChart2Icon, PieChartIcon, LineChartIcon, MenuIcon, Clock, Percent } from 'lucide-react'
+import { Slider } from "@/components/ui/slider"
+import {
+  AreaChart,
+  BarChart,
+  LineChart,
+  PieChart,
+  RadarChart,
+  ScatterChart,
+  ResponsiveContainer,
+  Area,
+  Bar,
+  Line,
+  Pie,
+  Radar,
+  Scatter,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  RadialBar,
+  RadialBarChart,
+} from "recharts"
+import {
+  datosVentas,
+  datosProyecto,
+  datosVentasPropiedades,
+  datosOcupacion,
+  datosLeads,
+  datosConversion,
+  canalesMarketing,
+  datosRendimientoInversion,
+  datosValorPropiedad,
+  datosSatisfaccionCliente,
+  datosTiempoCierre,
+  datosUnidadesVendidas,
+  datosValorM2,
+  datosVisitasVentas,
+  datosInventario,
+  datosProductividad,
+  COLORES,
+} from "@/lib/data"
+import {
+  Settings,
+  BarChart3,
+  PieChartIcon,
+  LineChartIcon,
+  AreaChartIcon,
+  RadarIcon,
+  ScatterChartIcon as ScatterIcon,
+  Save,
+  Maximize2,
+  Minimize2,
+  Plus,
+  Trash2,
+  RefreshCw,
+} from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Badge } from "@/components/ui/badge"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 
-import { formatCurrency, formatNumber, formatPercent, cn } from "@/lib/utils"
-import { COLORES, datosVentas, datosProyecto, datosVentasPropiedades, datosOcupacion, datosLeads, datosConversion, canalesMarketing, datosRendimientoInversion, datosValorPropiedad, datosSatisfaccionCliente, datosTiempoCierre, datosUnidadesVendidas, datosValorM2, datosVisitasVentas, datosInventario, datosProductividad } from "@/lib/data"
+// Tipos de datos disponibles
+const DATA_SOURCES = {
+  ventas: {
+    name: "Ventas Mensuales",
+    description: "Comparación de ventas vs. objetivo",
+    data: datosVentas,
+    keys: ["ventas", "objetivo"],
+    colors: ["#8884d8", "#82ca9d"],
+    xAxis: "mes",
+  },
+  proyectos: {
+    name: "Estado de Proyectos",
+    description: "Distribución de proyectos por estado",
+    data: datosProyecto,
+    keys: ["valor"],
+    colors: COLORES,
+    nameKey: "nombre",
+    valueKey: "valor",
+  },
+  propiedades: {
+    name: "Ventas de Propiedades",
+    description: "Número de propiedades vendidas por mes",
+    data: datosVentasPropiedades,
+    keys: ["vendidas"],
+    colors: ["#8884d8"],
+    xAxis: "mes",
+  },
+  ocupacion: {
+    name: "Ocupación de Propiedades",
+    description: "Porcentaje de propiedades ocupadas vs. vacantes",
+    data: datosOcupacion,
+    keys: ["valor"],
+    colors: ["#00C49F", "#FF8042"],
+    nameKey: "nombre",
+    valueKey: "valor",
+  },
+  leads: {
+    name: "Leads Generados",
+    description: "Número de leads generados por mes",
+    data: datosLeads,
+    keys: ["leads"],
+    colors: ["#8884d8"],
+    xAxis: "mes",
+  },
+  conversion: {
+    name: "Tasa de Conversión",
+    description: "Porcentaje de conversión de leads a ventas",
+    data: datosConversion,
+    keys: ["tasa"],
+    colors: ["#82ca9d"],
+    xAxis: "mes",
+  },
+  marketing: {
+    name: "Canales de Marketing",
+    description: "Distribución de leads por canal de marketing",
+    data: canalesMarketing,
+    keys: ["valor"],
+    colors: COLORES,
+    nameKey: "nombre",
+    valueKey: "valor",
+  },
+  roi: {
+    name: "ROI de Inversión",
+    description: "Retorno de inversión por mes",
+    data: datosRendimientoInversion,
+    keys: ["roi"],
+    colors: ["#8884d8"],
+    xAxis: "mes",
+  },
+  valorPropiedad: {
+    name: "Valor de Propiedad",
+    description: "Evolución del valor de propiedad por mes",
+    data: datosValorPropiedad,
+    keys: ["valor"],
+    colors: ["#8884d8"],
+    xAxis: "mes",
+  },
+  satisfaccion: {
+    name: "Satisfacción del Cliente",
+    description: "Nivel de satisfacción del cliente por mes",
+    data: datosSatisfaccionCliente,
+    keys: ["satisfaccion"],
+    colors: ["#82ca9d"],
+    xAxis: "mes",
+  },
+  tiempoCierre: {
+    name: "Tiempo de Cierre",
+    description: "Días promedio para cerrar una venta",
+    data: datosTiempoCierre,
+    keys: ["tiempo"],
+    colors: ["#FF8042"],
+    xAxis: "mes",
+  },
+  unidadesVendidas: {
+    name: "Unidades Vendidas",
+    description: "Número de unidades vendidas por mes",
+    data: datosUnidadesVendidas,
+    keys: ["unidades"],
+    colors: ["#8884d8"],
+    xAxis: "mes",
+  },
+  valorM2: {
+    name: "Valor por m²",
+    description: "Precio de lista vs. precio de cierre por m²",
+    data: datosValorM2,
+    keys: ["listaM2", "cierreM2"],
+    colors: ["#8884d8", "#82ca9d"],
+    xAxis: "tipo",
+  },
+  visitasVentas: {
+    name: "Visitas vs. Ventas",
+    description: "Relación entre visitas y ventas por mes",
+    data: datosVisitasVentas,
+    keys: ["visitas", "ventas"],
+    colors: ["#8884d8", "#82ca9d"],
+    xAxis: "mes",
+  },
+  inventario: {
+    name: "Inventario por Tipo",
+    description: "Unidades disponibles por tipo de propiedad",
+    data: datosInventario,
+    keys: ["unidades", "valor"],
+    colors: ["#8884d8", "#82ca9d"],
+    xAxis: "tipo",
+  },
+  productividad: {
+    name: "Productividad de Ventas",
+    description: "Ventas propias vs. ventas por brokers",
+    data: datosProductividad,
+    keys: ["propias", "brokers"],
+    colors: ["#8884d8", "#82ca9d"],
+    xAxis: "mes",
+  },
+}
 
-const responsiveText = (baseSize: string) => {
-  return cn(
-    baseSize,
-    {
-      'text-sm': baseSize === 'text-base',
-      'text-base': baseSize === 'text-lg',
-      'text-lg': baseSize === 'text-xl',
-      'text-xl': baseSize === 'text-2xl',
-      'text-2xl': baseSize === 'text-3xl',
+// Tipos de gráficos disponibles
+const CHART_TYPES = {
+  area: {
+    name: "Área",
+    icon: <AreaChartIcon className="h-4 w-4" />,
+    component: AreaChart,
+    dataComponent: Area,
+    supportsPie: false,
+  },
+  bar: {
+    name: "Barras",
+    icon: <BarChart3 className="h-4 w-4" />,
+    component: BarChart,
+    dataComponent: Bar,
+    supportsPie: false,
+  },
+  line: {
+    name: "Línea",
+    icon: <LineChartIcon className="h-4 w-4" />,
+    component: LineChart,
+    dataComponent: Line,
+    supportsPie: false,
+  },
+  pie: {
+    name: "Circular",
+    icon: <PieChartIcon className="h-4 w-4" />,
+    component: PieChart,
+    dataComponent: Pie,
+    supportsPie: true,
+  },
+  radar: {
+    name: "Radar",
+    icon: <RadarIcon className="h-4 w-4" />,
+    component: RadarChart,
+    dataComponent: Radar,
+    supportsPie: false,
+  },
+  scatter: {
+    name: "Dispersión",
+    icon: <ScatterIcon className="h-4 w-4" />,
+    component: ScatterChart,
+    dataComponent: Scatter,
+    supportsPie: false,
+  },
+  radialBar: {
+    name: "Barra Radial",
+    icon: <PieChartIcon className="h-4 w-4" />,
+    component: RadialBarChart,
+    dataComponent: RadialBar,
+    supportsPie: true,
+  },
+}
+
+// Tipo para un widget de gráfico
+interface ChartWidget {
+  id: string
+  dataSource: string
+  chartType: string
+  title?: string
+  description?: string
+  w: number
+  h: number
+  x: number
+  y: number
+  showLegend: boolean
+  stacked: boolean
+  period: string
+}
+
+// Componente para renderizar un gráfico específico
+const ChartRenderer = ({
+  widget,
+  onEdit,
+  onRemove,
+  onResize,
+}: {
+  widget: ChartWidget
+  onEdit: (id: string) => void
+  onRemove: (id: string) => void
+  onResize: (id: string, isFullscreen: boolean) => void
+}) => {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const dataSource = DATA_SOURCES[widget.dataSource as keyof typeof DATA_SOURCES]
+  const chartType = CHART_TYPES[widget.chartType as keyof typeof CHART_TYPES]
+
+  // Si no hay datos o tipo de gráfico, mostrar mensaje
+  if (!dataSource || !chartType) {
+    return (
+      <Card className="w-full h-full flex items-center justify-center">
+        <CardContent>
+          <p className="text-muted-foreground">Configuración inválida</p>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  // Verificar compatibilidad del tipo de gráfico con los datos
+  const isPieData = "nameKey" in dataSource && "valueKey" in dataSource
+  const isCompatible = chartType.supportsPie === isPieData
+
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen)
+    onResize(widget.id, !isFullscreen)
+  }
+
+  const renderChart = () => {
+    const ChartComponent = chartType.component
+
+    if (isPieData && chartType.supportsPie) {
+      // Renderizar gráfico circular
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <ChartComponent>
+            <Pie
+              data={dataSource.data}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ cx, cy, midAngle, innerRadius, outerRadius, percent }: any) => {
+                const RADIAN = Math.PI / 180
+                const radius = innerRadius + (outerRadius - innerRadius) * 0.5
+                const x = cx + radius * Math.cos(-midAngle * RADIAN)
+                const y = cy + radius * Math.sin(-midAngle * RADIAN)
+                return (
+                  <text x={x} y={y} fill="white" textAnchor={x > cx ? "start" : "end"} dominantBaseline="central">
+                    {`${(percent * 100).toFixed(0)}%`}
+                  </text>
+                )
+              }}
+              outerRadius={80}
+              dataKey={dataSource.valueKey}
+              nameKey={dataSource.nameKey}
+            >
+              {dataSource.data.map((entry: any, index: number) => (
+                <Cell key={`cell-${index}`} fill={dataSource.colors[index % dataSource.colors.length]} />
+              ))}
+            </Pie>
+            {widget.showLegend && <Legend />}
+            <Tooltip />
+          </ChartComponent>
+        </ResponsiveContainer>
+      )
+    } else if (!isPieData && !chartType.supportsPie) {
+      // Renderizar gráfico cartesiano (área, barras, líneas, etc.)
+      return (
+        <ResponsiveContainer width="100%" height="100%">
+          <ChartComponent data={dataSource.data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey={dataSource.xAxis} />
+            <YAxis />
+            <Tooltip />
+            {widget.showLegend && <Legend />}
+            {dataSource.keys.map((key: string, index: number) => {
+              // Usar el componente específico según el tipo de gráfico
+              if (chartType.dataComponent === Area) {
+                return (
+                  <Area
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    fill={dataSource.colors[index % dataSource.colors.length]}
+                    stroke={dataSource.colors[index % dataSource.colors.length]}
+                    stackId={widget.stacked ? "stack" : undefined}
+                  />
+                )
+              } else if (chartType.dataComponent === Bar) {
+                return (
+                  <Bar
+                    key={key}
+                    dataKey={key}
+                    fill={dataSource.colors[index % dataSource.colors.length]}
+                    stackId={widget.stacked ? "stack" : undefined}
+                  />
+                )
+              } else if (chartType.dataComponent === Line) {
+                return (
+                  <Line
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    stroke={dataSource.colors[index % dataSource.colors.length]}
+                  />
+                )
+              } else if (chartType.dataComponent === Radar) {
+                return (
+                  <Radar
+                    key={key}
+                    dataKey={key}
+                    fill={dataSource.colors[index % dataSource.colors.length]}
+                    fillOpacity={0.6}
+                  />
+                )
+              } else if (chartType.dataComponent === Scatter) {
+                return <Scatter key={key} dataKey={key} fill={dataSource.colors[index % dataSource.colors.length]} />
+              }
+              return null
+            })}
+          </ChartComponent>
+        </ResponsiveContainer>
+      )
+    } else {
+      // Tipo de gráfico incompatible con los datos
+      return (
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Tipo de gráfico incompatible con estos datos</p>
+        </div>
+      )
     }
+  }
+
+  return (
+    <Card className={`w-full h-full flex flex-col ${isFullscreen ? "fixed inset-0 z-50" : ""}`}>
+      <CardHeader className="p-3 flex-row items-center justify-between space-y-0 drag-handle">
+        <div>
+          <CardTitle className="text-sm font-medium">{widget.title || dataSource.name}</CardTitle>
+          <CardDescription className="text-xs">{widget.description || dataSource.description}</CardDescription>
+        </div>
+        <div className="flex items-center space-x-1">
+          <Button variant="ghost" size="icon" onClick={() => onEdit(widget.id)}>
+            <Settings className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={toggleFullscreen}>
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => onRemove(widget.id)}>
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="p-3 flex-grow">{renderChart()}</CardContent>
+    </Card>
   )
 }
 
-const tabOptions = [
-  { value: "vistaGeneral", label: "Vista General" },
-  { value: "detallesProyecto", label: "Detalles del Proyecto" },
-  { value: "analisisVentas", label: "Análisis de Ventas" },
-  { value: "estadisticasInmobiliarias", label: "Estadísticas Inmobiliarias" },
-  { value: "rendimientoMarketing", label: "Rend. de Marketing" },
-  { value: "financiero", label: "Análisis Financiero" },
-  { value: "rendimientoEquipo", label: "Rend. del Equipo" },
-  { value: "inventario", label: "Inventario" },
-]
+// Componente para editar un widget
+const EditWidgetDialog = ({
+  widget,
+  isOpen,
+  onClose,
+  onSave,
+}: {
+  widget: ChartWidget | null
+  isOpen: boolean
+  onClose: () => void
+  onSave: (widget: ChartWidget) => void
+}) => {
+  const [editedWidget, setEditedWidget] = useState<ChartWidget | null>(null)
 
-export default function Dashboard() {
-  const [periodoTiempo, setPeriodoTiempo] = useState<"semana" | "mes" | "año">("mes")
-  const [proyecto, setProyecto] = useState("todos")
-  const [activeTab, setActiveTab] = useState("vistaGeneral")
+  useEffect(() => {
+    if (widget) {
+      setEditedWidget({ ...widget })
+    }
+  }, [widget])
 
-  // Datos de ejemplo para nuevas visualizaciones
-  const datosRendimientoVendedores = [
-    { nombre: "Raul", ventas: 450000, comision: 22500 },
-    { nombre: "Carlos", ventas: 380000, comision: 19000 },
-    { nombre: "Luciano", ventas: 520000, comision: 26000 },
-    { nombre: "Lucas", ventas: 290000, comision: 14500 },
-    { nombre: "Maria", ventas: 410000, comision: 20500 },
-  ]
+  if (!editedWidget) return null
 
-  const datosTiempoVenta = [
-    { propiedad: "Local", dias: 45 },
-    { propiedad: "Mono amb", dias: 30 },
-    { propiedad: "2 Amb", dias: 60 },
-    { propiedad: "3 Amb", dias: 20 },
-    { propiedad: "4 Amb", dias: 40 },
-  ]
+  const handleChange = (field: keyof ChartWidget, value: any) => {
+    setEditedWidget({ ...editedWidget, [field]: value })
+  }
 
-  const datosComparativaPrecios = [
-    { tipo: "Apartamento", precioLista: 200000, precioVenta: 195000 },
-    { tipo: "Casa", precioLista: 350000, precioVenta: 340000 },
-    { tipo: "Dúplex", precioLista: 280000, precioVenta: 275000 },
-    { tipo: "Ático", precioLista: 400000, precioVenta: 410000 },
-    { tipo: "Chalet", precioLista: 500000, precioVenta: 490000 },
-  ]
+  const handleSave = () => {
+    onSave(editedWidget)
+    onClose()
+  }
+
+  const dataSource = DATA_SOURCES[editedWidget.dataSource as keyof typeof DATA_SOURCES]
+  const isPieData = dataSource && "nameKey" in dataSource && "valueKey" in dataSource
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6 max-w-7xl">
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left">Panel de Control Inmobiliario</h1>
-        <div className="flex space-x-2">
-          <Button variant="outline" size="sm" className="px-2 sm:px-4" onClick={() => setPeriodoTiempo("semana")}>Semana</Button>
-          <Button variant="outline" size="sm" className="px-2 sm:px-4" onClick={() => setPeriodoTiempo("mes")}>Mes</Button>
-          <Button variant="outline" size="sm" className="px-2 sm:px-4" onClick={() => setPeriodoTiempo("año")}>Año</Button>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Configurar Gráfico</DialogTitle>
+          <DialogDescription>Personaliza las opciones de visualización para este gráfico.</DialogDescription>
+        </DialogHeader>
+
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">
+              Título
+            </Label>
+            <input
+              id="title"
+              className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={editedWidget.title || ""}
+              onChange={(e) => handleChange("title", e.target.value)}
+              placeholder={dataSource?.name || "Título del gráfico"}
+            />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">
+              Descripción
+            </Label>
+            <input
+              id="description"
+              className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={editedWidget.description || ""}
+              onChange={(e) => handleChange("description", e.target.value)}
+              placeholder={dataSource?.description || "Descripción del gráfico"}
+            />
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="dataSource" className="text-right">
+              Fuente de datos
+            </Label>
+            <Select value={editedWidget.dataSource} onValueChange={(value) => handleChange("dataSource", value)}>
+              <SelectTrigger id="dataSource" className="col-span-3">
+                <SelectValue placeholder="Seleccionar datos" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(DATA_SOURCES).map(([key, source]) => (
+                  <SelectItem key={key} value={key}>
+                    {source.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="chartType" className="text-right">
+              Tipo de gráfico
+            </Label>
+            <Select value={editedWidget.chartType} onValueChange={(value) => handleChange("chartType", value)}>
+              <SelectTrigger id="chartType" className="col-span-3">
+                <SelectValue placeholder="Seleccionar tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(CHART_TYPES)
+                  .filter(([_, type]) => (isPieData ? type.supportsPie : !type.supportsPie))
+                  .map(([key, type]) => (
+                    <SelectItem key={key} value={key}>
+                      <div className="flex items-center">
+                        <span className="mr-2">{type.icon}</span>
+                        <span>{type.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="period" className="text-right">
+              Período
+            </Label>
+            <Select value={editedWidget.period} onValueChange={(value) => handleChange("period", value)}>
+              <SelectTrigger id="period" className="col-span-3">
+                <SelectValue placeholder="Seleccionar período" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Día</SelectItem>
+                <SelectItem value="week">Semana</SelectItem>
+                <SelectItem value="month">Mes</SelectItem>
+                <SelectItem value="quarter">Trimestre</SelectItem>
+                <SelectItem value="year">Año</SelectItem>
+                <SelectItem value="all">Todo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Tamaño</Label>
+            <div className="col-span-3 flex items-center space-x-4">
+              <div className="flex-1">
+                <Label htmlFor="width" className="text-xs">
+                  Ancho
+                </Label>
+                <Slider
+                  id="width"
+                  min={1}
+                  max={12}
+                  step={1}
+                  value={[editedWidget.w]}
+                  onValueChange={(value) => handleChange("w", value[0])}
+                  className="mt-2"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>1</span>
+                  <span>6</span>
+                  <span>12</span>
+                </div>
+              </div>
+              <div className="flex-1">
+                <Label htmlFor="height" className="text-xs">
+                  Alto
+                </Label>
+                <Slider
+                  id="height"
+                  min={1}
+                  max={6}
+                  step={1}
+                  value={[editedWidget.h]}
+                  onValueChange={(value) => handleChange("h", value[0])}
+                  className="mt-2"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                  <span>1</span>
+                  <span>3</span>
+                  <span>6</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label className="text-right">Opciones</Label>
+            <div className="col-span-3 space-y-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="showLegend"
+                  checked={editedWidget.showLegend}
+                  onCheckedChange={(checked) => handleChange("showLegend", checked)}
+                />
+                <Label htmlFor="showLegend">Mostrar leyenda</Label>
+              </div>
+
+              {!isPieData && (
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="stacked"
+                    checked={editedWidget.stacked}
+                    onCheckedChange={(checked) => handleChange("stacked", checked)}
+                  />
+                  <Label htmlFor="stacked">Gráfico apilado</Label>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
 
-      <Select onValueChange={setProyecto} defaultValue={proyecto}>
-        <SelectTrigger className="w-full sm:w-[200px] mb-4 sm:mb-0">
-          <SelectValue placeholder="Seleccionar proyecto" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="todos">Todos los Proyectos</SelectItem>
-          <SelectItem value="proyectoA">DOME Palermo Residence</SelectItem>
-          <SelectItem value="proyectoB">DOME Palermo Apartments</SelectItem>
-          <SelectItem value="proyectoC">DOME Suites & Residence</SelectItem>
-        </SelectContent>
-      </Select>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Cancelar
+          </Button>
+          <Button onClick={handleSave}>Guardar cambios</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={responsiveText('text-sm')}>Unidades Vendidas</CardTitle>
-            <HomeIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={responsiveText('text-2xl')}>{formatNumber(97)}</div>
-            <p className="text-xs text-muted-foreground">+15% desde el mes pasado</p>
-          </CardContent>
-        </Card>
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={responsiveText('text-sm')}>Valor Total de Ventas</CardTitle>
-            <DollarSignIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={responsiveText('text-2xl')}>{formatCurrency(3450000)}</div>
-            <p className="text-xs text-muted-foreground">+20.1% desde el mes pasado</p>
-          </CardContent>
-        </Card>
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={responsiveText('text-sm')}>Tiempo Promedio de Cierre</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={responsiveText('text-2xl')}>33 días</div>
-            <p className="text-xs text-muted-foreground">-5 días desde el mes pasado</p>
-          </CardContent>
-        </Card>
-        <Card className="overflow-hidden">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className={responsiveText('text-sm')}>Tasa de Conversión</CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className={responsiveText('text-2xl')}>{formatPercent(13.2)}</div>
-            <p className="text-xs text-muted-foreground">+2.4% desde el mes pasado</p>
-          </CardContent>
-        </Card>
-      </div>
+// Implementación simplificada de GridLayout sin depender de react-grid-layout
+interface LayoutItem {
+  i: string
+  x: number
+  y: number
+  w: number
+  h: number
+}
 
-      <div className="space-y-4">
-        <div className="block md:hidden w-full">
-          <Select onValueChange={setActiveTab} defaultValue={activeTab}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Seleccionar vista" />
-            </SelectTrigger>
-            <SelectContent>
-              {tabOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList className="hidden md:flex md:flex-wrap justify-start md:grid-cols-3 lg:grid-cols-6 gap-2">
-            {tabOptions.map((option) => (
-              <TabsTrigger key={option.value} value={option.value}>
-                {option.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <TabsContent value="vistaGeneral" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Resumen de Ventas</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={datosVentas}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Legend />
-                      <Bar dataKey="ventas" name="Ventas" fill="#8884d8" />
-                      <Bar dataKey="objetivo" name="Objetivo" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Distribución de Tipos de Propiedades</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={[
-                          { name: 'Apartamentos', value: 35 },
-                          { name: 'Casas', value: 25 },
-                          { name: 'Oficinas', value: 20 },
-                          { name: 'Locales', value: 15 },
-                          { name: 'Terrenos', value: 5 },
-                        ]}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {datosProyecto.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Unidades Vendidas vs Tiempo de Cierre</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={datosUnidadesVendidas.map((d, i) => ({...d, tiempo: datosTiempoCierre[i].tiempo}))}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="unidades" fill="#8884d8" name="Unidades Vendidas" />
-                      <Line yAxisId="right" type="monotone" dataKey="tiempo" stroke="#82ca9d" name="Tiempo de Cierre (días)" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Valor Promedio de Venta</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={datosVentas}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Area type="monotone" dataKey="ventas" name="Valor Promedio" stroke="#8884d8" fill="#8884d8" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          <TabsContent value="detallesProyecto" className="space-y-4">
-            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Estado de los Proyectos</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300} minHeight={300}>
-                    <PieChart>
-                      <Pie
-                        data={datosProyecto}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius="80%"
-                        fill="#8884d8"
-                        dataKey="valor"
-                        label={({ nombre, percent }) => `${nombre} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {datosProyecto.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Satisfacción del Cliente</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300} minHeight={300}>
-                    <LineChart data={datosSatisfaccionCliente}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Line type="monotone" dataKey="satisfaccion" stroke="#8884d8" activeDot={{ r: 8 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          <TabsContent value="analisisVentas" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Ventas vs Objetivo</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={datosVentas}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Legend />
-                      <Line type="monotone" dataKey="ventas" name="Ventas" stroke="#8884d8" activeDot={{ r: 8 }} />
-                      <Line type="monotone" dataKey="objetivo" name="Objetivo" stroke="#82ca9d" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Comparativa de Precios</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={datosComparativaPrecios}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="tipo" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Legend />
-                      <Bar dataKey="precioLista" name="Precio Lista" fill="#8884d8" />
-                      <Bar dataKey="precioVenta" name="Precio Venta" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Valor m² de Lista vs Cierre</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={datosValorM2}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="tipo" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Legend />
-                      <Bar dataKey="listaM2" name="Valor m² Lista" fill="#8884d8" />
-                      <Bar dataKey="cierreM2" name="Valor m² Cierre" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Visitas vs Ventas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={datosVisitasVentas}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis yAxisId="left" />
-                      <YAxis yAxisId="right" orientation="right" />
-                      <Tooltip />
-                      <Legend />
-                      <Bar yAxisId="left" dataKey="visitas" fill="#8884d8" name="Número de Visitas" />
-                      <Line yAxisId="right" type="monotone" dataKey="ventas" stroke="#82ca9d" name="Ventas" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-            <Card className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>Tiempo Promedio de Venta por Propiedad</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={datosTiempoVenta} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="propiedad" type="category" />
-                    <Tooltip formatter={(value) => `${value} días`} />
-                    <Bar dataKey="dias" fill="#8884d8" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="estadisticasInmobiliarias" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Propiedades Vendidas por Mes</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={datosVentasPropiedades}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="vendidas" name="Propiedades Vendidas" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Tasa de Ocupación</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={datosOcupacion}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius="80%"
-                        fill="#8884d8"
-                        dataKey="valor"
-                        label={({ nombre, percent }) => `${nombre} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {datosOcupacion.map((entry,index) => (
-                          <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-            <Card className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>Evolución del Valor de Propiedades</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={datosValorPropiedad}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                    <Legend />
-                    <Area type="monotone" dataKey="valor" stroke="#8884d8" fill="#8884d8" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="rendimientoMarketing" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Generación de Leads</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={datosLeads}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip />
-                      <Legend />
-                      <Bar dataKey="leads" name="Leads Generados" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Tasa de Conversión</CardTitle>
-                </CardHeader>
-                <CardContent className="pl-2">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={datosConversion}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => `${value}%`} />
-                      <Legend />
-                      <Line type="monotone" dataKey="tasa" name="Tasa de Conversión" stroke="#82ca9d" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Retorno de Inversión en Marketing (ROMI)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={datosRendimientoInversion}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => `${value}%`} />
-                      <Legend />
-                      <Line type="monotone" dataKey="roi" name="ROMI" stroke="#8884d8" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Costo por Adquisición de Cliente (CAC)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={[
-                      { mes: 'Ene', cac: 1000 },
-                      { mes: 'Feb', cac: 950 },
-                      { mes: 'Mar', cac: 900 },
-                      { mes: 'Abr', cac: 920 },
-                      { mes: 'May', cac: 880 },
-                      { mes: 'Jun', cac: 850 },
-                    ]}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Bar dataKey="cac" fill="#82ca9d" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-            <Card className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>Efectividad de Canales de Marketing</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={canalesMarketing}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="nombre" />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar name="Efectividad" dataKey="valor" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                    <Tooltip formatter={(value) => `${value}%`} />
-                  </RadarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="rendimientoEquipo" className="space-y-4">
-            <Card className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>Rendimiento de Vendedores</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <ScatterChart>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="ventas" name="Ventas" type="number" />
-                    <YAxis dataKey="comision" name="Comisión" type="number" />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(value) => formatCurrency(value as number)} />
-                    <Scatter name="Vendedores" data={datosRendimientoVendedores} fill="#8884d8">
-                      {datosRendimientoVendedores.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
-                      ))}
-                    </Scatter>
-                  </ScatterChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Mejores 5 Vendedores</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={datosRendimientoVendedores}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="nombre" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Legend />
-                      <Bar dataKey="ventas" name="Ventas" fill="#8884d8" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Distribución de Comisiones</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={datosRendimientoVendedores}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="comision"
-                        label={({ nombre, percent }) => `${nombre} ${(percent * 100).toFixed(0)}%`}
-                      >
-                        {datosRendimientoVendedores.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORES[index % COLORES.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-            <Card className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>Productividad del Equipo: Ventas Propias vs Brokers</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={datosProductividad}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                    <Legend />
-                    <Area type="monotone" dataKey="propias" stackId="1" stroke="#8884d8" fill="#8884d8" name="Ventas Propias" />
-                    <Area type="monotone" dataKey="brokers" stackId="1" stroke="#82ca9d" fill="#82ca9d" name="Ventas de Brokers" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          <TabsContent value="financiero" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Rendimiento de la Inversión (ROI)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={datosRendimientoInversion}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => `${value}%`} />
-                      <Legend />
-                      <Line type="monotone" dataKey="roi" name="ROI" stroke="#8884d8" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-              <Card className="overflow-hidden">
-                <CardHeader>
-                  <CardTitle>Flujo de Caja</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart
-                      data={[
-                        { mes: 'Ene', ingresos: 50000, gastos: 30000 },
-                        { mes: 'Feb', ingresos: 55000, gastos: 35000 },
-                        { mes: 'Mar', ingresos: 60000, gastos: 32000 },
-                        { mes: 'Abr', ingresos: 58000, gastos: 34000 },
-                        { mes: 'May', ingresos: 65000, gastos: 36000 },
-                        { mes: 'Jun', ingresos: 70000, gastos: 38000 },
-                      ]}
+// Componente principal de estadísticas
+const Estadisticas = () => {
+  // Estado para los widgets
+  const [widgets, setWidgets] = useState<ChartWidget[]>([])
+  const [editingWidget, setEditingWidget] = useState<ChartWidget | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [layouts, setLayouts] = useState<{ [key: string]: ChartWidget[] }>({
+    default: [],
+  })
+  const [currentLayout, setCurrentLayout] = useState<string>("default")
+  const [newLayoutName, setNewLayoutName] = useState<string>("")
+  const [isFullscreenWidget, setIsFullscreenWidget] = useState<string | null>(null)
+
+  // Cargar configuración guardada al iniciar
+  useEffect(() => {
+    const savedLayouts = localStorage.getItem("dashboardLayouts")
+    if (savedLayouts) {
+      try {
+        const parsedLayouts = JSON.parse(savedLayouts)
+        setLayouts(parsedLayouts)
+
+        const savedCurrentLayout = localStorage.getItem("currentDashboardLayout") || "default"
+        setCurrentLayout(savedCurrentLayout)
+
+        if (parsedLayouts[savedCurrentLayout]) {
+          setWidgets(parsedLayouts[savedCurrentLayout])
+        } else {
+          // Si no existe el layout actual, usar el predeterminado
+          setWidgets(getDefaultWidgets())
+          setLayouts({ ...parsedLayouts, default: getDefaultWidgets() })
+        }
+      } catch (e) {
+        console.error("Error al cargar la configuración guardada:", e)
+        resetToDefault()
+      }
+    } else {
+      resetToDefault()
+    }
+  }, [])
+
+  // Guardar cambios en localStorage
+  useEffect(() => {
+    if (widgets.length > 0) {
+      const updatedLayouts = { ...layouts, [currentLayout]: widgets }
+      setLayouts(updatedLayouts)
+      localStorage.setItem("dashboardLayouts", JSON.stringify(updatedLayouts))
+      localStorage.setItem("currentDashboardLayout", currentLayout)
+    }
+  }, [widgets])
+
+  // Widgets predeterminados
+  const getDefaultWidgets = (): ChartWidget[] => [
+    {
+      id: "widget-1",
+      dataSource: "ventas",
+      chartType: "area",
+      w: 6,
+      h: 2,
+      x: 0,
+      y: 0,
+      showLegend: true,
+      stacked: false,
+      period: "month",
+    },
+    {
+      id: "widget-2",
+      dataSource: "proyectos",
+      chartType: "pie",
+      w: 3,
+      h: 2,
+      x: 6,
+      y: 0,
+      showLegend: true,
+      stacked: false,
+      period: "all",
+    },
+    {
+      id: "widget-3",
+      dataSource: "propiedades",
+      chartType: "bar",
+      w: 3,
+      h: 2,
+      x: 9,
+      y: 0,
+      showLegend: true,
+      stacked: false,
+      period: "month",
+    },
+    {
+      id: "widget-4",
+      dataSource: "leads",
+      chartType: "line",
+      w: 4,
+      h: 2,
+      x: 0,
+      y: 2,
+      showLegend: true,
+      stacked: false,
+      period: "month",
+    },
+    {
+      id: "widget-5",
+      dataSource: "conversion",
+      chartType: "line",
+      w: 4,
+      h: 2,
+      x: 4,
+      y: 2,
+      showLegend: true,
+      stacked: false,
+      period: "month",
+    },
+    {
+      id: "widget-6",
+      dataSource: "marketing",
+      chartType: "pie",
+      w: 4,
+      h: 2,
+      x: 8,
+      y: 2,
+      showLegend: true,
+      stacked: false,
+      period: "all",
+    },
+  ]
+
+  // Resetear a la configuración predeterminada
+  const resetToDefault = () => {
+    const defaultWidgets = getDefaultWidgets()
+    setWidgets(defaultWidgets)
+    setLayouts({ default: defaultWidgets })
+    setCurrentLayout("default")
+    localStorage.setItem("dashboardLayouts", JSON.stringify({ default: defaultWidgets }))
+    localStorage.setItem("currentDashboardLayout", "default")
+  }
+
+  // Manejar cambios en el layout (versión simplificada)
+  const handleLayoutChange = (layout: LayoutItem[]) => {
+    const updatedWidgets = widgets.map((widget) => {
+      const layoutItem = layout.find((item) => item.i === widget.id)
+      if (layoutItem) {
+        return {
+          ...widget,
+          x: layoutItem.x,
+          y: layoutItem.y,
+          w: layoutItem.w,
+          h: layoutItem.h,
+        }
+      }
+      return widget
+    })
+    setWidgets(updatedWidgets)
+  }
+
+  // Añadir un nuevo widget
+  const handleAddWidget = () => {
+    const newWidget: ChartWidget = {
+      id: `widget-${Date.now()}`,
+      dataSource: "ventas",
+      chartType: "bar",
+      w: 4,
+      h: 2,
+      x: 0,
+      y: 0,
+      showLegend: true,
+      stacked: false,
+      period: "month",
+    }
+    setEditingWidget(newWidget)
+    setIsEditDialogOpen(true)
+  }
+
+  // Editar un widget existente
+  const handleEditWidget = (id: string) => {
+    const widget = widgets.find((w) => w.id === id)
+    if (widget) {
+      setEditingWidget(widget)
+      setIsEditDialogOpen(true)
+    }
+  }
+
+  // Eliminar un widget
+  const handleRemoveWidget = (id: string) => {
+    setWidgets(widgets.filter((w) => w.id !== id))
+  }
+
+  // Guardar cambios en un widget
+  const handleSaveWidget = (updatedWidget: ChartWidget) => {
+    const existingIndex = widgets.findIndex((w) => w.id === updatedWidget.id)
+    if (existingIndex >= 0) {
+      const newWidgets = [...widgets]
+      newWidgets[existingIndex] = updatedWidget
+      setWidgets(newWidgets)
+    } else {
+      setWidgets([...widgets, updatedWidget])
+    }
+  }
+
+  // Manejar cambio de layout
+  const handleChangeLayout = (layoutName: string) => {
+    if (layouts[layoutName]) {
+      setCurrentLayout(layoutName)
+      setWidgets(layouts[layoutName])
+      localStorage.setItem("currentDashboardLayout", layoutName)
+    }
+  }
+
+  // Guardar un nuevo layout
+  const handleSaveNewLayout = () => {
+    if (newLayoutName.trim() && !layouts[newLayoutName]) {
+      const updatedLayouts = { ...layouts, [newLayoutName]: widgets }
+      setLayouts(updatedLayouts)
+      setCurrentLayout(newLayoutName)
+      localStorage.setItem("dashboardLayouts", JSON.stringify(updatedLayouts))
+      localStorage.setItem("currentDashboardLayout", newLayoutName)
+      setNewLayoutName("")
+    }
+  }
+
+  // Eliminar un layout
+  const handleDeleteLayout = (layoutName: string) => {
+    if (layoutName !== "default" && layouts[layoutName]) {
+      const { [layoutName]: _, ...restLayouts } = layouts
+      setLayouts(restLayouts)
+
+      if (currentLayout === layoutName) {
+        setCurrentLayout("default")
+        setWidgets(layouts.default)
+        localStorage.setItem("currentDashboardLayout", "default")
+      }
+
+      localStorage.setItem("dashboardLayouts", JSON.stringify(restLayouts))
+    }
+  }
+
+  // Manejar widget en pantalla completa
+  const handleResizeWidget = (id: string, isFullscreen: boolean) => {
+    setIsFullscreenWidget(isFullscreen ? id : null)
+  }
+
+  return (
+    <div className="container mx-auto p-4">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Dashboard de Estadísticas</h1>
+
+        <div className="flex items-center space-x-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <span className="mr-2">Layout: {currentLayout}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Cambiar Layout</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {Object.keys(layouts).map((layoutName) => (
+                <DropdownMenuItem
+                  key={layoutName}
+                  onClick={() => handleChangeLayout(layoutName)}
+                  className="flex justify-between items-center"
+                >
+                  {layoutName}
+                  {layoutName === currentLayout && (
+                    <Badge variant="outline" className="ml-2">
+                      Actual
+                    </Badge>
+                  )}
+                  {layoutName !== "default" && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-4 w-4 ml-2"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteLayout(layoutName)
+                      }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                      <Legend />
-                      <Area type="monotone" dataKey="ingresos" stackId="1" stroke="#8884d8" fill="#8884d8" />
-                      <Area type="monotone" dataKey="gastos" stackId="1" stroke="#82ca9d" fill="#82ca9d" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          <TabsContent value="inventario" className="space-y-4">
-            <Card className="overflow-hidden">
-              <CardHeader>
-                <CardTitle>Inventario de Propiedades</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={datosInventario} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" />
-                    <YAxis dataKey="tipo" type="category" />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="unidades" name="Unidades" fill="#8884d8" />
-                    <Bar dataKey="m2" name="Metros Cuadrados" fill="#82ca9d" />
-                    <Bar dataKey="valor" name="Valor ($)" fill="#ffc658" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Save className="h-4 w-4 mr-2" />
+                Guardar
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80">
+              <div className="space-y-4">
+                <h4 className="font-medium">Guardar layout actual</h4>
+                <div className="flex space-x-2">
+                  <input
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Nombre del layout"
+                    value={newLayoutName}
+                    onChange={(e) => setNewLayoutName(e.target.value)}
+                  />
+                  <Button onClick={handleSaveNewLayout}>Guardar</Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
+
+          <Button variant="outline" size="sm" onClick={resetToDefault}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Restablecer
+          </Button>
+
+          <Button onClick={handleAddWidget}>
+            <Plus className="h-4 w-4 mr-2" />
+            Añadir Gráfico
+          </Button>
+        </div>
       </div>
+
+      <div className={isFullscreenWidget ? "hidden" : ""}>
+        {/* Implementación simplificada sin react-grid-layout */}
+        <div className="grid grid-cols-12 gap-4">
+          {widgets.map((widget) => (
+            <div
+              key={widget.id}
+              className={`col-span-${widget.w} row-span-${widget.h}`}
+              style={{
+                gridColumn: `span ${widget.w}`,
+                gridRow: `span ${widget.h}`,
+                minHeight: `${widget.h * 150}px`,
+              }}
+            >
+              <ChartRenderer
+                widget={widget}
+                onEdit={handleEditWidget}
+                onRemove={handleRemoveWidget}
+                onResize={handleResizeWidget}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {isFullscreenWidget && (
+        <div className="fixed inset-0 z-50 bg-background p-6">
+          <ChartRenderer
+            widget={widgets.find((w) => w.id === isFullscreenWidget)!}
+            onEdit={handleEditWidget}
+            onRemove={handleRemoveWidget}
+            onResize={handleResizeWidget}
+          />
+        </div>
+      )}
+
+      <EditWidgetDialog
+        widget={editingWidget}
+        isOpen={isEditDialogOpen}
+        onClose={() => {
+          setIsEditDialogOpen(false)
+          setEditingWidget(null)
+        }}
+        onSave={handleSaveWidget}
+      />
     </div>
   )
 }
+
+export default Estadisticas
 
