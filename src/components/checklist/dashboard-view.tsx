@@ -1141,7 +1141,7 @@ export function ApprovalDashboard() {
                             <dd>USD {selectedTicket.formData.precio.valorCHBaulera}</dd>
                           </div>
                           <div className="flex justify-between">
-                            <dt className="font-medium">Valor de Venta "A":</dt>
+                            <dt className="font-medium">Valor de Venta A:</dt>
                             <dd>USD {selectedTicket.formData.precio.valorVentaA}</dd>
                           </div>
                           <div className="flex justify-between">

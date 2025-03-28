@@ -21,15 +21,14 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
   }
 
   const handleNestedChange = (section: string, field: string, value: any) => {
-    // Asegúrate de que section es una clave válida de FormData
-    if (section in formData) {
-      onChange({
-        [section]: {
-          ...formData[section as keyof FormData],
-          [field]: value,
-        },
-      })
+    const updatedSection = {
+      ...formData[section as keyof FormData],
+      [field]: value,
     }
+
+    onChange({
+      [section]: updatedSection,
+    } as Partial<FormData>)
   }
 
   const RequiredLabel = ({ children }: { children: React.ReactNode }) =>
@@ -220,7 +219,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 />
               </div>
               <div>
-                <Label htmlFor="valorVentaA">Valor de Venta "A"</Label>
+                <Label htmlFor="valorVentaA">Valor de Venta &quot;A&quot;</Label>
                 <Input
                   id="valorVentaA"
                   value={formData.precio.valorVentaA}
