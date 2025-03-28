@@ -3,6 +3,7 @@ export interface FormData {
   emprendimiento: string
   quienVende: string
   unidadFuncional: string
+  tipoDocumento: string
   m2: {
     totales: string
     cubierta: string
@@ -10,7 +11,6 @@ export interface FormData {
     palierPrivado: string
     amenities: string
   }
-  tipoDocumento: string
   precio: {
     valorVentaTotal: string
     valorUF: string
@@ -36,5 +36,8 @@ export interface FormData {
     montoTotal: string
     quienAbona: string
   }
+
+  // Añade esta línea para permitir el acceso con índice de tipo string
+  [key: string]: any
 }
 
