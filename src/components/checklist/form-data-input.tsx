@@ -221,7 +221,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 />
               </div>
               <div>
-                <Label htmlFor="valorVentaA">Valor de Venta "A"</Label>
+                <Label htmlFor="valorVentaA">Valor de Venta A</Label>
                 <Input
                   id="valorVentaA"
                   value={formData.precio?.valorVentaA || ""}
