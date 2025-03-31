@@ -1,11 +1,10 @@
-"use client"
+'use client'
 
 import { useState, useEffect, useCallback, memo } from "react"
 import { Card } from "@/components/ui/card"
 import { ProjectModal } from "./project-modal"
 import { AnimatePresence, motion } from "framer-motion"
-import Image from "next/image"
-import "notyf/notyf.min.css"
+import 'notyf/notyf.min.css';
 
 type Floor = {
   number: number
@@ -53,7 +52,7 @@ type Project = {
   promotions?: string
 }
 
-const API_BASE_URL = "https://adndashbackend.onrender.com/api"
+const API_BASE_URL = 'https://adndashbackend.onrender.com/api';
 
 const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () => void }) => (
   <motion.div
@@ -61,21 +60,17 @@ const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () 
     whileTap={{ scale: 0.98 }}
     transition={{ type: "spring", stiffness: 400, damping: 17 }}
   >
-    <Card
+    <Card 
       className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full bg-black"
       onClick={onClick}
     >
       <div className="relative h-[200px] overflow-hidden group">
         <div className="absolute inset-0 bg-black">
-          <div className="relative w-full h-full">
-            <Image
-              src={project.image || "/placeholder.svg"}
-              alt={project.name}
-              fill
-              className="object-cover transition-transform duration-300"
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 20vw"
-            />
-          </div>
+          <img
+            src={project.image}
+            alt={project.name}
+            className="w-[200%] h-[200%] object-cover absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-300"
+          />
         </div>
       </div>
       <div className="p-3 text-center bg-black text-white">
@@ -85,7 +80,7 @@ const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () 
   </motion.div>
 ))
 
-ProjectCard.displayName = "ProjectCard"
+ProjectCard.displayName = 'ProjectCard'
 
 type AdnProps = {
   onViewProject: (projectId: number) => void
@@ -97,37 +92,30 @@ type AdnProps = {
   setSelectedProjectId: (projectId: number | null) => void
 }
 
-export function Adn({
-  onViewProject,
-  onViewPlanes,
-  onViewGallery,
-  isProjectModalOpen,
-  setIsProjectModalOpen,
-  selectedProjectId,
-  setSelectedProjectId,
+export function Adn({ 
+  onViewProject, 
+  onViewPlanes, 
+  onViewGallery, 
+  isProjectModalOpen, 
+  setIsProjectModalOpen, 
+  selectedProjectId, 
+  setSelectedProjectId 
 }: AdnProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
-    setIsMounted(true)
+    fetchProjects()
   }, [])
-
-  useEffect(() => {
-    if (isMounted) {
-      fetchProjects()
-    }
-  }, [isMounted])
 
   const fetchProjects = async () => {
     try {
       setLoading(true)
       const response = await fetch(`${API_BASE_URL}/projects`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       })
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
@@ -135,34 +123,27 @@ export function Adn({
       const data = await response.json()
       setProjects(data)
     } catch (err) {
-      console.error("Error fetching projects:", err)
-      setError(err instanceof Error ? err.message : "Error desconocido")
+      console.error('Error fetching projects:', err)
+      setError(err instanceof Error ? err.message : 'Error desconocido')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleProjectClick = useCallback(
-    (projectId: number) => {
-      setIsProjectModalOpen(true)
-      setSelectedProjectId(projectId)
-    },
-    [setIsProjectModalOpen, setSelectedProjectId],
-  )
+  const handleProjectClick = useCallback((projectId: number) => {
+    setIsProjectModalOpen(true)
+    setSelectedProjectId(projectId)
+  }, [setIsProjectModalOpen, setSelectedProjectId])
 
   const handleCloseModal = useCallback(() => {
     setIsProjectModalOpen(false)
     setSelectedProjectId(null)
   }, [setIsProjectModalOpen, setSelectedProjectId])
 
-  if (!isMounted) {
-    return null
-  }
-
   if (loading) return <div className="p-4">Cargando proyectos...</div>
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
 
-  const selectedProject = projects.find((p) => p.id === selectedProjectId) || null
+  const selectedProject = projects.find(p => p.id === selectedProjectId) || null
 
   return (
     <div className="bg-black min-h-screen">
@@ -176,7 +157,10 @@ export function Adn({
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <ProjectCard project={project} onClick={() => handleProjectClick(project.id)} />
+              <ProjectCard 
+                project={project}
+                onClick={() => handleProjectClick(project.id)}
+              />
             </motion.div>
           ))}
         </AnimatePresence>

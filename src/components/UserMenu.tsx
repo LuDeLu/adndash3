@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useAuth } from "@/app/auth/auth-context"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -17,10 +18,26 @@ import NotificationCenter from "./NotificationCenter"
 
 export default function UserMenu() {
   const { user, logout } = useAuth()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
+
+  // Get user initials for avatar fallback
+  const getUserInitials = () => {
+    if (!user?.name) return "U"
+
+    const nameParts = user.name.split(" ")
+    if (nameParts.length === 1) return nameParts[0].charAt(0).toUpperCase()
+
+    return (nameParts[0].charAt(0) + nameParts[nameParts.length - 1].charAt(0)).toUpperCase()
+  }
 
   const handleLogout = () => {
     logout()
+    setOpen(false)
+  }
+
+  const navigateTo = (path: string) => {
+    router.push(path)
     setOpen(false)
   }
 
@@ -30,26 +47,26 @@ export default function UserMenu() {
 
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+          <Button variant="ghost" className="relative h-10 w-10 rounded-full" aria-label="Menú de usuario">
             <Avatar className="h-10 w-10">
-              <AvatarImage src={user?.avatarUrl} alt={user?.name || ""} />
-              <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
+              <AvatarImage src={user?.avatarUrl} alt={user?.name || "Usuario"} />
+              <AvatarFallback>{getUserInitials()}</AvatarFallback>
             </Avatar>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
             <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{user?.name}</p>
-              <p className="text-xs leading-none text-muted-foreground">{user?.email}</p>
+              <p className="text-sm font-medium leading-none">{user?.name || "Usuario"}</p>
+              <p className="text-xs leading-none text-muted-foreground">{user?.email || ""}</p>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => (window.location.href = "/ajustes")}>
+          <DropdownMenuItem onClick={() => navigateTo("/ajustes/perfil")}>
             <User className="mr-2 h-4 w-4" />
             <span>Perfil</span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => (window.location.href = "/ajustes")}>
+          <DropdownMenuItem onClick={() => navigateTo("/ajustes")}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Configuración</span>
           </DropdownMenuItem>

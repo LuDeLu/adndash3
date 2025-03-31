@@ -16,19 +16,21 @@ interface FormDataInputProps {
 }
 
 export function FormDataInput({ formData, onChange, showRequired = false }: FormDataInputProps) {
-  const handleChange = (field: string, value: any) => {
+  // Handle simple field changes
+  const handleChange = (field: keyof FormData, value: any) => {
     onChange({ [field]: value })
   }
 
-  const handleNestedChange = (section: string, field: string, value: any) => {
-    const updatedSection = {
-      ...formData[section as keyof FormData],
-      [field]: value,
+  // Handle nested field changes with type safety
+  const handleNestedChange = (section: keyof FormData, field: string, value: any) => {
+    if (typeof formData[section] === "object" && formData[section] !== null) {
+      onChange({
+        [section]: {
+          ...formData[section],
+          [field]: value,
+        },
+      })
     }
-
-    onChange({
-      [section]: updatedSection,
-    } as Partial<FormData>)
   }
 
   const RequiredLabel = ({ children }: { children: React.ReactNode }) =>
@@ -50,7 +52,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
           <Input
             id="fechaFirma"
             type="date"
-            value={formData.fechaFirma}
+            value={formData.fechaFirma || ""}
             onChange={(e) => handleChange("fechaFirma", e.target.value)}
           />
         </div>
@@ -63,7 +65,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
           </Label>
           <Input
             id="emprendimiento"
-            value={formData.emprendimiento}
+            value={formData.emprendimiento || ""}
             onChange={(e) => handleChange("emprendimiento", e.target.value)}
             placeholder="Nombre del emprendimiento"
             className={showRequired ? "border-blue-200 focus:border-blue-500" : ""}
@@ -76,7 +78,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
           </Label>
           <Input
             id="quienVende"
-            value={formData.quienVende}
+            value={formData.quienVende || ""}
             onChange={(e) => handleChange("quienVende", e.target.value)}
             placeholder="Nombre del vendedor"
             className={showRequired ? "border-blue-200 focus:border-blue-500" : ""}
@@ -89,7 +91,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
           </Label>
           <Input
             id="unidadFuncional"
-            value={formData.unidadFuncional}
+            value={formData.unidadFuncional || ""}
             onChange={(e) => handleChange("unidadFuncional", e.target.value)}
             placeholder="Descripción de la unidad funcional"
             className={showRequired ? "border-blue-200 focus:border-blue-500" : ""}
@@ -106,7 +108,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="m2Totales">M2 Totales</Label>
                 <Input
                   id="m2Totales"
-                  value={formData.m2.totales}
+                  value={formData.m2?.totales || ""}
                   onChange={(e) => handleNestedChange("m2", "totales", e.target.value)}
                   placeholder="Ej: 186.58"
                 />
@@ -115,7 +117,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="supCubierta">Sup. Cubierta</Label>
                 <Input
                   id="supCubierta"
-                  value={formData.m2.cubierta}
+                  value={formData.m2?.cubierta || ""}
                   onChange={(e) => handleNestedChange("m2", "cubierta", e.target.value)}
                   placeholder="Ej: 146.46"
                 />
@@ -124,7 +126,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="supSemiCubierta">Sup. Semi cubierta</Label>
                 <Input
                   id="supSemiCubierta"
-                  value={formData.m2.semiCubierta}
+                  value={formData.m2?.semiCubierta || ""}
                   onChange={(e) => handleNestedChange("m2", "semiCubierta", e.target.value)}
                   placeholder="Ej: 20.79"
                 />
@@ -133,7 +135,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="palierPrivado">Palier Privado</Label>
                 <Input
                   id="palierPrivado"
-                  value={formData.m2.palierPrivado}
+                  value={formData.m2?.palierPrivado || ""}
                   onChange={(e) => handleNestedChange("m2", "palierPrivado", e.target.value)}
                   placeholder="Ej: 2.60"
                 />
@@ -142,7 +144,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="supAmenities">Sup. Amenities</Label>
                 <Input
                   id="supAmenities"
-                  value={formData.m2.amenities}
+                  value={formData.m2?.amenities || ""}
                   onChange={(e) => handleNestedChange("m2", "amenities", e.target.value)}
                   placeholder="Ej: 16.73"
                 />
@@ -155,7 +157,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
       <div>
         <Label>5. Tipo de Documento</Label>
         <RadioGroup
-          value={formData.tipoDocumento}
+          value={formData.tipoDocumento || ""}
           onValueChange={(value) => handleChange("tipoDocumento", value)}
           className="mt-2 space-y-2"
         >
@@ -195,7 +197,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="valorVentaTotal">Valor de Venta Total</Label>
                 <Input
                   id="valorVentaTotal"
-                  value={formData.precio.valorVentaTotal}
+                  value={formData.precio?.valorVentaTotal || ""}
                   onChange={(e) => handleNestedChange("precio", "valorVentaTotal", e.target.value)}
                   placeholder="USD"
                 />
@@ -204,7 +206,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="valorUF">UF/UFs</Label>
                 <Input
                   id="valorUF"
-                  value={formData.precio.valorUF}
+                  value={formData.precio?.valorUF || ""}
                   onChange={(e) => handleNestedChange("precio", "valorUF", e.target.value)}
                   placeholder="USD"
                 />
@@ -213,16 +215,16 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="valorCHBaulera">CHs + Baulera</Label>
                 <Input
                   id="valorCHBaulera"
-                  value={formData.precio.valorCHBaulera}
+                  value={formData.precio?.valorCHBaulera || ""}
                   onChange={(e) => handleNestedChange("precio", "valorCHBaulera", e.target.value)}
                   placeholder="USD"
                 />
               </div>
               <div>
-                <Label htmlFor="valorVentaA">Valor de Venta &quot;A&quot;</Label>
+                <Label htmlFor="valorVentaA">Valor de Venta "A"</Label>
                 <Input
                   id="valorVentaA"
-                  value={formData.precio.valorVentaA}
+                  value={formData.precio?.valorVentaA || ""}
                   onChange={(e) => handleNestedChange("precio", "valorVentaA", e.target.value)}
                   placeholder="USD"
                 />
@@ -231,7 +233,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="valorM2">US$/M2</Label>
                 <Input
                   id="valorM2"
-                  value={formData.precio.valorM2}
+                  value={formData.precio?.valorM2 || ""}
                   onChange={(e) => handleNestedChange("precio", "valorM2", e.target.value)}
                   placeholder="USD"
                 />
@@ -240,7 +242,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="valorM2Neto">US$/M2 (neto)</Label>
                 <Input
                   id="valorM2Neto"
-                  value={formData.precio.valorM2Neto}
+                  value={formData.precio?.valorM2Neto || ""}
                   onChange={(e) => handleNestedChange("precio", "valorM2Neto", e.target.value)}
                   placeholder="USD"
                 />
@@ -249,7 +251,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="formaPago">Forma de Pago</Label>
                 <Textarea
                   id="formaPago"
-                  value={formData.precio.formaPago}
+                  value={formData.precio?.formaPago || ""}
                   onChange={(e) => handleNestedChange("precio", "formaPago", e.target.value)}
                   rows={4}
                   placeholder="Detalle la forma de pago (cuotas, montos, plazos, etc.)"
@@ -269,7 +271,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="nombreComprador">Nombre y Apellido</Label>
                 <Input
                   id="nombreComprador"
-                  value={formData.comprador.nombre}
+                  value={formData.comprador?.nombre || ""}
                   onChange={(e) => handleNestedChange("comprador", "nombre", e.target.value)}
                   placeholder="Nombre completo del comprador"
                 />
@@ -278,7 +280,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="dniComprador">DNI</Label>
                 <Input
                   id="dniComprador"
-                  value={formData.comprador.dni}
+                  value={formData.comprador?.dni || ""}
                   onChange={(e) => handleNestedChange("comprador", "dni", e.target.value)}
                   placeholder="Número de DNI"
                 />
@@ -287,7 +289,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="direccionComprador">Dirección</Label>
                 <Input
                   id="direccionComprador"
-                  value={formData.comprador.direccion}
+                  value={formData.comprador?.direccion || ""}
                   onChange={(e) => handleNestedChange("comprador", "direccion", e.target.value)}
                   placeholder="Dirección completa"
                 />
@@ -296,7 +298,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="cuitComprador">CUIT</Label>
                 <Input
                   id="cuitComprador"
-                  value={formData.comprador.cuit}
+                  value={formData.comprador?.cuit || ""}
                   onChange={(e) => handleNestedChange("comprador", "cuit", e.target.value)}
                   placeholder="Número de CUIT"
                 />
@@ -305,7 +307,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="mailComprador">Mail</Label>
                 <Input
                   id="mailComprador"
-                  value={formData.comprador.mail}
+                  value={formData.comprador?.mail || ""}
                   onChange={(e) => handleNestedChange("comprador", "mail", e.target.value)}
                   placeholder="Correo electrónico"
                 />
@@ -314,7 +316,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="telefonoComprador">Teléfono</Label>
                 <Input
                   id="telefonoComprador"
-                  value={formData.comprador.telefono}
+                  value={formData.comprador?.telefono || ""}
                   onChange={(e) => handleNestedChange("comprador", "telefono", e.target.value)}
                   placeholder="Número de teléfono"
                 />
@@ -333,7 +335,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="montoSellos">Monto Total</Label>
                 <Input
                   id="montoSellos"
-                  value={formData.sellos.montoTotal}
+                  value={formData.sellos?.montoTotal || ""}
                   onChange={(e) => handleNestedChange("sellos", "montoTotal", e.target.value)}
                   placeholder="Ej: USD 8.793 / TC 933,50 / $ 8.208.265,5.-"
                 />
@@ -342,7 +344,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="quienAbona">Quien lo abona</Label>
                 <Input
                   id="quienAbona"
-                  value={formData.sellos.quienAbona}
+                  value={formData.sellos?.quienAbona || ""}
                   onChange={(e) => handleNestedChange("sellos", "quienAbona", e.target.value)}
                   placeholder="Ej: Comprador"
                 />
@@ -361,7 +363,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="montoHonorarios">Monto Total</Label>
                 <Input
                   id="montoHonorarios"
-                  value={formData.honorarios.montoTotal}
+                  value={formData.honorarios?.montoTotal || ""}
                   onChange={(e) => handleNestedChange("honorarios", "montoTotal", e.target.value)}
                   placeholder="Ej: $90.000"
                 />
@@ -370,7 +372,7 @@ export function FormDataInput({ formData, onChange, showRequired = false }: Form
                 <Label htmlFor="quienAbonaHonorarios">Quien lo abona</Label>
                 <Input
                   id="quienAbonaHonorarios"
-                  value={formData.honorarios.quienAbona}
+                  value={formData.honorarios?.quienAbona || ""}
                   onChange={(e) => handleNestedChange("honorarios", "quienAbona", e.target.value)}
                   placeholder="Ej: Cliente"
                 />
