@@ -52,7 +52,7 @@ type Project = {
   promotions?: string
 }
 
-const API_BASE_URL = 'https://adndashbackend.onrender.com/api';
+const API_BASE_URL = 'https://adndash.squareweb.app/api';
 
 const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () => void }) => (
   <motion.div

@@ -65,7 +65,7 @@ if (typeof window !== "undefined") {
   })
 }
 
-const API_BASE_URL = "https://adndashbackend.onrender.com/api"
+const API_BASE_URL = "https://adndash.squareweb.app/api"
 
 // Componente para mostrar estadísticas rápidas
 const EstadisticasRapidas = ({ reclamos }: { reclamos: Reclamo[] }) => {

@@ -49,7 +49,7 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
 
   useEffect(() => {
     // Fetch clients from the API
-    fetch("https://adndashbackend.onrender.com/api/clientes")
+    fetch("https://adndash.squareweb.app/api/clientes")
       .then((response) => response.json())
       .then((data) => setClients(data))
       .catch((error) => console.error("Error fetching clients:", error))
@@ -114,7 +114,7 @@ export default function Calendar() {
 
   const fetchEvents = async () => {
     try {
-      const response = await fetch("https://adndashbackend.onrender.com/api/events", {
+      const response = await fetch("https://adndash.squareweb.app/api/events", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -163,8 +163,8 @@ export default function Calendar() {
 
       try {
         const url = selectedEvent
-          ? `https://adndashbackend.onrender.com/api/events/${selectedEvent.id}`
-          : "https://adndashbackend.onrender.com/api/events"
+          ? `https://adndash.squareweb.app/api/events/${selectedEvent.id}`
+          : "https://adndash.squareweb.app/api/events"
         const method = selectedEvent ? "PUT" : "POST"
 
         const response = await fetch(url, {
@@ -200,7 +200,7 @@ export default function Calendar() {
 
   const handleDeleteEvent = async (eventId: string) => {
     try {
-      const response = await fetch(`https://adndashbackend.onrender.com/api/events/${eventId}`, {
+      const response = await fetch(`https://adndash.squareweb.app/api/events/${eventId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -221,7 +221,7 @@ export default function Calendar() {
     const eventToUpdate = events.find((e) => e.id === eventId)
     if (eventToUpdate) {
       try {
-        const response = await fetch(`https://adndashbackend.onrender.com/api/events/${eventId}`, {
+        const response = await fetch(`https://adndash.squareweb.app/api/events/${eventId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -245,7 +245,7 @@ export default function Calendar() {
     const eventToUpdate = events.find((e) => e.id === eventId)
     if (eventToUpdate) {
       try {
-        const response = await fetch(`https://adndashbackend.onrender.com/api/events/${eventId}`, {
+        const response = await fetch(`https://adndash.squareweb.app/api/events/${eventId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -267,7 +267,7 @@ export default function Calendar() {
 
   const handleSyncWithGoogleCalendar = async () => {
     try {
-      const response = await fetch("https://adndashbackend.onrender.com/api/events/sync", {
+      const response = await fetch("https://adndash.squareweb.app/api/events/sync", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
