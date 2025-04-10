@@ -43,7 +43,12 @@ export default function Login() {
 
       const data = await response.json()
       login(
-        { email: data.user.email, name: data.user.nombre, rol: data.user.rol },
+        {
+          email: data.user.email,
+          name: data.user.nombre,
+          rol: data.user.rol,
+          userId: data.user.id || data.user.userId || 0, // Add userId property
+        },
         data.token,
         "", // Empty string for googleAccessToken since this is email login
       )
@@ -79,7 +84,12 @@ export default function Login() {
         if (serverResponse.ok) {
           const data = await serverResponse.json()
           login(
-            { email: userInfo.email, name: userInfo.name, rol: data.user.rol },
+            {
+              email: userInfo.email,
+              name: userInfo.name,
+              rol: data.user.rol,
+              userId: data.user.id || data.user.userId || 0, // Add userId property
+            },
             data.token,
             tokenResponse.access_token,
           )
@@ -192,4 +202,3 @@ export default function Login() {
     </div>
   )
 }
-
