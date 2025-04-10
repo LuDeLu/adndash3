@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Loader2 } from 'lucide-react'
 
-const API_BASE_URL = 'https://adndash.squareweb.app/api';
+const API_BASE_URL = 'https://adndashboard.squareweb.app/api';
 
 export function AddProject() {
   const { user } = useAuth()

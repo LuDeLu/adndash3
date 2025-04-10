@@ -1,6 +1,6 @@
 // API Service para manejar las peticiones a la API
 
-const API_BASE_URL = "https://adndash.squareweb.app/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 // Cache para almacenar datos y reducir llamadas a la API
 const cache = {

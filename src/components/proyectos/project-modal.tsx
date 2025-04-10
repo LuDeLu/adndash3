@@ -22,7 +22,7 @@ const LocationMap = dynamic(() => import("./LocationMap"), {
 })
 
 // Añadir la URL base de la API
-const API_BASE_URL = "https://adndash.squareweb.app/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 type Floor = {
   number: number

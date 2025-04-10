@@ -186,7 +186,7 @@ export default function NotificationCenter() {
 
     try {
       setLoading(true)
-      const response = await fetch("https://adndash.squareweb.app/api/notifications", {
+      const response = await fetch("https://adndashboard.squareweb.app/api/notifications", {
         headers: {
           Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
         },
@@ -255,7 +255,7 @@ export default function NotificationCenter() {
   // Mark notification as read
   const markAsRead = useCallback(async (id: string) => {
     try {
-      const response = await fetch(`https://adndash.squareweb.app/api/notifications/${id}/read`, {
+      const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/${id}/read`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
@@ -278,7 +278,7 @@ export default function NotificationCenter() {
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
-      const response = await fetch(`https://adndash.squareweb.app/api/notifications/read-all`, {
+      const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/read-all`, {
         method: "PATCH",
         headers: {
           Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
@@ -303,7 +303,7 @@ export default function NotificationCenter() {
   const deleteNotification = useCallback(
     async (id: string) => {
       try {
-        const response = await fetch(`https://adndash.squareweb.app/api/notifications/${id}`, {
+        const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/${id}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,

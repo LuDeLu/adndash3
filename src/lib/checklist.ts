@@ -5,7 +5,7 @@
 import type { FormData } from "@/types/form-data"
 import type { ApprovalTicket } from "@/types/approval-ticket"
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndash.squareweb.app/api"
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
 
 // Función auxiliar para manejar errores de fetch
 async function handleResponse(response: Response) {
