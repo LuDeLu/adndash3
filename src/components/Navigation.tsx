@@ -58,11 +58,6 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
       section: "obras",
     },
     {
-      title: "Mapa",
-      icon: Map,
-      section: "mapa",
-    },
-    {
       title: "Post Ventas",
       icon: Wrench,
       section: "postventas",

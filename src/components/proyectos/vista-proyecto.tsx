@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import {
   ChevronLeft,
   ChevronRight,
@@ -14,6 +14,7 @@ import {
   Car,
   FileSpreadsheet,
   FileBarChart,
+  RefreshCw,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,10 +33,11 @@ import "notyf/notyf.min.css"
 import { useAuth } from "@/app/auth/auth-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-
-// Añadir estas importaciones al principio del archivo
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+
+// Modificar la función handleFormSubmit para usar el servicio API optimizado
+import { updateApartment, invalidateCache } from "../../lib/proyectos"
 
 let notyf: Notyf | null = null
 
@@ -51,6 +53,7 @@ type ApartmentData = {
   email?: string
   surface: string
   assignedParkings: string[]
+  id?: number // ID de la base de datos
 }
 
 type ApartmentDataMap = {
@@ -63,6 +66,12 @@ type FloorData = {
     [key: string]: string
   }
   viewBox?: string
+  id?: number // ID de la base de datos
+}
+
+// Cambiar la definición de tipo para FloorData para permitir indexación numérica
+type FloorDataMap = {
+  [key: number]: FloorData
 }
 
 type UnitStats = {
@@ -72,207 +81,16 @@ type UnitStats = {
   bloqueadas: number
 }
 
-const initialFloorData: { [key: number]: FloorData } = {
-  1: {
-    apartments: {
-      "1A": { buyer: "", date: "", price: "$774.200", status: "libre", surface: "181,55 m²", assignedParkings: [] },
-      "1B": { buyer: "", date: "", price: "$820.900", status: "libre", surface: "183,35 m²", assignedParkings: [] },
-      "1C": { buyer: "", date: "", price: "$667.600", status: "libre", surface: "154,25 m²", assignedParkings: [] },
-    },
-    svgPaths: {
-      "1A": "M136,509 L126,2004 L764,2001 L767,1918 L1209,1915 L1207,1999 L1218,2001 L1221,1692 L1635,1692 L1639,1544 L1224,1543 L1227,1291 L1430,1292 L1424,899 L1219,902 L1216,578 L506,575 L504,455 Z",
-      "1B": "M3111,2317 L1421,2314 L1418,2007 L1209,2004 L1209,1680 L1635,1683 L2078,1683 L2084,1270 L3117,1270 Z",
-      "1C": "M3111,1276 L3114,300 L2298,303 L2304,214 L1206,366 L1212,904 L1415,910 L1418,1288 L1674,1291 L1677,1115 L1879,1109 L1879,1285 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  2: {
-    apartments: {
-      "2A": { buyer: "", date: "", price: "$610.000", status: "libre", surface: "196,15 m²", assignedParkings: [] },
-      "2B": { buyer: "", date: "", price: "$668.800", status: "libre", surface: "201,05 m²", assignedParkings: [] },
-      "2C": { buyer: "", date: "", price: "$468.800", status: "libre", surface: "168,35 m²", assignedParkings: [] },
-    },
-    svgPaths: {
-      "2A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
-      "2B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
-      "2C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  3: {
-    apartments: {
-      "3A": {
-        buyer: "Luciano Florentino",
-        date: "2023-09-27",
-        price: "$631.900",
-        status: "ocupado",
-        surface: "196,15 m²",
-        assignedParkings: [],
-      },
-      "3B": {
-        buyer: "Pedro Ramírez",
-        date: "2023-09-05",
-        price: "$692.900",
-        status: "ocupado",
-        surface: "201,05 m²",
-        assignedParkings: [],
-      },
-      "3C": { buyer: "", date: "", price: "$469.800", status: "libre", surface: "168,35 m²", assignedParkings: [] },
-    },
-    svgPaths: {
-      "3A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
-      "3B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
-      "3C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  4: {
-    apartments: {
-      "4A": { buyer: "", date: "", price: "$657.300", status: "libre", surface: "196,15 m²", assignedParkings: [] },
-      "4B": { buyer: "", date: "", price: "$717.000", status: "libre", surface: "201,05 m²", assignedParkings: [] },
-      "4C": { buyer: "", date: "", price: "$424.800", status: "libre", surface: "168,35 m²", assignedParkings: [] },
-    },
-    svgPaths: {
-      "4A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
-      "4B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
-      "4C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  5: {
-    apartments: {
-      "5A": {
-        buyer: "Carlos Hernández",
-        date: "2024-01-23",
-        price: "$679.300",
-        status: "ocupado",
-        surface: "196,15 m²",
-        assignedParkings: [],
-      },
-      "5B": {
-        buyer: "Javier Martínez",
-        date: "2023-11-20",
-        price: "$741.100",
-        status: "ocupado",
-        surface: "201,05 m²",
-        assignedParkings: [],
-      },
-      "5C": {
-        buyer: "Laura Fernández",
-        date: "2024-09-04",
-        price: "$439.100",
-        status: "ocupado",
-        surface: "168,35 m²",
-        assignedParkings: [],
-      },
-    },
-    svgPaths: {
-      "5A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
-      "5B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
-      "5C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  6: {
-    apartments: {
-      "6A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
-      "6B": {
-        buyer: "Mariano Nicolas Aldrede",
-        date: "2023-07-14",
-        price: "$759.500",
-        status: "ocupado",
-        surface: "201,05 m²",
-        assignedParkings: [],
-      },
-      "6C": {
-        buyer: "Isabel Rodríguez",
-        date: "2023-12-25",
-        price: "$450.100",
-        status: "reservado",
-        surface: "168,35 m²",
-        assignedParkings: [],
-      },
-    },
-    svgPaths: {
-      "6A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
-      "6B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
-      "6C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  7: {
-    apartments: {
-      "7A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
-      "7B": {
-        buyer: "Mariano Nicolas Aldrede",
-        date: "2023-07-14",
-        price: "$759.500",
-        status: "ocupado",
-        surface: "201,05 m²",
-        assignedParkings: [],
-      },
-      "7C": {
-        buyer: "Isabel Rodríguez",
-        date: "2023-12-25",
-        price: "$450.100",
-        status: "reservado",
-        surface: "168,35 m²",
-        assignedParkings: [],
-      },
-    },
-    svgPaths: {
-      "7A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
-      "7B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
-      "7C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  8: {
-    apartments: {
-      "8A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
-      "8B": {
-        buyer: "Mariano Nicolas Aldrede",
-        date: "2023-07-14",
-        price: "$759.500",
-        status: "ocupado",
-        surface: "201,05 m²",
-        assignedParkings: [],
-      },
-      "8C": {
-        buyer: "Isabel Rodríguez",
-        date: "2023-12-25",
-        price: "$450.100",
-        status: "reservado",
-        surface: "168,35 m²",
-        assignedParkings: [],
-      },
-    },
-    svgPaths: {
-      "8A": "M854,1776 L203,1786 L208,420 L605,414 L595,351 L1341,255 L1346,1304 L1754,1304 L1754,1447 L1346,1463 L1346,1702 L859,1712 Z",
-      "8B": "M1346,1447 L1341,1702 L1558,1712 L1558,1792 L1748,1792 L1748,2094 L3114,2094 L3108,1087 L2436,1087 L2431,1214 L2251,1220 L2256,1431 Z",
-      "8C": "M3119,1092 L2426,1082 L2426,1008 L2045,1018 L2039,838 L2436,817 L2442,626 L1965,626 L1976,838 L1817,838 L1817,1008 L1346,1008 L1346,255 L3124,22 Z",
-    },
-    viewBox: "0 0 3455 2250",
-  },
-  9: {
-    apartments: {
-      "9A": { buyer: "", date: "", price: "$696.200", status: "libre", surface: "196,15 m²", assignedParkings: [] },
-      "9B": {
-        buyer: "Mariano Nicolas Aldrede",
-        date: "2023-07-14",
-        price: "$759.500",
-        status: "ocupado",
-        surface: "201,05 m²",
-        assignedParkings: [],
-      },
-    },
-    svgPaths: {
-      "9A": "M22,342 L26,1335 L1599,1335 L1602,1054 L1449,1054 L1442,926 L1001,929 L1001,214 Z",
-      "9B": "M1342,1332 L1342,1613 L2345,1610 L2352,26 L1001,217 L994,342 L1175,346 L1178,679 L1783,683 L1783,1047 L1606,1051 L1606,1325 Z",
-    },
-    viewBox: "0 0 2220 1700",
-  },
+type ParkingSpot = {
+  id: string
+  level: number
+  status: "libre" | "ocupado"
+  assignedTo: string | null
+  path: string
+  dbId?: number // ID de la base de datos
 }
+
+const API_BASE_URL = "https://adndash.squareweb.app/api"
 
 const floorPlans: { [key: number]: string } = {
   1: "/images/planos/plano_piso_1.svg",
@@ -322,8 +140,6 @@ const statusColors = {
   bloqueado: "#7f7fff",
 }
 
-// Añadir estas constantes cerca del inicio del archivo, junto con las otras definiciones
-
 const garageLevels = [1, 2, 3]
 
 const garagePlans = {
@@ -332,22 +148,42 @@ const garagePlans = {
   3: "/images/planos/cochera3.svg",
 }
 
-// Actualizar la definición de ParkingSpot para incluir el nivel
-type ParkingSpot = {
-  id: string
-  level: number
-  status: "libre" | "ocupado"
-  assignedTo: string | null
-  path: string
+// Datos iniciales para usar como respaldo
+const initialFloorData: FloorDataMap = {
+  1: {
+    apartments: {
+      "1A": { buyer: "", date: "", price: "$774.200", status: "libre", surface: "181,55 m²", assignedParkings: [] },
+      "1B": { buyer: "", date: "", price: "$820.900", status: "libre", surface: "183,35 m²", assignedParkings: [] },
+      "1C": { buyer: "", date: "", price: "$667.600", status: "libre", surface: "154,25 m²", assignedParkings: [] },
+    },
+    svgPaths: {
+      "1A": "M136,509 L126,2004 L764,2001 L767,1918 L1209,1915 L1207,1999 L1218,2001 L1221,1692 L1635,1692 L1639,1544 L1224,1543 L1227,1291 L1430,1292 L1424,899 L1219,902 L1216,578 L506,575 L504,455 Z",
+      "1B": "M3111,2317 L1421,2314 L1418,2007 L1209,2004 L1209,1680 L1635,1683 L2078,1683 L2084,1270 L3117,1270 Z",
+      "1C": "M3111,1276 L3114,300 L2298,303 L2304,214 L1206,366 L1212,904 L1415,910 L1418,1288 L1674,1291 L1677,1115 L1879,1109 L1879,1285 Z",
+    },
+    viewBox: "0 0 3200 2400",
+  },
+  // ... (otros pisos)
 }
 
-interface InteractiveFloorPlanProps {
-  projectId?: number
-  floorNumber?: number | null
-  onReturnToProjectModal: () => void
+// Paths predeterminados para los SVG de los departamentos
+const defaultSvgPaths = {
+  "1A": "M136,509 L126,2004 L764,2001 L767,1918 L1209,1915 L1207,1999 L1218,2001 L1221,1692 L1635,1692 L1639,1544 L1224,1543 L1227,1291 L1430,1292 L1424,899 L1219,902 L1216,578 L506,575 L504,455 Z",
+  "1B": "M3111,2317 L1421,2314 L1418,2007 L1209,2004 L1209,1680 L1635,1683 L2078,1683 L2084,1270 L3117,1270 Z",
+  "1C": "M3111,1276 L3114,300 L2298,303 L2304,214 L1206,366 L1212,904 L1415,910 L1418,1288 L1674,1291 L1677,1115 L1879,1109 L1879,1285 Z",
+  "2A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
+  "2B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
+  "2C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
+  // Los mismos paths para los pisos 3-7
+  "8A": "M854,1776 L203,1786 L208,420 L605,414 L595,351 L1341,255 L1346,1304 L1754,1304 L1754,1447 L1346,1463 L1346,1702 L859,1712 Z",
+  "8B": "M1346,1447 L1341,1702 L1558,1712 L1558,1792 L1748,1792 L1748,2094 L3114,2094 L3108,1087 L2436,1087 L2431,1214 L2251,1220 L2256,1431 Z",
+  "8C": "M3119,1092 L2426,1082 L2426,1008 L2045,1018 L2039,838 L2436,817 L2442,626 L1965,626 L1976,838 L1817,838 L1817,1008 L1346,1008 L1346,255 L3124,22 Z",
+  "9A": "M22,342 L26,1335 L1599,1335 L1602,1054 L1449,1054 L1442,926 L1001,929 L1001,214 Z",
+  "9B": "M1342,1332 L1342,1613 L2345,1610 L2352,26 L1001,217 L994,342 L1175,346 L1178,679 L1783,683 L1783,1047 L1606,1051 L1606,1325 Z",
 }
 
-const parkingSpotPaths = [
+// Paths predeterminados para los SVG de las cocheras
+const defaultParkingPaths = [
   "M571,885 L640,1391 L737,1405 L817,1369 L753,869 L668,865 Z",
   "M862,845 L926,1349 L1039,1373 L1120,1321 L1055,841 L1007,816 L951,824 L910,833 Z",
   "M1164,811 L1221,1311 L1318,1319 L1394,1303 L1418,1255 L1350,779 L1245,783 Z",
@@ -362,6 +198,12 @@ const parkingSpotPaths = [
   "M1253,2522 L1435,2522 L1427,2009 L1338,1985 L1245,2017 Z",
   "M1552,2013 L1552,2518 L1741,2522 L1729,2017 L1644,1989 Z",
 ]
+
+interface InteractiveFloorPlanProps {
+  projectId?: number
+  floorNumber?: number | null
+  onReturnToProjectModal: () => void
+}
 
 export default function InteractiveFloorPlan({
   projectId,
@@ -396,276 +238,314 @@ export default function InteractiveFloorPlan({
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedParking, setSelectedParking] = useState<string | null>(null)
-
-  // Dentro de la función del componente, añadir este nuevo estado
   const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
-
-  // Actualizar la inicialización de parkingSpots
-  const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>(
-    parkingSpotPaths.map((path, index) => ({
-      id: `P${index + 1}`,
-      level: 1, // Asignar todos al nivel 1
-      status: "libre",
-      assignedTo: null,
-      path: path,
-    })),
-  )
+  const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([])
   const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
-  const [floorData, setFloorData] = useState(initialFloorData)
-
-  // Añadir este nuevo estado dentro de la función del componente
+  const [floorData, setFloorData] = useState<FloorData>({ apartments: {}, svgPaths: {} })
   const [showParkingAssignment, setShowParkingAssignment] = useState(false)
-  // Actualizar el estado selectedParkings para que sea un objeto en lugar de un array
   const [selectedParkings, setSelectedParkings] = useState<{ [key: string]: boolean }>({})
-
-  // Añadir este estado cerca de los otros estados del componente
   const [isParkingInfoModalOpen, setIsParkingInfoModalOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [apiAvailable, setApiAvailable] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const [creatingFloors, setCreatingFloors] = useState(false)
 
-  // Actualizar la función handleParkingAssignment
-  const handleParkingAssignment = () => {
-    if (selectedApartment) {
-      // En la función handleParkingAssignment, modificar la creación de updatedParkingSpots
-      const updatedParkingSpots = parkingSpots.map((spot): ParkingSpot => {
-        if (selectedParkings[spot.id]) {
-          return {
-            ...spot,
-            status: "ocupado",
-            assignedTo: selectedApartment,
-          }
-        } else if (spot.assignedTo === selectedApartment) {
-          return {
-            ...spot,
-            status: "libre",
-            assignedTo: null,
-          }
-        }
-        return spot
-      })
-
-      setParkingSpots(updatedParkingSpots)
-
-      setFloorData((prevData) => ({
-        ...prevData,
-        [currentFloor]: {
-          ...prevData[currentFloor],
-          apartments: {
-            ...prevData[currentFloor].apartments,
-            [selectedApartment]: {
-              ...prevData[currentFloor].apartments[selectedApartment],
-              assignedParkings: updatedParkingSpots
-                .filter((spot) => spot.assignedTo === selectedApartment)
-                .map((spot) => spot.id),
-            },
-          },
-        },
-      }))
-
-      // Añadir entrada al registro de actividades
-      const timestamp = new Date().toLocaleString()
-      const assignedParkings = Object.keys(selectedParkings).filter((id) => selectedParkings[id])
-      const unassignedParkings = updatedParkingSpots
-        .filter((spot) => spot.status === "libre" && !selectedParkings[spot.id])
-        .map((spot) => spot.id)
-
-      let activityMessage = `${user?.name} `
-      if (assignedParkings.length > 0) {
-        activityMessage += `asignó las cocheras ${assignedParkings.join(", ")} `
-      }
-      if (unassignedParkings.length > 0) {
-        activityMessage += `${assignedParkings.length > 0 ? "y " : ""}desasignó las cocheras ${unassignedParkings.join(", ")} `
-      }
-      activityMessage += `del departamento ${selectedApartment}`
-
-      setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
-
-      if (notyf) notyf.success("Cocheras actualizadas con éxito")
-    }
-    setShowParkingAssignment(false)
-  }
-
-  // Actualizar la función handleParkingClick
-  const handleParkingClick = (parkingId: string, level: number) => {
-    if (level === 1) {
-      const clickedSpot = parkingSpots.find((spot) => spot.id === parkingId)
-      if (clickedSpot) {
-        setSelectedParking(parkingId)
-        setCurrentGarageLevel(level)
-        if (clickedSpot.status === "ocupado") {
-          setIsParkingInfoModalOpen(true)
-        } else {
-          setIsParkingModalOpen(true)
-        }
-      }
-    }
-  }
-
-  // Añadir esta nueva función para manejar la desasignación
-  const handleParkingUnassignment = () => {
-    if (selectedParking) {
-      const spot = parkingSpots.find((s) => s.id === selectedParking)
-      if (spot && spot.assignedTo) {
-        // Desasignar la cochera
-        setParkingSpots((spots) =>
-          spots.map((s) => (s.id === selectedParking ? { ...s, status: "libre", assignedTo: null } : s)),
-        )
-
-        // Remover la cochera del departamento
-        setFloorData((prevData) => {
-          const updatedData = { ...prevData } as typeof initialFloorData
-          Object.keys(updatedData).forEach((floor) => {
-            const floorNum = Number.parseInt(floor)
-            if (updatedData[floorNum] && updatedData[floorNum].apartments) {
-              Object.keys(updatedData[floorNum].apartments).forEach((apt) => {
-                if (updatedData[floorNum].apartments[apt].assignedParkings.includes(selectedParking)) {
-                  updatedData[floorNum].apartments[apt] = {
-                    ...updatedData[floorNum].apartments[apt],
-                    assignedParkings: updatedData[floorNum].apartments[apt].assignedParkings.filter(
-                      (id) => id !== selectedParking,
-                    ),
-                  }
-                }
-              })
-            }
-          })
-
-          // Añadir entrada al registro de actividades para liberación
-          const timestamp = new Date().toLocaleString()
-          const activityMessage = `${user?.name} desasignó la cochera ${selectedParking} del departamento ${spot.assignedTo}`
-          setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
-
-          return updatedData
-        })
-
-        if (notyf) notyf.success(`Cochera ${selectedParking} desasignada con éxito`)
-      }
-      setIsParkingInfoModalOpen(false)
-      setSelectedParking(null)
-    }
-  }
-
-  // Actualizar la función handleParkingAssignment2
-  const handleParkingAssignment2 = (apartmentId: string | null) => {
-    if (selectedParking) {
-      setParkingSpots((spots) =>
-        spots.map((spot) =>
-          spot.id === selectedParking && spot.level === currentGarageLevel
-            ? { ...spot, status: apartmentId ? "ocupado" : "libre", assignedTo: apartmentId }
-            : spot,
-        ),
-      )
-
-      if (apartmentId) {
-        const [floorStr, apartment] = apartmentId.split("-")
-        const floor = Number.parseInt(floorStr)
-
-        setFloorData((prevData) => {
-          const newData = { ...prevData }
-          if (newData[floor] && newData[floor].apartments && apartment) {
-            newData[floor] = {
-              ...newData[floor],
-              apartments: {
-                ...newData[floor].apartments,
-                [apartment]: {
-                  ...newData[floor].apartments[apartment],
-                  assignedParkings: [
-                    ...newData[floor].apartments[apartment].assignedParkings.filter((id) => id !== selectedParking),
-                    selectedParking,
-                  ],
-                },
-              },
-            }
-          }
-          return newData
-        })
-
-        // Añadir entrada al registro de actividades para asignación
-        const timestamp = new Date().toLocaleString()
-        const activityMessage = `${user?.name} asignó la cochera ${selectedParking} al departamento ${apartmentId}`
-        setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
-      } else {
-        // Si se está liberando la cochera, removerla de cualquier departamento que la tenga asignada
-        setFloorData((prevData) => {
-          const newData = { ...prevData }
-          let departmentReleased = ""
-
-          Object.entries(newData).forEach(([floorStr, floorData]) => {
-            const floor = Number.parseInt(floorStr)
-            if (newData[floor] && newData[floor].apartments) {
-              Object.entries(floorData.apartments).forEach(([apt, aptData]) => {
-                if (aptData.assignedParkings.includes(selectedParking)) {
-                  departmentReleased = `${floor}-${apt}`
-                  newData[floor].apartments[apt] = {
-                    ...aptData,
-                    assignedParkings: aptData.assignedParkings.filter((id) => id !== selectedParking),
-                  }
-                }
-              })
-            }
-          })
-
-          // Añadir entrada al registro de actividades para liberación
-          const timestamp = new Date().toLocaleString()
-          const activityMessage = `${user?.name} liberó la cochera ${selectedParking} del departamento ${departmentReleased}`
-          setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
-
-          return newData
-        })
-      }
-    }
-
-    setIsParkingModalOpen(false)
-    setSelectedParking(null)
-    if (notyf) notyf.success(apartmentId ? "Cochera asignada con éxito" : "Cochera liberada con éxito")
-  }
-
-  const updateUnitStats = useCallback(() => {
-    const currentFloorData = floorData[currentFloor]
-    if (!currentFloorData || !currentFloorData.apartments) {
-      setUnitStats({ disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 })
-      return
-    }
-
-    const stats = Object.values(currentFloorData.apartments).reduce(
-      (acc, apartment) => {
-        if (apartment.status === "libre") acc.disponibles++
-        else if (apartment.status === "reservado") acc.reservadas++
-        else if (apartment.status === "ocupado") acc.vendidas++
-        else if (apartment.status === "bloqueado") acc.bloqueadas++
-        return acc
-      },
-      { disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 },
-    )
-    setUnitStats(stats)
-  }, [currentFloor, floorData])
-
+  // Initialize Notyf
   useEffect(() => {
-    if (projectId) {
-      console.log(`Project ID: ${projectId}`)
-    }
-    if (floorNumber !== undefined && floorNumber !== null && currentFloor === 1) {
-      setCurrentFloor(floorNumber)
-    }
     if (typeof window !== "undefined" && !notyf) {
       notyf = new Notyf({
         duration: 3000,
         position: { x: "right", y: "top" },
       })
     }
-    updateUnitStats()
-  }, [projectId, floorNumber, updateUnitStats, currentFloor])
+  }, [])
 
+  // Check API availability
   useEffect(() => {
-    updateUnitStats()
-  }, [updateUnitStats])
+    const checkApiAvailability = async () => {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)
 
-  const handleFloorClick = (floor: number) => {
-    setCurrentFloor(floor)
-    setSelectedApartment(null)
-    setIsModalOpen(false)
-    updateUnitStats()
+        const response = await fetch(`${API_BASE_URL}/health`, {
+          method: "HEAD",
+          signal: controller.signal,
+        })
+
+        clearTimeout(timeoutId)
+        setApiAvailable(response.ok)
+      } catch (err) {
+        console.warn("API health check failed:", err)
+        setApiAvailable(false)
+      }
+    }
+
+    checkApiAvailability()
+  }, [])
+
+  // Set up auto-refresh
+  useEffect(() => {
+    if (autoRefresh && projectId) {
+      refreshIntervalRef.current = setInterval(() => {
+        refreshData()
+      }, 30000) // Refresh every 30 seconds
+    }
+
+    return () => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current)
+      }
+    }
+  }, [autoRefresh, projectId, currentFloor])
+
+  // Function to refresh data
+  const refreshData = async () => {
+    if (!projectId || refreshing) return
+
+    setRefreshing(true)
+    try {
+      await fetchFloorData()
+      await fetchParkingSpots()
+      await fetchActivityLogs()
+    } catch (err) {
+      console.error("Error refreshing data:", err)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
-  const handleApartmentClick = (apartment: string) => {
+  // Modificar la función createFloorsAndApartments para usar las rutas existentes
+  const createFloorsAndApartments = async () => {
+    if (!projectId || creatingFloors) return
+
+    setCreatingFloors(true)
+    try {
+      // En lugar de intentar crear pisos directamente con POST,
+      // usamos la ruta GET existente que creará los pisos si no existen
+      const floorResponse = await fetch(`${API_BASE_URL}/floors/project/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!floorResponse.ok) {
+        throw new Error(`Error getting/creating floors: ${floorResponse.statusText}`)
+      }
+
+      const floors = await floorResponse.json()
+      console.log("Floors created or retrieved:", floors)
+
+      // Para cada piso, obtenemos los departamentos (que también se crearán si no existen)
+      for (const floor of floors) {
+        const apartmentsResponse = await fetch(`${API_BASE_URL}/apartments/floor/${floor.id}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+
+        if (!apartmentsResponse.ok) {
+          console.error(
+            `Error getting/creating apartments for floor ${floor.floor_number}:`,
+            apartmentsResponse.statusText,
+          )
+        } else {
+          console.log(`Apartments for floor ${floor.floor_number} created or retrieved`)
+        }
+      }
+
+      // Obtener las cocheras (que también se crearán si no existen)
+      const parkingResponse = await fetch(`${API_BASE_URL}/parking/project/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!parkingResponse.ok) {
+        console.error("Error getting/creating parking spots:", parkingResponse.statusText)
+      } else {
+        console.log("Parking spots created or retrieved")
+      }
+
+      if (notyf) notyf.success("Pisos y departamentos creados con éxito")
+
+      // Recargar los datos
+      await refreshData()
+    } catch (err) {
+      console.error("Error creating floors and apartments:", err)
+      if (notyf) notyf.error("Error al crear pisos y departamentos")
+    } finally {
+      setCreatingFloors(false)
+    }
+  }
+
+  // Fetch floor data
+  const fetchFloorData = async () => {
+    if (!projectId) return
+
+    try {
+      setLoading(true)
+
+      // First, get the floor by project and number
+      const floorResponse = await fetch(`${API_BASE_URL}/floors/project/${projectId}/number/${currentFloor}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!floorResponse.ok) {
+        // Si el piso no existe, usar datos de respaldo
+        console.warn(`Floor ${currentFloor} not found for project ${projectId}, using fallback data`)
+
+        // Intentar crear los pisos y departamentos
+        await createFloorsAndApartments()
+
+        // Usar datos de respaldo mientras tanto
+        const fallbackData = initialFloorData[currentFloor] || {
+          apartments: {},
+          svgPaths: {},
+          viewBox: "0 0 3200 2400",
+        }
+
+        setFloorData(fallbackData)
+        updateUnitStats(fallbackData.apartments)
+        setError(null)
+        setLoading(false)
+        return
+      }
+
+      const floorInfo = await floorResponse.json()
+      const floorId = floorInfo.id
+
+      // Then, get the apartments for this floor
+      const apartmentsResponse = await fetch(`${API_BASE_URL}/apartments/floor/${floorId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!apartmentsResponse.ok) {
+        throw new Error(`HTTP error! status: ${apartmentsResponse.status}`)
+      }
+
+      const apartments = await apartmentsResponse.json()
+
+      // Format data to match the expected structure
+      const formattedData: FloorData = {
+        apartments: {},
+        svgPaths: {},
+        viewBox: floorInfo.view_box || "0 0 3200 2400",
+        id: floorId,
+      }
+
+      // Process apartments
+      apartments.forEach((apt: any) => {
+        formattedData.apartments[apt.apartment_id] = {
+          buyer: apt.buyer || "",
+          date: apt.reservation_date || "",
+          price: apt.price || "",
+          status: apt.status as ApartmentStatus,
+          surface: apt.surface || "",
+          phoneNumber: apt.phone || "",
+          email: apt.email || "",
+          assignedParkings: [],
+          id: apt.id, // Make sure this is included
+        }
+
+        formattedData.svgPaths[apt.apartment_id] = apt.svg_path || ""
+      })
+
+      // Get parking assignments
+      const parkingResponse = await fetch(`${API_BASE_URL}/parking/project/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (parkingResponse.ok) {
+        const parkingData = await parkingResponse.json()
+
+        // Assign parking spots to apartments
+        parkingData.forEach((spot: any) => {
+          if (spot.assigned_to) {
+            const [floorNum, aptId] = spot.assigned_to.split("-")
+            if (floorNum === currentFloor.toString() && formattedData.apartments[aptId]) {
+              formattedData.apartments[aptId].assignedParkings.push(spot.parking_id)
+            }
+          }
+        })
+      }
+
+      setFloorData(formattedData)
+      updateUnitStats(formattedData.apartments)
+      setError(null)
+    } catch (err) {
+      console.error("Error fetching floor data:", err)
+      setError(err instanceof Error ? err.message : "Error desconocido")
+
+      // Si hay un error, intentar crear los pisos y departamentos
+      await createFloorsAndApartments()
+
+      // Usar datos de respaldo mientras tanto
+      const fallbackData = initialFloorData[currentFloor] || {
+        apartments: {},
+        svgPaths: {},
+        viewBox: "0 0 3200 2400",
+      }
+
+      setFloorData(fallbackData)
+      updateUnitStats(fallbackData.apartments)
+
+      if (notyf) notyf.error("Error al cargar los datos del piso")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Add this function after the fetchFloorData function
+
+  const refreshApartmentData = async (floorNumber: number, apartmentId: string) => {
+    if (!projectId) return null
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/apartments/by-identifier/${floorNumber}/${apartmentId}?projectId=${projectId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        },
+      )
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      // Update the apartment data in the state
+      setFloorData((prevData) => ({
+        ...prevData,
+        apartments: {
+          ...prevData.apartments,
+          [apartmentId]: {
+            ...prevData.apartments[apartmentId],
+            id: data.id,
+          },
+        },
+      }))
+
+      return data
+    } catch (err) {
+      console.error("Error refreshing apartment data:", err)
+      return null
+    }
+  }
+
+  // Modify the handleApartmentClick function to fetch the apartment data if needed
+  const handleApartmentClick = async (apartment: string) => {
     setSelectedApartment(apartment)
     setIsModalOpen(true)
     setAction(null)
@@ -680,76 +560,153 @@ export default function InteractiveFloorPlan({
     setConfirmReservation(false)
     setConfirmCancelReservation(false)
     setConfirmRelease(false)
+
+    // If the apartment doesn't have an ID, try to fetch it
+    if (floorData.apartments[apartment] && !floorData.apartments[apartment].id) {
+      await refreshApartmentData(currentFloor, apartment)
+    }
+  }
+
+  // Fetch parking spots
+  const fetchParkingSpots = async () => {
+    if (!projectId) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/parking/project/${projectId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!response.ok) {
+        // Si no hay cocheras, intentar crearlas
+        await createFloorsAndApartments()
+        return
+      }
+
+      const data = await response.json()
+
+      // Transform data to match the expected format
+      const formattedSpots: ParkingSpot[] = data.map((spot: any) => ({
+        id: spot.parking_id,
+        level: spot.level,
+        status: spot.status as "libre" | "ocupado",
+        assignedTo: spot.assigned_to,
+        path: spot.svg_path,
+        dbId: spot.id,
+      }))
+
+      setParkingSpots(formattedSpots)
+    } catch (err) {
+      console.error("Error fetching parking spots:", err)
+      if (notyf) notyf.error("Error al cargar las cocheras")
+    }
+  }
+
+  // Fetch activity logs
+  const fetchActivityLogs = async () => {
+    if (!projectId) return
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/floors/project/${projectId}/logs`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (!response.ok) {
+        return
+      }
+
+      const data = await response.json()
+
+      // Format logs
+      const formattedLogs = data.map((log: any) => {
+        const timestamp = new Date(log.created_at).toLocaleString()
+        return `${timestamp} - ${log.description}`
+      })
+
+      setActivityLog(formattedLogs)
+    } catch (err) {
+      console.error("Error fetching activity logs:", err)
+    }
+  }
+
+  // Load data when component mounts or floor changes
+  useEffect(() => {
+    if (projectId) {
+      fetchFloorData()
+      fetchParkingSpots()
+      fetchActivityLogs()
+    }
+  }, [projectId, currentFloor])
+
+  const updateUnitStats = (apartments: ApartmentDataMap) => {
+    const stats = Object.values(apartments).reduce(
+      (acc, apartment) => {
+        if (apartment.status === "libre") acc.disponibles++
+        else if (apartment.status === "reservado") acc.reservadas++
+        else if (apartment.status === "ocupado") acc.vendidas++
+        else if (apartment.status === "bloqueado") acc.bloqueadas++
+        return acc
+      },
+      { disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 },
+    )
+    setUnitStats(stats)
+  }
+
+  const handleFloorClick = (floor: number) => {
+    setCurrentFloor(floor)
+    setSelectedApartment(null)
+    setIsModalOpen(false)
   }
 
   const handleActionClick = (
     actionType: "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release",
   ) => {
     setAction(actionType)
-    if (
+    setConfirmReservation(
       actionType === "reserve" &&
-      selectedApartment &&
-      floorData[currentFloor].apartments[selectedApartment].status === "bloqueado"
-    ) {
-      setConfirmReservation(true)
-    }
-    if (actionType === "cancelReservation") {
-      setConfirmCancelReservation(true)
-    }
-    if (actionType === "release") {
-      setConfirmRelease(true)
-    }
+        selectedApartment !== null &&
+        floorData.apartments[selectedApartment]?.status === "bloqueado",
+    )
+    setConfirmCancelReservation(actionType === "cancelReservation")
+    setConfirmRelease(actionType === "release")
   }
 
-  const handleFormSubmit = (e: React.FormEvent) => {
+  // Dentro de la función handleFormSubmit, reemplazar la llamada a la API con:
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (selectedApartment && floorData[currentFloor] && floorData[currentFloor].apartments) {
-      const apartment = floorData[currentFloor].apartments[selectedApartment]
-      const previousStatus = apartment.status
+    if (!selectedApartment || !projectId || !user) return
 
-      // Actualizar el precio si se ha modificado
-      if (formData.price && formData.price !== apartment.price) {
-        apartment.price = formData.price
+    try {
+      const apartment = floorData.apartments[selectedApartment]
+      if (!apartment) {
+        if (notyf) notyf.error("No se encontró información del departamento")
+        return
       }
 
-      let activityMessage = ""
+      let newStatus: ApartmentStatus = apartment.status
+      let description = ""
 
       switch (action) {
         case "block":
-          apartment.status = "bloqueado"
-          apartment.buyer = formData.name
-          apartment.phoneNumber = formData.phone
-          activityMessage = `${user?.name} bloqueó el departamento ${selectedApartment}`
-          if (notyf) notyf.success("Departamento bloqueado con éxito")
+          newStatus = "bloqueado"
+          description = `${user.name} bloqueó el departamento ${selectedApartment}`
           break
         case "reserve":
         case "directReserve":
-          apartment.status = "reservado"
-          if (previousStatus !== "bloqueado") {
-            apartment.buyer = formData.name
-            apartment.phoneNumber = formData.phone
-          }
-          apartment.date = new Date().toISOString().split("T")[0]
-          activityMessage = `${user?.name} reservó el departamento ${selectedApartment}`
-          if (notyf) notyf.success("Departamento reservado con éxito")
+          newStatus = "reservado"
+          description = `${user.name} reservó el departamento ${selectedApartment}`
           break
         case "sell":
-          apartment.status = "ocupado"
-          break
-        case "sell":
-          apartment.status = "ocupado"
-          apartment.contractFile = formData.reservationOrder
-          activityMessage = `${user?.name} vendió el departamento ${selectedApartment}`
-          if (notyf) notyf.success("Departamento vendido con éxito")
+          newStatus = "ocupado"
+          description = `${user.name} vendió el departamento ${selectedApartment}`
           break
         case "unblock":
           if (formData.note) {
-            apartment.status = "libre"
-            apartment.buyer = ""
-            apartment.phoneNumber = ""
-            apartment.date = ""
-            activityMessage = `${user?.name} liberó el bloqueo del departamento ${selectedApartment}. Nota: ${formData.note}`
-            if (notyf) notyf.success("Bloqueo liberado con éxito")
+            newStatus = "libre"
+            description = `${user.name} liberó el bloqueo del departamento ${selectedApartment}. Nota: ${formData.note}`
           } else {
             if (notyf) notyf.error("Se requiere una nota para liberar el bloqueo")
             return
@@ -757,12 +714,8 @@ export default function InteractiveFloorPlan({
           break
         case "cancelReservation":
           if (formData.note) {
-            apartment.status = "libre"
-            apartment.buyer = ""
-            apartment.phoneNumber = ""
-            apartment.date = ""
-            activityMessage = `${user?.name} canceló la reserva del departamento ${selectedApartment}. Nota: ${formData.note}`
-            if (notyf) notyf.success("Reserva cancelada con éxito")
+            newStatus = "libre"
+            description = `${user.name} canceló la reserva del departamento ${selectedApartment}. Nota: ${formData.note}`
           } else {
             if (notyf) notyf.error("Se requiere una nota para cancelar la reserva")
             return
@@ -770,26 +723,201 @@ export default function InteractiveFloorPlan({
           break
         case "release":
           if (formData.note) {
-            apartment.status = "libre"
-            apartment.buyer = ""
-            apartment.phoneNumber = ""
-            apartment.date = ""
-            apartment.contractFile = null
-            activityMessage = `${user?.name} liberó el departamento ${selectedApartment}. Nota: ${formData.note}`
-            if (notyf) notyf.success("Departamento liberado con éxito")
+            newStatus = "libre"
+            description = `${user.name} liberó el departamento ${selectedApartment}. Nota: ${formData.note}`
           } else {
             if (notyf) notyf.error("Se requiere una nota para liberar el departamento")
             return
           }
           break
+        default:
+          if (notyf) notyf.error("Acción no reconocida")
+          return
       }
 
-      if (activityMessage) {
-        const timestamp = new Date().toLocaleString()
-        setActivityLog((prevLog) => [`${timestamp} - ${activityMessage}`, ...prevLog])
+      // Get the apartment ID from the database
+      const apartmentDbId = apartment.id
+      if (!apartmentDbId) {
+        // Log more details for debugging
+        console.error("No database ID found for apartment", selectedApartment, "Full apartment data:", apartment)
+
+        // Try to find the apartment in the database by querying for it
+        try {
+          const response = await fetch(
+            `${API_BASE_URL}/apartments/by-identifier/${currentFloor}/${selectedApartment}`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+            },
+          )
+
+          if (response.ok) {
+            const data = await response.json()
+            if (data && data.id) {
+              // Usar la función optimizada para actualizar el departamento
+              const success = await updateApartment(
+                data.id,
+                {
+                  status: newStatus,
+                  buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
+                  phone: action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
+                  email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
+                  price: formData.price || apartment.price,
+                  description,
+                  userId: user.userId,
+                  userName: user.name,
+                  projectId: projectId,
+                },
+                projectId,
+                currentFloor,
+              )
+
+              if (!success) {
+                throw new Error("Error al actualizar departamento")
+              }
+
+              // Actualizar la interfaz inmediatamente sin esperar a la próxima actualización
+              setFloorData((prevData) => ({
+                ...prevData,
+                apartments: {
+                  ...prevData.apartments,
+                  [selectedApartment]: {
+                    ...prevData.apartments[selectedApartment],
+                    status: newStatus,
+                    buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
+                    phoneNumber:
+                      action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
+                    email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
+                    price: formData.price || apartment.price,
+                  },
+                },
+              }))
+
+              // Actualizar el registro de actividades
+              const timestamp = new Date().toLocaleString()
+              setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
+              if (notyf) {
+                switch (action) {
+                  case "block":
+                    notyf.success("Departamento bloqueado con éxito")
+                    break
+                  case "reserve":
+                  case "directReserve":
+                    notyf.success("Departamento reservado con éxito")
+                    break
+                  case "sell":
+                    notyf.success("Departamento vendido con éxito")
+                    break
+                  case "unblock":
+                    notyf.success("Bloqueo liberado con éxito")
+                    break
+                  case "cancelReservation":
+                    notyf.success("Reserva cancelada con éxito")
+                    break
+                  case "release":
+                    notyf.success("Departamento liberado con éxito")
+                    break
+                }
+              }
+
+              setIsModalOpen(false)
+              setAction(null)
+              setConfirmReservation(false)
+              setConfirmCancelReservation(false)
+              setConfirmRelease(false)
+              setFormData({
+                name: "",
+                phone: "",
+                email: "",
+                reservationOrder: null,
+                price: "",
+                note: "",
+              })
+
+              // Invalidar la caché para forzar una actualización en la próxima carga
+              invalidateCache(projectId, currentFloor)
+
+              return // Exit early since we've handled the update
+            }
+          }
+        } catch (err) {
+          console.error("Error trying to find apartment by identifier:", err)
+        }
+
+        if (notyf) notyf.error("Error: No se encontró el ID del departamento en la base de datos")
+        return
       }
 
-      updateUnitStats()
+      // Usar la función optimizada para actualizar el departamento
+      const success = await updateApartment(
+        apartmentDbId,
+        {
+          status: newStatus,
+          buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
+          phone: action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
+          email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
+          price: formData.price || apartment.price,
+          description,
+          userId: user.userId,
+          userName: user.name,
+          projectId: projectId,
+        },
+        projectId,
+        currentFloor,
+      )
+
+      if (!success) {
+        throw new Error("Error al actualizar departamento")
+      }
+
+      // Actualizar la interfaz inmediatamente sin esperar a la próxima actualización
+      setFloorData((prevData) => ({
+        ...prevData,
+        apartments: {
+          ...prevData.apartments,
+          [selectedApartment]: {
+            ...prevData.apartments[selectedApartment],
+            status: newStatus,
+            buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
+            phoneNumber: action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
+            email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
+            price: formData.price || apartment.price,
+          },
+        },
+      }))
+
+      // Actualizar el registro de actividades
+      const timestamp = new Date().toLocaleString()
+      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
+      if (notyf) {
+        switch (action) {
+          case "block":
+            notyf.success("Departamento bloqueado con éxito")
+            break
+          case "reserve":
+            notyf.success("Departamento reservado con éxito")
+            break
+          case "directReserve":
+            notyf.success("Departamento reservado con éxito")
+            break
+          case "sell":
+            notyf.success("Departamento vendido con éxito")
+            break
+          case "unblock":
+            notyf.success("Bloqueo liberado con éxito")
+            break
+          case "cancelReservation":
+            notyf.success("Reserva cancelada con éxito")
+            break
+          case "release":
+            notyf.success("Departamento liberado con éxito")
+            break
+        }
+      }
+
       setIsModalOpen(false)
       setAction(null)
       setConfirmReservation(false)
@@ -803,8 +931,15 @@ export default function InteractiveFloorPlan({
         price: "",
         note: "",
       })
+
+      // Invalidar la caché para forzar una actualización en la próxima carga
+      invalidateCache(projectId, currentFloor)
+    } catch (err) {
+      console.error("Error updating apartment:", err)
+      if (notyf) notyf.error("Error al actualizar el departamento")
     }
   }
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFormData((prev) => ({ ...prev, reservationOrder: event.target.files![0] }))
@@ -837,7 +972,7 @@ export default function InteractiveFloorPlan({
   }, [])
 
   const handleDownloadContract = (apartment: string) => {
-    const apartmentData = currentFloorData.apartments[apartment]
+    const apartmentData = floorData.apartments[apartment]
     if (apartmentData.contractFile) {
       // Aquí iría la lógica para descargar el archivo
       // Por ahora, solo mostraremos un mensaje en la consola
@@ -849,13 +984,176 @@ export default function InteractiveFloorPlan({
     }
   }
 
-  const currentFloorData = floorData[currentFloor] || { apartments: {}, svgPaths: {} }
-  const totalUnits = Object.keys(currentFloorData.apartments).length
+  const handleParkingClick = (parkingId: string, level: number) => {
+    if (level === 1) {
+      const clickedSpot = parkingSpots.find((spot) => spot.id === parkingId)
+      if (clickedSpot) {
+        setSelectedParking(parkingId)
+        setCurrentGarageLevel(level)
+        if (clickedSpot.status === "ocupado") {
+          setIsParkingInfoModalOpen(true)
+        } else {
+          setIsParkingModalOpen(true)
+        }
+      }
+    }
+  }
+
+  const handleParkingAssignment = async () => {
+    if (!selectedApartment || !projectId || !user) return
+
+    try {
+      const parkingIdsToAssign = Object.keys(selectedParkings).filter((id) => selectedParkings[id])
+
+      // Update parking assignments in database
+      const response = await fetch(`${API_BASE_URL}/parking/project/${projectId}/assign`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apartmentId: `${currentFloor}-${selectedApartment}`,
+          parkingIds: parkingIdsToAssign,
+          userId: user.userId,
+          userName: user.name,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error assigning parking spots:", errorData)
+        if (notyf) notyf.error(`Error al asignar cocheras: ${errorData.message || "Error desconocido"}`)
+        return
+      }
+
+      // Refresh data to get the latest state
+      await refreshData()
+
+      if (notyf) notyf.success("Cocheras actualizadas con éxito")
+      setShowParkingAssignment(false)
+    } catch (err) {
+      console.error("Error assigning parking spots:", err)
+      if (notyf) notyf.error("Error al asignar cocheras")
+    }
+  }
+
+  const handleParkingUnassignment = async () => {
+    if (!selectedParking || !projectId || !user) return
+
+    try {
+      const spot = parkingSpots.find((s) => s.id === selectedParking)
+      if (!spot || !spot.assignedTo || !spot.dbId) {
+        if (notyf) notyf.error("No se encontró información de la cochera")
+        return
+      }
+
+      // Update parking spot in database
+      const response = await fetch(`${API_BASE_URL}/parking/${spot.dbId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: "libre",
+          assigned_to: null,
+          userId: user.userId,
+          userName: user.name,
+          projectId: projectId,
+          description: `${user.name} desasignó la cochera ${selectedParking} del departamento ${spot.assignedTo}`,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error unassigning parking spot:", errorData)
+        if (notyf) notyf.error(`Error al desasignar cochera: ${errorData.message || "Error desconocido"}`)
+        return
+      }
+
+      // Refresh data to get the latest state
+      await refreshData()
+
+      if (notyf) notyf.success(`Cochera ${selectedParking} desasignada con éxito`)
+      setIsParkingInfoModalOpen(false)
+      setSelectedParking(null)
+    } catch (err) {
+      console.error("Error unassigning parking spot:", err)
+      if (notyf) notyf.error("Error al desasignar cochera")
+    }
+  }
+
+  const handleParkingAssignment2 = async (apartmentId: string | null) => {
+    if (!selectedParking || !projectId || !user) return
+
+    try {
+      const spot = parkingSpots.find((s) => s.id === selectedParking)
+      if (!spot || !spot.dbId) {
+        if (notyf) notyf.error("No se encontró información de la cochera")
+        return
+      }
+
+      // Update parking spot in database
+      const response = await fetch(`${API_BASE_URL}/parking/${spot.dbId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: apartmentId ? "ocupado" : "libre",
+          assigned_to: apartmentId,
+          userId: user.userId,
+          userName: user.name,
+          projectId: projectId,
+          description: apartmentId
+            ? `${user.name} asignó la cochera ${selectedParking} al departamento ${apartmentId}`
+            : `${user.name} liberó la cochera ${selectedParking}`,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error updating parking spot:", errorData)
+        if (notyf) notyf.error(`Error al actualizar cochera: ${errorData.message || "Error desconocido"}`)
+        return
+      }
+
+      // Refresh data to get the latest state
+      await refreshData()
+
+      if (notyf) notyf.success(apartmentId ? "Cochera asignada con éxito" : "Cochera liberada con éxito")
+      setIsParkingModalOpen(false)
+      setSelectedParking(null)
+    } catch (err) {
+      console.error("Error updating parking spot:", err)
+      if (notyf) notyf.error("Error al actualizar cochera")
+    }
+  }
+
+  const handleOpenParkingAssignment = () => {
+    if (!selectedApartment || !floorData.apartments[selectedApartment]) {
+      console.error("No se ha seleccionado un apartamento válido")
+      if (notyf) notyf.error("No se ha seleccionado un apartamento válido")
+      return
+    }
+
+    const initialSelectedParkings = floorData.apartments[selectedApartment].assignedParkings.reduce(
+      (acc, parkingId) => {
+        acc[parkingId] = true
+        return acc
+      },
+      {} as { [key: string]: boolean },
+    )
+    setSelectedParkings(initialSelectedParkings)
+    setShowParkingAssignment(true)
+  }
 
   const getTextX = (id: string) => {
     const spotIndex = Number.parseInt(id.slice(1)) - 1
     if (spotIndex < 9) {
-      return parkingSpotPaths[spotIndex].split(" ")[1]
+      return parkingSpots[spotIndex]?.path.split(" ")[1] || "0"
     } else if (spotIndex === 9) {
       return "3770"
     } else if (spotIndex === 10) {
@@ -868,7 +1166,7 @@ export default function InteractiveFloorPlan({
   const getTextY = (id: string) => {
     const spotIndex = Number.parseInt(id.slice(1)) - 1
     if (spotIndex < 9) {
-      return parkingSpotPaths[spotIndex].split(" ")[2]
+      return parkingSpots[spotIndex]?.path.split(" ")[2] || "0"
     } else if (spotIndex === 9 || spotIndex === 10) {
       return "1300"
     } else {
@@ -876,32 +1174,77 @@ export default function InteractiveFloorPlan({
     }
   }
 
-  // Actualizar la función handleOpenParkingAssignment
-  const handleOpenParkingAssignment = () => {
-    if (selectedApartment && currentFloorData.apartments[selectedApartment]) {
-      const initialSelectedParkings = currentFloorData.apartments[selectedApartment].assignedParkings.reduce(
-        (acc, parkingId) => {
-          acc[parkingId] = true
-          return acc
-        },
-        {} as { [key: string]: boolean },
-      )
-      setSelectedParkings(initialSelectedParkings)
-      setShowParkingAssignment(true)
-    } else {
-      // Manejar el caso en que selectedApartment es null o el apartamento no existe
-      console.error("No se ha seleccionado un apartamento válido")
-      if (notyf) notyf.error("No se ha seleccionado un apartamento válido")
-    }
+  // Modify the loading/error section to include API availability message
+  if (!apiAvailable) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
+        <p className="text-xl mb-4">No se puede conectar al servidor API</p>
+        <p className="text-zinc-400 text-center max-w-md mb-6">
+          El servidor API no está disponible en este momento. Verifique que el servidor esté en ejecución en{" "}
+          {API_BASE_URL}.
+        </p>
+        <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Volver al proyecto
+        </Button>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <p className="text-xl">Cargando datos del piso...</p>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
+        <p className="text-xl text-red-500 mb-4">Error: {error}</p>
+        <div className="flex space-x-4 mb-6">
+          <Button onClick={refreshData} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reintentar
+          </Button>
+          <Button onClick={createFloorsAndApartments} className="bg-green-600 hover:bg-green-700 text-white">
+            Crear pisos y departamentos
+          </Button>
+        </div>
+        <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Volver al proyecto
+        </Button>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100 mb-8">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Volver al proyecto
-        </Button>
+        <div className="flex justify-between items-center mb-8">
+          <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Volver al proyecto
+          </Button>
+          <div className="flex items-center space-x-2">
+            <Button onClick={refreshData} disabled={refreshing} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Actualizando..." : "Actualizar datos"}
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="autoRefresh"
+                checked={autoRefresh}
+                onCheckedChange={(checked) => setAutoRefresh(checked === true)}
+              />
+              <Label htmlFor="autoRefresh" className="text-sm">
+                Auto-actualizar
+              </Label>
+            </div>
+          </div>
+        </div>
 
         <Tabs
           value={activeView}
@@ -916,7 +1259,6 @@ export default function InteractiveFloorPlan({
               Cochera
             </TabsTrigger>
           </TabsList>
-          {/* Dentro del TabsContent para "garage", reemplazar el contenido existente con esto: */}
           <TabsContent value="apartments">
             <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
               <div className="p-4 md:p-6">
@@ -957,37 +1299,33 @@ export default function InteractiveFloorPlan({
                 <Image
                   src={floorPlans[currentFloor] || "/placeholder.svg"}
                   alt={`Plano del Piso ${currentFloor}`}
-                  layout="fill"
-                  objectFit="contain"
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  style={{ objectFit: "contain" }}
                   className="pointer-events-none"
                 />
-                <svg
-                  viewBox={currentFloorData.viewBox || "-200 0 3200 2400"}
-                  className="absolute top-0 left-0 w-full h-full"
-                  style={{ pointerEvents: "none" }}
-                >
-                  <g transform="scale(1, 1) translate(-83, 10)">
-                    <AnimatePresence>
-                      {Object.entries(currentFloorData.apartments).map(([apt, data]) => (
-                        <motion.path
+                <div className="absolute inset-0 z-10">
+                  <svg
+                    viewBox={floorData.viewBox || "-200 0 3200 2400"}
+                    className="w-full h-full"
+                    style={{ pointerEvents: "all" }}
+                  >
+                    <g transform="scale(1, 1) translate(-83, 10)">
+                      {Object.entries(floorData.apartments).map(([apt, data]) => (
+                        <path
                           key={apt}
-                          d={currentFloorData.svgPaths[apt] || ""}
+                          d={floorData.svgPaths[apt] || ""}
                           fill={statusColors[data.status]}
                           stroke="black"
                           strokeWidth="10"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 0.5 }}
-                          exit={{ opacity: 0 }}
-                          whileHover={{ opacity: 0.8 }}
-                          whileTap={{ scale: 0.98 }}
-                          transition={{ duration: 0.2 }}
+                          opacity="0.7"
                           onClick={() => handleApartmentClick(apt)}
-                          style={{ cursor: "pointer", pointerEvents: "all" }}
+                          style={{ cursor: "pointer" }}
                         />
                       ))}
-                    </AnimatePresence>
-                  </g>
-                </svg>
+                    </g>
+                  </svg>
+                </div>
               </div>
 
               <div className="p-4">
@@ -1021,8 +1359,9 @@ export default function InteractiveFloorPlan({
                           <Image
                             src={garagePlans[currentGarageLevel] || "/placeholder.svg"}
                             alt={`Plano de Cocheras Nivel ${currentGarageLevel}`}
-                            layout="fill"
-                            objectFit="cover"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            style={{ objectFit: "cover" }}
                           />
                         </div>
                         <svg viewBox="90 450 4400 2600" className="absolute top-0 left-0 w-full h-full">
@@ -1124,19 +1463,14 @@ export default function InteractiveFloorPlan({
                   </Button>
                 ) : (
                   <>
-                    {Object.entries(floorData).map(([floor, data]) => (
-                      <div key={floor}>
-                        <h4 className="font-bold mt-2 mb-1">Piso {floor}</h4>
-                        {Object.keys(data.apartments).map((aptId) => (
-                          <Button
-                            key={`${floor}-${aptId}`}
-                            onClick={() => handleParkingAssignment2(`${floor}-${aptId}`)}
-                            className="w-full bg-blue-600 hover:bg-blue-700 mb-1"
-                          >
-                            Asignar a {aptId}
-                          </Button>
-                        ))}
-                      </div>
+                    {Object.entries(floorData.apartments).map(([apt, data]) => (
+                      <Button
+                        key={apt}
+                        onClick={() => handleParkingAssignment2(`${currentFloor}-${apt}`)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 mb-1"
+                      >
+                        Asignar a {apt}
+                      </Button>
                     ))}
                   </>
                 )}
@@ -1145,7 +1479,6 @@ export default function InteractiveFloorPlan({
           </DialogContent>
         </Dialog>
 
-        {/* Añadir este nuevo modal después del modal de asignación de cocheras existente */}
         <Dialog
           open={isParkingInfoModalOpen}
           onOpenChange={() => {
@@ -1175,50 +1508,47 @@ export default function InteractiveFloorPlan({
           </DialogContent>
         </Dialog>
 
-        {/* Modificar el contenido del DialogContent para el modal de detalles del departamento */}
-        {/* Reemplazar el contenido existente con este: */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Detalles del departamento {selectedApartment}</DialogTitle>
             </DialogHeader>
-            {selectedApartment && currentFloorData.apartments[selectedApartment] ? (
+            {selectedApartment && floorData.apartments[selectedApartment] ? (
               <div className="space-y-4">
                 <DialogDescription className="text-zinc-300">
                   <p>
-                    <strong>Estado:</strong> {currentFloorData.apartments[selectedApartment].status}
+                    <strong>Estado:</strong> {floorData.apartments[selectedApartment].status}
                   </p>
                   <p>
-                    <strong>Precio:</strong> {currentFloorData.apartments[selectedApartment].price}
+                    <strong>Precio:</strong> {floorData.apartments[selectedApartment].price}
                   </p>
                   <p>
-                    <strong>Superficie:</strong> {currentFloorData.apartments[selectedApartment].surface}
+                    <strong>Superficie:</strong> {floorData.apartments[selectedApartment].surface}
                   </p>
-                  {currentFloorData.apartments[selectedApartment].buyer && (
+                  {floorData.apartments[selectedApartment].buyer && (
                     <>
                       <p>
-                        <strong>Comprador:</strong> {currentFloorData.apartments[selectedApartment].buyer}
+                        <strong>Comprador:</strong> {floorData.apartments[selectedApartment].buyer}
                       </p>
                       <p>
-                        <strong>Fecha:</strong> {currentFloorData.apartments[selectedApartment].date}
+                        <strong>Fecha:</strong> {floorData.apartments[selectedApartment].date}
                       </p>
-                      {currentFloorData.apartments[selectedApartment].phoneNumber && (
+                      {floorData.apartments[selectedApartment].phoneNumber && (
                         <p>
-                          <strong>Teléfono:</strong> {currentFloorData.apartments[selectedApartment].phoneNumber}
+                          <strong>Teléfono:</strong> {floorData.apartments[selectedApartment].phoneNumber}
                         </p>
                       )}
-                      {currentFloorData.apartments[selectedApartment].email && (
+                      {floorData.apartments[selectedApartment].email && (
                         <p>
-                          <strong>Email:</strong> {currentFloorData.apartments[selectedApartment].email}
+                          <strong>Email:</strong> {floorData.apartments[selectedApartment].email}
                         </p>
                       )}
                     </>
                   )}
-                  {/* Actualizar la visualización de las cocheras asignadas en los detalles del apartamento */}
                   <p>
                     <strong>Cocheras asignadas:</strong>{" "}
-                    {currentFloorData.apartments[selectedApartment].assignedParkings.length > 0
-                      ? currentFloorData.apartments[selectedApartment].assignedParkings
+                    {floorData.apartments[selectedApartment].assignedParkings.length > 0
+                      ? floorData.apartments[selectedApartment].assignedParkings
                           .map((parkingId) => {
                             const parking = parkingSpots.find((spot) => spot.id === parkingId)
                             return parking ? `${parkingId} (Nivel ${parking.level})` : parkingId
@@ -1229,7 +1559,7 @@ export default function InteractiveFloorPlan({
                 </DialogDescription>
                 {!action && (
                   <div className="space-y-2">
-                    {currentFloorData.apartments[selectedApartment].status === "libre" && (
+                    {floorData.apartments[selectedApartment].status === "libre" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
                           <Download className="mr-2 h-4 w-4" /> Descargar plano
@@ -1248,7 +1578,7 @@ export default function InteractiveFloorPlan({
                         </Button>
                       </>
                     )}
-                    {currentFloorData.apartments[selectedApartment].status === "bloqueado" && (
+                    {floorData.apartments[selectedApartment].status === "bloqueado" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
@@ -1264,7 +1594,7 @@ export default function InteractiveFloorPlan({
                         </Button>
                       </>
                     )}
-                    {currentFloorData.apartments[selectedApartment].status === "reservado" && (
+                    {floorData.apartments[selectedApartment].status === "reservado" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
@@ -1280,7 +1610,7 @@ export default function InteractiveFloorPlan({
                         </Button>
                       </>
                     )}
-                    {currentFloorData.apartments[selectedApartment].status === "ocupado" && (
+                    {floorData.apartments[selectedApartment].status === "ocupado" && (
                       <>
                         <Button
                           onClick={() => handleDownloadContract(selectedApartment)}
@@ -1310,7 +1640,10 @@ export default function InteractiveFloorPlan({
                     <h3 className="font-semibold">Seleccionar cocheras:</h3>
                     <ScrollArea className="h-[200px] rounded-md border p-4">
                       {parkingSpots
-                        .filter((spot) => spot.status === "libre" || spot.assignedTo === selectedApartment)
+                        .filter(
+                          (spot) =>
+                            spot.status === "libre" || spot.assignedTo === `${currentFloor}-${selectedApartment}`,
+                        )
                         .map((spot) => (
                           <div key={spot.id} className="flex items-center space-x-2 mb-2">
                             <Checkbox
@@ -1327,7 +1660,8 @@ export default function InteractiveFloorPlan({
                               htmlFor={spot.id}
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              Cochera {spot.id} {spot.assignedTo === selectedApartment ? "(Asignada)" : ""}
+                              Cochera {spot.id}{" "}
+                              {spot.assignedTo === `${currentFloor}-${selectedApartment}` ? "(Asignada)" : ""}
                             </label>
                           </div>
                         ))}
@@ -1382,7 +1716,7 @@ export default function InteractiveFloorPlan({
                       <Input
                         id="price"
                         type="text"
-                        value={formData.price || currentFloorData.apartments[selectedApartment].price}
+                        value={formData.price || floorData.apartments[selectedApartment].price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         className="text-white bg-zinc-800 border-zinc-700"
                       />
@@ -1536,4 +1870,3 @@ export default function InteractiveFloorPlan({
     </div>
   )
 }
-

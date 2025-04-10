@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import type { FormData } from "@/types/form-data"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Share2, Download, Eye, RefreshCw } from "lucide-react"
-import { generatePDF } from "@/lib/pdf-generator"
+import { Share2, Download, Eye, RefreshCw, Loader2 } from "lucide-react"
+import { generatePDF } from "@/lib/checklist"
 
 interface PDFViewerProps {
   formData: FormData
@@ -40,7 +40,7 @@ export function PDFViewer({ formData }: PDFViewerProps) {
         setPdfUrl(null)
       }
 
-      // Generar nuevo PDF usando la plantilla existente
+      // Generar nuevo PDF usando la API
       const pdfBlob = await generatePDF(formData)
       const url = URL.createObjectURL(pdfBlob)
       setPdfUrl(url)
@@ -80,7 +80,7 @@ export function PDFViewer({ formData }: PDFViewerProps) {
         <h2 className="text-xl font-semibold">Vista Previa del PDF</h2>
         <div className="flex space-x-2">
           <Button variant="outline" size="sm" onClick={generatePdfDocument} disabled={isGenerating}>
-            <RefreshCw className="h-4 w-4 mr-2" />
+            {isGenerating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Regenerar
           </Button>
 
@@ -145,7 +145,10 @@ export function PDFViewer({ formData }: PDFViewerProps) {
 
       {isGenerating ? (
         <div className="flex justify-center items-center h-[500px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <p>Generando PDF...</p>
+          </div>
         </div>
       ) : error ? (
         <div className="flex flex-col justify-center items-center h-[500px] space-y-4">
@@ -172,4 +175,3 @@ export function PDFViewer({ formData }: PDFViewerProps) {
     </div>
   )
 }
-

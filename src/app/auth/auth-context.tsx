@@ -5,6 +5,7 @@ import { createContext, useState, useContext, useEffect, useCallback } from "rea
 
 type User = {
   email: string
+  userId: number;  // Añadir userId para compatibilidad
   name: string
   rol: string
   avatarUrl?: string

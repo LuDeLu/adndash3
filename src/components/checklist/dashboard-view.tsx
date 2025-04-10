@@ -31,158 +31,21 @@ import {
   Calendar,
   ArrowUpDown,
   Info,
+  Loader2,
 } from "lucide-react"
 import { FormDataInput } from "./form-data-input"
 import { PDFViewer } from "./pdf-viewer"
 import { initialFormData } from "@/lib/initial-data"
 import type { FormData } from "@/types/form-data"
+import type { ApprovalTicket } from "@/types/approval-ticket"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-
-// Tipo para los tickets de aprobación
-interface ApprovalTicket {
-  id: string
-  title: string
-  emprendimiento: string
-  unidadFuncional: string
-  fechaCreacion: string
-  estado: "pendiente" | "aprobado" | "rechazado"
-  creador: string
-  formData: FormData
-  aprobaciones: {
-    contaduria: { aprobado: boolean; usuario: string; fecha: string | null; comentarios: string }
-    legales: { aprobado: boolean; usuario: string; fecha: string | null; comentarios: string }
-    tesoreria: { aprobado: boolean; usuario: string; fecha: string | null; comentarios: string }
-    gerenciaComercial: { aprobado: boolean; usuario: string; fecha: string | null; comentarios: string }
-    gerencia: { aprobado: boolean; usuario: string; fecha: string | null; comentarios: string }
-    arquitecto: { aprobado: boolean; usuario: string; fecha: string | null; comentarios: string }
-  }
-}
-
-// Datos de ejemplo para tickets
-const mockTickets: ApprovalTicket[] = [
-  {
-    id: "TICK-001",
-    title: "Aprobación Boleto de Compraventa",
-    emprendimiento: "Edificio Libertad",
-    unidadFuncional: "3B",
-    fechaCreacion: "2024-03-15",
-    estado: "pendiente",
-    creador: "Juan Pérez",
-    formData: {
-      ...initialFormData,
-      emprendimiento: "Edificio Libertad",
-      unidadFuncional: "3B",
-      tipoDocumento: "boleto",
-      comprador: {
-        ...initialFormData.comprador,
-        nombre: "Carlos Rodríguez",
-      },
-    },
-    aprobaciones: {
-      contaduria: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      legales: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      tesoreria: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      gerenciaComercial: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      gerencia: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      arquitecto: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-    },
-  },
-  {
-    id: "TICK-002",
-    title: "Aprobación Cesión de Derechos",
-    emprendimiento: "Torre Norte",
-    unidadFuncional: "12A",
-    fechaCreacion: "2024-03-10",
-    estado: "pendiente",
-    creador: "María González",
-    formData: {
-      ...initialFormData,
-      emprendimiento: "Torre Norte",
-      unidadFuncional: "12A",
-      tipoDocumento: "cesion",
-      comprador: {
-        ...initialFormData.comprador,
-        nombre: "Laura Fernández",
-      },
-    },
-    aprobaciones: {
-      contaduria: { aprobado: true, usuario: "Ana Contable", fecha: "2024-03-12", comentarios: "Verificado" },
-      legales: { aprobado: true, usuario: "Pablo Legal", fecha: "2024-03-13", comentarios: "Documentación correcta" },
-      tesoreria: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      gerenciaComercial: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      gerencia: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      arquitecto: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-    },
-  },
-  {
-    id: "TICK-003",
-    title: "Aprobación Reserva",
-    emprendimiento: "Residencial del Parque",
-    unidadFuncional: "5C",
-    fechaCreacion: "2024-03-05",
-    estado: "aprobado",
-    creador: "Roberto Sánchez",
-    formData: {
-      ...initialFormData,
-      emprendimiento: "Residencial del Parque",
-      unidadFuncional: "5C",
-      tipoDocumento: "reserva",
-      comprador: {
-        ...initialFormData.comprador,
-        nombre: "Martín López",
-      },
-    },
-    aprobaciones: {
-      contaduria: { aprobado: true, usuario: "Ana Contable", fecha: "2024-03-06", comentarios: "Verificado" },
-      legales: { aprobado: true, usuario: "Pablo Legal", fecha: "2024-03-06", comentarios: "Documentación correcta" },
-      tesoreria: { aprobado: true, usuario: "Carlos Tesorero", fecha: "2024-03-07", comentarios: "Fondos verificados" },
-      gerenciaComercial: { aprobado: true, usuario: "Laura Comercial", fecha: "2024-03-07", comentarios: "Aprobado" },
-      gerencia: { aprobado: true, usuario: "Martín Gerente", fecha: "2024-03-08", comentarios: "Aprobado" },
-      arquitecto: {
-        aprobado: true,
-        usuario: "Sofía Arquitecta",
-        fecha: "2024-03-08",
-        comentarios: "Planos verificados",
-      },
-    },
-  },
-  {
-    id: "TICK-004",
-    title: "Aprobación Mutuo",
-    emprendimiento: "Edificio Libertad",
-    unidadFuncional: "7D",
-    fechaCreacion: "2024-03-01",
-    estado: "rechazado",
-    creador: "Lucía Martínez",
-    formData: {
-      ...initialFormData,
-      emprendimiento: "Edificio Libertad",
-      unidadFuncional: "7D",
-      tipoDocumento: "mutuo",
-      comprador: {
-        ...initialFormData.comprador,
-        nombre: "Diego Gómez",
-      },
-    },
-    aprobaciones: {
-      contaduria: { aprobado: true, usuario: "Ana Contable", fecha: "2024-03-02", comentarios: "Verificado" },
-      legales: {
-        aprobado: false,
-        usuario: "Pablo Legal",
-        fecha: "2024-03-03",
-        comentarios: "Documentación incompleta",
-      },
-      tesoreria: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      gerenciaComercial: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      gerencia: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      arquitecto: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-    },
-  },
-]
+import { getAllTickets, createTicket, approveTicket, searchTickets } from "@/lib/checklist"
+import { useToast } from "@/hooks/use-toast"
 
 export function ApprovalDashboard() {
-  const [tickets, setTickets] = useState<ApprovalTicket[]>(mockTickets)
-  const [filteredTickets, setFilteredTickets] = useState<ApprovalTicket[]>(mockTickets)
+  const { toast } = useToast()
+  const [tickets, setTickets] = useState<ApprovalTicket[]>([])
+  const [filteredTickets, setFilteredTickets] = useState<ApprovalTicket[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("todos")
   const [selectedTicket, setSelectedTicket] = useState<ApprovalTicket | null>(null)
@@ -192,6 +55,8 @@ export function ApprovalDashboard() {
   const [currentUser, setCurrentUser] = useState("Ana Silva")
   const [currentDepartment, setCurrentDepartment] = useState<keyof ApprovalTicket["aprobaciones"]>("contaduria")
   const [approvalComment, setApprovalComment] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState<FormData>(initialFormData)
   const [activeTab, setActiveTab] = useState("form")
@@ -210,6 +75,30 @@ export function ApprovalDashboard() {
     { name: "6", department: "arquitecto" },
   ]
 
+  // Cargar tickets al iniciar
+  useEffect(() => {
+    fetchTickets()
+  }, [])
+
+  // Función para cargar tickets
+  const fetchTickets = async () => {
+    setIsLoading(true)
+    try {
+      const data = await getAllTickets()
+      setTickets(data)
+      setFilteredTickets(data)
+    } catch (error) {
+      console.error("Error al cargar tickets:", error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar los tickets. Por favor, intente nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   // Filtrar tickets basado en búsqueda y filtros
   useEffect(() => {
     let result = tickets
@@ -220,8 +109,8 @@ export function ApprovalDashboard() {
         (ticket) =>
           ticket.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           ticket.emprendimiento.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          ticket.unidadFuncional.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          ticket.id.toLowerCase().includes(searchTerm.toLowerCase()),
+          ticket.unidad_funcional.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          ticket.ticket_id.toLowerCase().includes(searchTerm.toLowerCase()),
       )
     }
 
@@ -255,10 +144,10 @@ export function ApprovalDashboard() {
   }, [currentUser])
 
   // Función para crear un nuevo ticket
-  const handleCreateTicket = (formData: FormData) => {
-    const newTicket: ApprovalTicket = {
-      id: `TICK-${String(tickets.length + 1).padStart(3, "0")}`,
-      title: `Aprobación ${
+  const handleCreateTicket = async (formData: FormData) => {
+    setIsSubmitting(true)
+    try {
+      const title = `Aprobación ${
         formData.tipoDocumento === "boleto"
           ? "Boleto de Compraventa"
           : formData.tipoDocumento === "cesion"
@@ -270,94 +159,74 @@ export function ApprovalDashboard() {
                 : formData.tipoDocumento === "locacion"
                   ? "Locación de Obra"
                   : "Documento"
-      }`,
-      emprendimiento: formData.emprendimiento || "Sin especificar",
-      unidadFuncional: formData.unidadFuncional || "Sin especificar",
-      fechaCreacion: new Date().toISOString().split("T")[0],
-      estado: "pendiente",
-      creador: currentUser,
-      formData,
-      aprobaciones: {
-        contaduria: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-        legales: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-        tesoreria: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-        gerenciaComercial: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-        gerencia: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-        arquitecto: { aprobado: false, usuario: "", fecha: null, comentarios: "" },
-      },
+      }`
+
+      const newTicket = await createTicket(formData, title)
+
+      // Actualizar el estado de tickets
+      setTickets((prev) => [...prev, newTicket])
+
+      // Cerrar el diálogo
+      setIsNewTicketDialogOpen(false)
+
+      // Asegurarse de que estamos en la pestaña correcta para ver el nuevo ticket
+      setStatusFilter("todos")
+
+      // Resetear el formulario
+      setFormData(initialFormData)
+      setActiveTab("form")
+
+      toast({
+        title: "Éxito",
+        description: "Ticket creado correctamente",
+      })
+    } catch (error) {
+      console.error("Error al crear ticket:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo crear el ticket. Por favor, intente nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
     }
-
-    // Actualizar el estado de tickets y asegurarse de que se refleje en la interfaz
-    const updatedTickets = [...tickets, newTicket]
-    setTickets(updatedTickets)
-
-    // Si el filtro actual permitiría mostrar este ticket, actualizar también filteredTickets
-    if (statusFilter === "todos" || statusFilter === "pendiente") {
-      setFilteredTickets((prev) => [...prev, newTicket])
-    }
-
-    // Cerrar el diálogo
-    setIsNewTicketDialogOpen(false)
-
-    // Asegurarse de que estamos en la pestaña correcta para ver el nuevo ticket
-    setStatusFilter("todos")
-
-    // Resetear el formulario
-    setFormData(initialFormData)
-    setActiveTab("form")
   }
 
   // Función para aprobar un ticket
-  const handleApproveTicket = (
+  const handleApproveTicket = async (
     ticketId: string,
     department: keyof ApprovalTicket["aprobaciones"],
     approved: boolean,
   ) => {
-    // Primero actualizamos el estado global de tickets
-    setTickets((prev) =>
-      prev.map((ticket) => {
-        if (ticket.id === ticketId) {
-          const updatedAprobaciones = {
-            ...ticket.aprobaciones,
-            [department]: {
-              ...ticket.aprobaciones[department],
-              aprobado: approved,
-              usuario: currentUser,
-              fecha: approved ? new Date().toISOString().split("T")[0] : null,
-              comentarios: approvalComment || (approved ? "Aprobado" : "Rechazado"),
-            },
-          }
+    setIsSubmitting(true)
+    try {
+      const updatedTicket = await approveTicket(ticketId, department, approved, approvalComment)
 
-          // Determinar el nuevo estado del ticket
-          let newEstado: ApprovalTicket["estado"] = "pendiente"
-          const aprobados = Object.values(updatedAprobaciones).filter((a) => a.aprobado).length
-          const total = Object.keys(updatedAprobaciones).length
+      // Actualizar el estado de tickets
+      setTickets((prev) => prev.map((ticket) => (ticket.id === ticketId ? updatedTicket : ticket)))
 
-          if (aprobados === total) {
-            newEstado = "aprobado"
-          } else if (Object.values(updatedAprobaciones).some((a) => a.usuario && !a.aprobado)) {
-            newEstado = "rechazado"
-          }
+      // Actualizar también el ticket seleccionado si coincide con el que estamos modificando
+      if (selectedTicket && selectedTicket.id === ticketId) {
+        setSelectedTicket(updatedTicket)
+      }
 
-          const updatedTicket = {
-            ...ticket,
-            aprobaciones: updatedAprobaciones,
-            estado: newEstado,
-          }
+      // Limpiar el comentario después de aprobar/rechazar
+      setApprovalComment("")
 
-          // Actualizar también el ticket seleccionado si coincide con el que estamos modificando
-          if (selectedTicket && selectedTicket.id === ticketId) {
-            setSelectedTicket(updatedTicket)
-          }
-
-          return updatedTicket
-        }
-        return ticket
-      }),
-    )
-
-    // Limpiar el comentario después de aprobar/rechazar
-    setApprovalComment("")
+      toast({
+        title: "Éxito",
+        description: `Ticket ${approved ? "aprobado" : "rechazado"} correctamente`,
+      })
+    } catch (error) {
+      console.error("Error al aprobar/rechazar ticket:", error)
+      toast({
+        title: "Error",
+        description: "No se pudo procesar la acción. Por favor, intente nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   // Función para ordenar la tabla
@@ -367,6 +236,28 @@ export function ApprovalDashboard() {
       direction = "desc"
     }
     setSortConfig({ key, direction })
+  }
+
+  // Función para buscar tickets
+  const handleSearch = async () => {
+    if (!searchTerm) {
+      return fetchTickets()
+    }
+
+    setIsLoading(true)
+    try {
+      const data = await searchTickets(searchTerm)
+      setFilteredTickets(data)
+    } catch (error) {
+      console.error("Error al buscar tickets:", error)
+      toast({
+        title: "Error",
+        description: "No se pudieron buscar los tickets. Por favor, intente nuevamente.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   // Renderizar el estado con un badge de color
@@ -491,15 +382,15 @@ export function ApprovalDashboard() {
                     <Button variant="outline" onClick={() => setActiveTab("form")}>
                       Volver al Formulario
                     </Button>
-                    <Button
-                      onClick={() => {
-                        handleCreateTicket(formData)
-                        setFormData(initialFormData)
-                        setActiveTab("dashboard")
-                        setStatusFilter("todos")
-                      }}
-                    >
-                      Crear Ticket
+                    <Button onClick={() => handleCreateTicket(formData)} disabled={isSubmitting}>
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creando...
+                        </>
+                      ) : (
+                        "Crear Ticket"
+                      )}
                     </Button>
                   </div>
                 </TabsContent>
@@ -538,18 +429,19 @@ export function ApprovalDashboard() {
                 className="pl-8 w-[250px]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               />
             </div>
-            <Select defaultValue="fecha" onValueChange={(value) => requestSort(value as keyof ApprovalTicket)}>
+            <Select defaultValue="fecha_creacion" onValueChange={(value) => requestSort(value as keyof ApprovalTicket)}>
               <SelectTrigger className="w-[180px]">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue placeholder="Ordenar por" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="fechaCreacion">Fecha de creación</SelectItem>
+                <SelectItem value="fecha_creacion">Fecha de creación</SelectItem>
                 <SelectItem value="emprendimiento">Emprendimiento</SelectItem>
                 <SelectItem value="estado">Estado</SelectItem>
-                <SelectItem value="id">Número de ticket</SelectItem>
+                <SelectItem value="ticket_id">Número de ticket</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -562,7 +454,7 @@ export function ApprovalDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[100px]">
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("id")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("ticket_id")}>
                         ID
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -580,13 +472,13 @@ export function ApprovalDashboard() {
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidadFuncional")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidad_funcional")}>
                         Unidad
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fechaCreacion")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fecha_creacion")}>
                         Fecha
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -602,7 +494,16 @@ export function ApprovalDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTickets.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <span className="ml-2">Cargando tickets...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTickets.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                         No se encontraron tickets que coincidan con los criterios de búsqueda.
@@ -617,11 +518,11 @@ export function ApprovalDashboard() {
 
                       return (
                         <TableRow key={ticket.id}>
-                          <TableCell className="font-medium">{ticket.id}</TableCell>
+                          <TableCell className="font-medium">{ticket.ticket_id}</TableCell>
                           <TableCell>{ticket.title}</TableCell>
                           <TableCell>{ticket.emprendimiento}</TableCell>
-                          <TableCell>{ticket.unidadFuncional}</TableCell>
-                          <TableCell>{new Date(ticket.fechaCreacion).toLocaleDateString()}</TableCell>
+                          <TableCell>{ticket.unidad_funcional}</TableCell>
+                          <TableCell>{new Date(ticket.fecha_creacion).toLocaleDateString()}</TableCell>
                           <TableCell>{renderStatusBadge(ticket.estado)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -671,7 +572,7 @@ export function ApprovalDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[100px]">
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("id")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("ticket_id")}>
                         ID
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -689,13 +590,13 @@ export function ApprovalDashboard() {
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidadFuncional")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidad_funcional")}>
                         Unidad
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fechaCreacion")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fecha_creacion")}>
                         Fecha
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -711,7 +612,16 @@ export function ApprovalDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTickets.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <span className="ml-2">Cargando tickets...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTickets.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                         No se encontraron tickets que coincidan con los criterios de búsqueda.
@@ -726,11 +636,11 @@ export function ApprovalDashboard() {
 
                       return (
                         <TableRow key={ticket.id}>
-                          <TableCell className="font-medium">{ticket.id}</TableCell>
+                          <TableCell className="font-medium">{ticket.ticket_id}</TableCell>
                           <TableCell>{ticket.title}</TableCell>
                           <TableCell>{ticket.emprendimiento}</TableCell>
-                          <TableCell>{ticket.unidadFuncional}</TableCell>
-                          <TableCell>{new Date(ticket.fechaCreacion).toLocaleDateString()}</TableCell>
+                          <TableCell>{ticket.unidad_funcional}</TableCell>
+                          <TableCell>{new Date(ticket.fecha_creacion).toLocaleDateString()}</TableCell>
                           <TableCell>{renderStatusBadge(ticket.estado)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -779,7 +689,7 @@ export function ApprovalDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[100px]">
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("id")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("ticket_id")}>
                         ID
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -797,13 +707,13 @@ export function ApprovalDashboard() {
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidadFuncional")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidad_funcional")}>
                         Unidad
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fechaCreacion")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fecha_creacion")}>
                         Fecha
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -819,7 +729,16 @@ export function ApprovalDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTickets.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <span className="ml-2">Cargando tickets...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTickets.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                         No se encontraron tickets que coincidan con los criterios de búsqueda.
@@ -834,11 +753,11 @@ export function ApprovalDashboard() {
 
                       return (
                         <TableRow key={ticket.id}>
-                          <TableCell className="font-medium">{ticket.id}</TableCell>
+                          <TableCell className="font-medium">{ticket.ticket_id}</TableCell>
                           <TableCell>{ticket.title}</TableCell>
                           <TableCell>{ticket.emprendimiento}</TableCell>
-                          <TableCell>{ticket.unidadFuncional}</TableCell>
-                          <TableCell>{new Date(ticket.fechaCreacion).toLocaleDateString()}</TableCell>
+                          <TableCell>{ticket.unidad_funcional}</TableCell>
+                          <TableCell>{new Date(ticket.fecha_creacion).toLocaleDateString()}</TableCell>
                           <TableCell>{renderStatusBadge(ticket.estado)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -887,7 +806,7 @@ export function ApprovalDashboard() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[100px]">
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("id")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("ticket_id")}>
                         ID
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -905,13 +824,13 @@ export function ApprovalDashboard() {
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidadFuncional")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("unidad_funcional")}>
                         Unidad
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
                     </TableHead>
                     <TableHead>
-                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fechaCreacion")}>
+                      <div className="flex items-center cursor-pointer" onClick={() => requestSort("fecha_creacion")}>
                         Fecha
                         <ArrowUpDown className="ml-1 h-4 w-4" />
                       </div>
@@ -927,7 +846,16 @@ export function ApprovalDashboard() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredTickets.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="flex justify-center items-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                          <span className="ml-2">Cargando tickets...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredTickets.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                         No se encontraron tickets que coincidan con los criterios de búsqueda.
@@ -942,11 +870,11 @@ export function ApprovalDashboard() {
 
                       return (
                         <TableRow key={ticket.id}>
-                          <TableCell className="font-medium">{ticket.id}</TableCell>
+                          <TableCell className="font-medium">{ticket.ticket_id}</TableCell>
                           <TableCell>{ticket.title}</TableCell>
                           <TableCell>{ticket.emprendimiento}</TableCell>
-                          <TableCell>{ticket.unidadFuncional}</TableCell>
-                          <TableCell>{new Date(ticket.fechaCreacion).toLocaleDateString()}</TableCell>
+                          <TableCell>{ticket.unidad_funcional}</TableCell>
+                          <TableCell>{new Date(ticket.fecha_creacion).toLocaleDateString()}</TableCell>
                           <TableCell>{renderStatusBadge(ticket.estado)}</TableCell>
                           <TableCell>
                             <div className="flex items-center gap-2">
@@ -997,7 +925,7 @@ export function ApprovalDashboard() {
               <DialogHeader>
                 <DialogTitle className="flex justify-between items-center">
                   <span>
-                    {selectedTicket.title} - {selectedTicket.id}
+                    {selectedTicket.title} - {selectedTicket.ticket_id}
                   </span>
                   {renderStatusBadge(selectedTicket.estado)}
                 </DialogTitle>
@@ -1007,14 +935,14 @@ export function ApprovalDashboard() {
                       <span className="font-medium">Emprendimiento:</span> {selectedTicket.emprendimiento}
                     </div>
                     <div>
-                      <span className="font-medium">Unidad:</span> {selectedTicket.unidadFuncional}
+                      <span className="font-medium">Unidad:</span> {selectedTicket.unidad_funcional}
                     </div>
                     <div>
                       <span className="font-medium">Creado:</span>{" "}
-                      {new Date(selectedTicket.fechaCreacion).toLocaleDateString()}
+                      {new Date(selectedTicket.fecha_creacion).toLocaleDateString()}
                     </div>
                     <div>
-                      <span className="font-medium">Por:</span> {selectedTicket.creador}
+                      <span className="font-medium">Por:</span> {selectedTicket.creador_id}
                     </div>
                   </div>
                 </DialogDescription>
@@ -1082,7 +1010,7 @@ export function ApprovalDashboard() {
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">M2 Totales:</dt>
-                            <dd>{selectedTicket.formData.m2.totales}</dd>
+                            <dd>{selectedTicket.formData.m2?.totales}</dd>
                           </div>
                         </dl>
                       </CardContent>
@@ -1096,27 +1024,27 @@ export function ApprovalDashboard() {
                         <dl className="space-y-2">
                           <div className="flex justify-between">
                             <dt className="font-medium">Nombre:</dt>
-                            <dd>{selectedTicket.formData.comprador.nombre}</dd>
+                            <dd>{selectedTicket.formData.comprador?.nombre}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">DNI:</dt>
-                            <dd>{selectedTicket.formData.comprador.dni}</dd>
+                            <dd>{selectedTicket.formData.comprador?.dni}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">CUIT:</dt>
-                            <dd>{selectedTicket.formData.comprador.cuit}</dd>
+                            <dd>{selectedTicket.formData.comprador?.cuit}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">Dirección:</dt>
-                            <dd>{selectedTicket.formData.comprador.direccion}</dd>
+                            <dd>{selectedTicket.formData.comprador?.direccion}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">Email:</dt>
-                            <dd>{selectedTicket.formData.comprador.mail}</dd>
+                            <dd>{selectedTicket.formData.comprador?.mail}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">Teléfono:</dt>
-                            <dd>{selectedTicket.formData.comprador.telefono}</dd>
+                            <dd>{selectedTicket.formData.comprador?.telefono}</dd>
                           </div>
                         </dl>
                       </CardContent>
@@ -1130,27 +1058,27 @@ export function ApprovalDashboard() {
                         <dl className="space-y-2">
                           <div className="flex justify-between">
                             <dt className="font-medium">Valor de Venta Total:</dt>
-                            <dd>USD {selectedTicket.formData.precio.valorVentaTotal}</dd>
+                            <dd>USD {selectedTicket.formData.precio?.valorVentaTotal}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">Valor UF/UFs:</dt>
-                            <dd>USD {selectedTicket.formData.precio.valorUF}</dd>
+                            <dd>USD {selectedTicket.formData.precio?.valorUF}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">Valor CHs + Baulera:</dt>
-                            <dd>USD {selectedTicket.formData.precio.valorCHBaulera}</dd>
+                            <dd>USD {selectedTicket.formData.precio?.valorCHBaulera}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">Valor de Venta A:</dt>
-                            <dd>USD {selectedTicket.formData.precio.valorVentaA}</dd>
+                            <dd>USD {selectedTicket.formData.precio?.valorVentaA}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">US$/M2:</dt>
-                            <dd>USD {selectedTicket.formData.precio.valorM2}</dd>
+                            <dd>USD {selectedTicket.formData.precio?.valorM2}</dd>
                           </div>
                           <div className="flex justify-between">
                             <dt className="font-medium">Forma de Pago:</dt>
-                            <dd className="text-right">{selectedTicket.formData.precio.formaPago}</dd>
+                            <dd className="text-right">{selectedTicket.formData.precio?.formaPago}</dd>
                           </div>
                         </dl>
                       </CardContent>
@@ -1238,7 +1166,9 @@ export function ApprovalDashboard() {
                                                 true,
                                               )
                                             }
+                                            disabled={isSubmitting}
                                           >
+                                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                             Aprobar
                                           </Button>
                                           <Button
@@ -1252,7 +1182,9 @@ export function ApprovalDashboard() {
                                                 false,
                                               )
                                             }
+                                            disabled={isSubmitting}
                                           >
+                                            {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                                             Rechazar
                                           </Button>
                                         </div>
@@ -1294,7 +1226,8 @@ export function ApprovalDashboard() {
                             <div className="absolute -left-6 top-1 w-4 h-4 rounded-full bg-blue-500"></div>
                             <p className="text-sm font-medium">Ticket creado</p>
                             <p className="text-xs text-gray-500">
-                              {new Date(selectedTicket.fechaCreacion).toLocaleDateString()} - {selectedTicket.creador}
+                              {new Date(selectedTicket.fecha_creacion).toLocaleDateString()} -{" "}
+                              {selectedTicket.creador_id}
                             </p>
                           </div>
 
@@ -1364,4 +1297,3 @@ export function ApprovalDashboard() {
 export function DashboardView() {
   return <ApprovalDashboard />
 }
-
