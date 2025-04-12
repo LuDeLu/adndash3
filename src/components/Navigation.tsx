@@ -1,76 +1,92 @@
 "use client"
 
 import { useState } from "react"
+import { usePathname } from "next/navigation"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/app/auth/auth-context"
 import {
   LayoutDashboard,
   Users,
   FileText,
   Calendar,
   Settings,
-  Map,
   Building2,
   HardHat,
   ChevronLeft,
   ChevronRight,
   Wrench,
   CheckSquare,
+  Map,
+  FolderPlus,
+  UserPlus,
 } from "lucide-react"
 
-interface NavigationProps {
-  activeSection: string
-  setActiveSection: (section: string) => void
-}
-
-export function Navigation({ activeSection, setActiveSection }: NavigationProps) {
+export function Navigation() {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const pathname = usePathname()
+  const { user } = useAuth()
+
+  // Si no hay usuario autenticado, no mostrar la navegación
+  if (!user) return null
 
   const navigationItems = [
     {
       title: "Proyectos",
       icon: Building2,
-      section: "proyectos",
+      href: "/proyectos",
     },
     {
       title: "Estadísticas",
       icon: LayoutDashboard,
-      section: "estadisticas",
+      href: "/estadisticas",
     },
     {
       title: "Clientes",
       icon: Users,
-      section: "clientes",
+      href: "/clientes",
     },
     {
       title: "Calendario",
       icon: Calendar,
-      section: "calendario",
+      href: "/calendario",
     },
     {
       title: "Archivos",
       icon: FileText,
-      section: "archivos",
+      href: "/archivos",
     },
     {
       title: "Obras",
       icon: HardHat,
-      section: "obras",
+      href: "/obras",
     },
     {
       title: "Post Ventas",
       icon: Wrench,
-      section: "postventas",
+      href: "/postventas",
     },
     {
-      title: "Aprobaciones",
+      title: "checklist",
       icon: CheckSquare,
-      section: "aprobaciones",
+      href: "/checklist",
+    },
+    {
+      title: "Mapa",
+      icon: Map,
+      href: "/mapa",
+    },
+    {
+      title: "Gestión de Usuarios",
+      icon: UserPlus,
+      href: "/usermanagement",
+      adminOnly: true,
     },
     {
       title: "Configuración",
       icon: Settings,
-      section: "ajustes",
+      href: "/ajustes",
     },
   ]
 
@@ -94,27 +110,34 @@ export function Navigation({ activeSection, setActiveSection }: NavigationProps)
       </div>
       <nav className="flex-1 overflow-auto py-4">
         <ul className="space-y-2 px-2">
-          {navigationItems.map((item) => (
-            <li key={item.section}>
-              <Button
-                variant="ghost"
-                className={cn(
-                  "w-full justify-start",
-                  activeSection === item.section
-                    ? "bg-gray-800 text-white hover:bg-gray-700"
-                    : "text-gray-400 hover:bg-gray-900 hover:text-white",
-                  isCollapsed && "justify-center px-0",
-                )}
-                onClick={() => setActiveSection(item.section)}
-              >
-                <item.icon className={cn("h-5 w-5", isCollapsed ? "mr-0" : "mr-2")} />
-                {!isCollapsed && <span>{item.title}</span>}
-              </Button>
-            </li>
-          ))}
+          {navigationItems.map((item) => {
+            // No mostrar elementos solo para admin si el usuario no es admin
+            if (item.adminOnly && user.rol !== "admin") return null
+
+            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+
+            return (
+              <li key={item.href}>
+                <Link href={item.href} passHref>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "w-full justify-start",
+                      isActive
+                        ? "bg-gray-800 text-white hover:bg-gray-700"
+                        : "text-gray-400 hover:bg-gray-900 hover:text-white",
+                      isCollapsed && "justify-center px-0",
+                    )}
+                  >
+                    <item.icon className={cn("h-5 w-5", isCollapsed ? "mr-0" : "mr-2")} />
+                    {!isCollapsed && <span>{item.title}</span>}
+                  </Button>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </nav>
     </div>
   )
 }
-

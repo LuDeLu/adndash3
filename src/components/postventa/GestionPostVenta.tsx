@@ -18,7 +18,7 @@ if (typeof window !== "undefined") {
   })
 }
 
-const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = "http://localhost:3001/api"
 
 export default function GestionPostVenta() {
   const [reclamos, setReclamos] = useState<Reclamo[]>([])
