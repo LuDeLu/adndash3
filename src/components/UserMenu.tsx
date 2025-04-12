@@ -80,5 +80,3 @@ export default function UserMenu() {
     </div>
   )
 }
-
-https://adndashboard.squareweb.app
