@@ -90,7 +90,7 @@ type ParkingSpot = {
   dbId?: number // ID de la base de datos
 }
 
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 const floorPlans: { [key: number]: string } = {
   1: "/images/planos/plano_piso_1.svg",

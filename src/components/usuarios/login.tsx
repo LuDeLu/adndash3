@@ -20,7 +20,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
 
-  const API_BASE_URL = "http://localhost:3001/api"
+  const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault()
