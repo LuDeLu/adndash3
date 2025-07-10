@@ -5,17 +5,7 @@ import type React from "react"
 import { useState, useEffect, useRef, useCallback } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import {
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  FileText,
-  Building,
-  Car,
-  FileSpreadsheet,
-  FileBarChart,
-  RefreshCw,
-} from "lucide-react"
+import { ChevronLeft, ChevronRight, Download, Building, RefreshCw, Loader2, AlertCircle, Settings } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -27,6 +17,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogClose,
 } from "@/components/ui/dialog"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
@@ -35,11 +26,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { updateApartment, fetchProjectConfigById } from "../../lib/proyectos" // Assuming invalidateCache is also here or not needed for this specific fix
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert"
+import Link from "next/link"
+import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
-// Modificar la función handleFormSubmit para usar el servicio API optimizado
-import { updateApartment, invalidateCache } from "../../lib/proyectos"
-
-let notyf: Notyf | null = null
+let notyfInstance: Notyf | null = null
 
 type ApartmentStatus = "ocupado" | "reservado" | "libre" | "bloqueado"
 
@@ -49,160 +41,81 @@ type ApartmentData = {
   price: string
   status: ApartmentStatus
   contractFile?: File | null
+  contractUrl?: string
   phoneNumber?: string
   email?: string
   surface: string
   assignedParkings: string[]
-  id?: number // ID de la base de datos
+  id?: number // ID de la base de datos del departamento
+  notes?: string
+  svg_path?: string
 }
 
-type ApartmentDataMap = {
-  [key: string]: ApartmentData
-}
+type ApartmentDataMap = { [key: string]: ApartmentData }
 
-type FloorData = {
-  apartments: ApartmentDataMap
-  svgPaths: {
-    [key: string]: string
+type FloorConfig = {
+  id?: number
+  floor_number: number
+  floor_name?: string
+  view_box?: string
+  background_image?: string
+  apartment_config?: {
+    [apartmentId: string]: {
+      default_price?: string
+      default_surface?: string
+      svg_path?: string
+    }
   }
-  viewBox?: string
-  id?: number // ID de la base de datos
-}
-
-// Cambiar la definición de tipo para FloorData para permitir indexación numérica
-type FloorDataMap = {
-  [key: number]: FloorData
-}
-
-type UnitStats = {
-  disponibles: number
-  reservadas: number
-  vendidas: number
-  bloqueadas: number
 }
 
 type ParkingSpot = {
-  id: string
+  id: string // parking_spot_code e.g. "P1"
   level: number
   status: "libre" | "ocupado"
-  assignedTo: string | null
-  path: string
-  dbId?: number // ID de la base de datos
+  assignedTo: string | null // apartment_code e.g. "1-1A"
+  path: string // svg_path
+  dbId?: number // database id
 }
 
-const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
 
-const floorPlans: { [key: number]: string } = {
-  1: "/images/planos/plano_piso_1.svg",
-  2: "/images/planos/plano_piso_2-6.svg",
-  3: "/images/planos/plano_piso_2-6.svg",
-  4: "/images/planos/plano_piso_2-6.svg",
-  5: "/images/planos/plano_piso_2-6.svg",
-  6: "/images/planos/plano_piso_2-6.svg",
-  7: "/images/planos/plano_piso_2-6.svg",
-  8: "/images/planos/plano_piso_8.svg",
-  9: "/images/planos/plano_piso_9.svg",
+// Obtener paths desde la configuración del proyecto
+const getApartmentSvgPath = (apartmentId: string, floorConfig: FloorConfig | null, projectConfig: any) => {
+  // Primero intentar obtener desde apartment_config específico
+  if (floorConfig?.apartment_config?.[apartmentId]?.svg_path) {
+    return floorConfig.apartment_config[apartmentId].svg_path
+  }
+
+  // Luego desde configuración general del proyecto
+  if (projectConfig?.apartment_svg_paths?.[apartmentId]) {
+    return projectConfig.apartment_svg_paths[apartmentId]
+  }
+
+  // Fallback a path por defecto si existe
+  return projectConfig?.default_apartment_svg || ""
 }
 
-const apartmentPDFs: { [key: string]: string } = {
-  "1A": "/planodepa/uf101.pdf",
-  "1B": "/planodepa/ufuf102.pdf",
-  "1C": "/planodepa/ufuf103.pdf",
-  "2A": "/planodepa/ufuf201-601.pdf",
-  "2B": "/planodepa/ufuf202-602.pdf",
-  "2C": "/planodepa/ufuf203-603.pdf",
-  "3A": "/planodepa/ufuf201-601.pdf",
-  "3B": "/planodepa/ufuf202-602.pdf",
-  "3C": "/planodepa/ufuf203-603.pdf",
-  "4A": "/planodepa/ufuf201-601.pdf",
-  "4B": "/planodepa/ufuf202-602.pdf",
-  "4C": "/planodepa/ufuf203-603.pdf",
-  "5A": "/planodepa/ufuf201-601.pdf",
-  "5B": "/planodepa/ufuf202-602.pdf",
-  "5C": "/planodepa/ufuf203-603.pdf",
-  "6A": "/planodepa/ufuf201-601.pdf",
-  "6B": "/planodepa/ufuf202-602.pdf",
-  "6C": "/planodepa/ufuf203-603.pdf",
-  "7A": "/planodepa/ufuf701.pdf",
-  "8A": "/planodepa/ufuf801.pdf",
-  "8B": "/planodepa/ufuf802.pdf",
-  "8C": "/planodepa/ufuf803.pdf",
-  "9A": "/planodepa/ufuf901.pdf",
-  "9B": "/planodepa/ufuf902.pdf",
+const getParkingSvgPath = (parkingId: string, projectConfig: any) => {
+  // Obtener desde configuración del proyecto
+  if (projectConfig?.parking_svg_paths?.[parkingId]) {
+    return projectConfig.parking_svg_paths[parkingId]
+  }
+
+  // Fallback a path por defecto
+  return projectConfig?.default_parking_svg || ""
 }
 
-const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-const statusColors = {
+const statusColors: { [key in ApartmentStatus]: string } = {
   ocupado: "#f57f7f",
   reservado: "#edcf53",
   libre: "#87f5af",
   bloqueado: "#7f7fff",
 }
 
-const garageLevels = [1, 2, 3]
-
-const garagePlans = {
-  1: "/images/planos/cochera1.svg",
-  2: "/images/planos/cochera2.svg",
-  3: "/images/planos/cochera3.svg",
-}
-
-// Datos iniciales para usar como respaldo
-const initialFloorData: FloorDataMap = {
-  1: {
-    apartments: {
-      "1A": { buyer: "", date: "", price: "$774.200", status: "libre", surface: "181,55 m²", assignedParkings: [] },
-      "1B": { buyer: "", date: "", price: "$820.900", status: "libre", surface: "183,35 m²", assignedParkings: [] },
-      "1C": { buyer: "", date: "", price: "$667.600", status: "libre", surface: "154,25 m²", assignedParkings: [] },
-    },
-    svgPaths: {
-      "1A": "M136,509 L126,2004 L764,2001 L767,1918 L1209,1915 L1207,1999 L1218,2001 L1221,1692 L1635,1692 L1639,1544 L1224,1543 L1227,1291 L1430,1292 L1424,899 L1219,902 L1216,578 L506,575 L504,455 Z",
-      "1B": "M3111,2317 L1421,2314 L1418,2007 L1209,2004 L1209,1680 L1635,1683 L2078,1683 L2084,1270 L3117,1270 Z",
-      "1C": "M3111,1276 L3114,300 L2298,303 L2304,214 L1206,366 L1212,904 L1415,910 L1418,1288 L1674,1291 L1677,1115 L1879,1109 L1879,1285 Z",
-    },
-    viewBox: "0 0 3200 2400",
-  },
-  // ... (otros pisos)
-}
-
-// Paths predeterminados para los SVG de los departamentos
-const defaultSvgPaths = {
-  "1A": "M136,509 L126,2004 L764,2001 L767,1918 L1209,1915 L1207,1999 L1218,2001 L1221,1692 L1635,1692 L1639,1544 L1224,1543 L1227,1291 L1430,1292 L1424,899 L1219,902 L1216,578 L506,575 L504,455 Z",
-  "1B": "M3111,2317 L1421,2314 L1418,2007 L1209,2004 L1209,1680 L1635,1683 L2078,1683 L2084,1270 L3117,1270 Z",
-  "1C": "M3111,1276 L3114,300 L2298,303 L2304,214 L1206,366 L1212,904 L1415,910 L1418,1288 L1674,1291 L1677,1115 L1879,1109 L1879,1285 Z",
-  "2A": "M138,2013 L1224,2019 L1221,1704 L1638,1716 L1638,1555 L1221,1552 L1224,1303 L1424,1300 L1421,913 L1224,904 L1215,232 L168,372 L171,396 L207,396 L204,514 L135,526 Z",
-  "2B": "M3111,2325 L1418,2325 L1421,2016 L1215,2013 L1227,1701 L2075,1698 L2087,1294 L3253,1291 L3259,2290 L3230,2290 L3230,2260 L3114,2260 Z",
-  "2C": "M1882,1300 L3248,1294 L3259,749 L3242,755 L3239,794 L3117,791 L3123,83 L3096,80 L3096,113 L1912,277 L1915,158 L1959,155 L1953,128 L1209,232 L1218,907 L1424,916 L1418,1300 L1671,1294 L1671,1124 L1876,1130 Z",
-  // Los mismos paths para los pisos 3-7
-  "8A": "M854,1776 L203,1786 L208,420 L605,414 L595,351 L1341,255 L1346,1304 L1754,1304 L1754,1447 L1346,1463 L1346,1702 L859,1712 Z",
-  "8B": "M1346,1447 L1341,1702 L1558,1712 L1558,1792 L1748,1792 L1748,2094 L3114,2094 L3108,1087 L2436,1087 L2431,1214 L2251,1220 L2256,1431 Z",
-  "8C": "M3119,1092 L2426,1082 L2426,1008 L2045,1018 L2039,838 L2436,817 L2442,626 L1965,626 L1976,838 L1817,838 L1817,1008 L1346,1008 L1346,255 L3124,22 Z",
-  "9A": "M22,342 L26,1335 L1599,1335 L1602,1054 L1449,1054 L1442,926 L1001,929 L1001,214 Z",
-  "9B": "M1342,1332 L1342,1613 L2345,1610 L2352,26 L1001,217 L994,342 L1175,346 L1178,679 L1783,683 L1783,1047 L1606,1051 L1606,1325 Z",
-}
-
-// Paths predeterminados para los SVG de las cocheras
-const defaultParkingPaths = [
-  "M571,885 L640,1391 L737,1405 L817,1369 L753,869 L668,865 Z",
-  "M862,845 L926,1349 L1039,1373 L1120,1321 L1055,841 L1007,816 L951,824 L910,833 Z",
-  "M1164,811 L1221,1311 L1318,1319 L1394,1303 L1418,1255 L1350,779 L1245,783 Z",
-  "M1455,763 L1531,1271 L1636,1279 L1717,1243 L1644,730 Z",
-  "M1761,722 L1826,1227 L1911,1243 L2011,1214 L1943,694 Z",
-  "M2060,685 L2140,1193 L2229,1209 L2318,1177 L2253,660 Z",
-  "M2374,654 L2447,1150 L2544,1158 L2625,1122 L2552,625 Z",
-  "M2681,639 L2754,1107 L2850,1115 L2931,1083 L2862,578 L2681,607 Z",
-  "M2992,560 L3064,1064 L3165,1076 L3250,1036 L3169,535 Z",
-  "M3520,1198 L4020,1198 L4020,1384 L3520,1392 L3488,1307 Z",
-  "M3512,1497 L4020,1501 L4028,1670 L3524,1687 L3496,1586 Z",
-  "M1253,2522 L1435,2522 L1427,2009 L1338,1985 L1245,2017 Z",
-  "M1552,2013 L1552,2518 L1741,2522 L1729,2017 L1644,1989 Z",
-]
-
 interface InteractiveFloorPlanProps {
-  projectId?: number
+  projectId: number
   floorNumber?: number | null
-  onReturnToProjectModal: () => void
+  onReturnToProjectModal?: () => void
 }
 
 export default function InteractiveFloorPlan({
@@ -210,11 +123,12 @@ export default function InteractiveFloorPlan({
   floorNumber,
   onReturnToProjectModal,
 }: InteractiveFloorPlanProps) {
+  const { user } = useAuth()
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedApartment, setSelectedApartment] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activityLog, setActivityLog] = useState<string[]>([])
-  const { user } = useAuth()
+
   const [action, setAction] = useState<
     "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | null
   >(null)
@@ -226,423 +140,165 @@ export default function InteractiveFloorPlan({
     price: "",
     note: "",
   })
-  const [unitStats, setUnitStats] = useState<UnitStats>({
-    disponibles: 0,
-    reservadas: 0,
-    vendidas: 0,
-    bloqueadas: 0,
-  })
-  const [confirmReservation, setConfirmReservation] = useState(false)
-  const [confirmCancelReservation, setConfirmCancelReservation] = useState(false)
-  const [confirmRelease, setConfirmRelease] = useState(false)
+
+  const [unitStats, setUnitStats] = useState<{
+    disponibles: number
+    reservadas: number
+    vendidas: number
+    bloqueadas: number
+  }>({ disponibles: 0, reservadas: 0, vendidas: 0, bloqueadas: 0 })
+
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedParking, setSelectedParking] = useState<string | null>(null)
   const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
   const [parkingSpots, setParkingSpots] = useState<ParkingSpot[]>([])
   const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
-  const [floorData, setFloorData] = useState<FloorData>({ apartments: {}, svgPaths: {} })
-  const [showParkingAssignment, setShowParkingAssignment] = useState(false)
-  const [selectedParkings, setSelectedParkings] = useState<{ [key: string]: boolean }>({})
+  const [selectedParking, setSelectedParking] = useState<string | null>(null) // Stores parking_spot_code like "P1"
   const [isParkingInfoModalOpen, setIsParkingInfoModalOpen] = useState(false)
+
+  const [projectConfig, setProjectConfig] = useState<any>(null)
+  const [currentFloorConfig, setCurrentFloorConfig] = useState<FloorConfig | null>(null)
+  const [apartmentsData, setApartmentsData] = useState<ApartmentDataMap>({})
+
+  const [showParkingAssignment, setShowParkingAssignment] = useState(false)
+  const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [apiAvailable, setApiAvailable] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const [creatingFloors, setCreatingFloors] = useState(false)
 
-  // Initialize Notyf
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
-    if (typeof window !== "undefined" && !notyf) {
-      notyf = new Notyf({
-        duration: 3000,
-        position: { x: "right", y: "top" },
-      })
+    if (typeof window !== "undefined" && !notyfInstance) {
+      notyfInstance = new Notyf({ duration: 3000, position: { x: "right", y: "top" } })
     }
   }, [])
 
-  // Check API availability
-  useEffect(() => {
-    const checkApiAvailability = async () => {
+  const fetchFullProjectData = useCallback(
+    async (forceRefresh = false) => {
+      if (!projectId) return
+      setLoading(true)
+      setError(null)
       try {
-        const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 5000)
+        const token = localStorage.getItem("token") || ""
+        const config = await fetchProjectConfigById(projectId, token)
+        setProjectConfig(config)
 
-        const response = await fetch(`${API_BASE_URL}/health`, {
-          method: "HEAD",
-          signal: controller.signal,
+        const floorConfigForCurrent = Array.isArray(config?.floorConfig)
+          ? config.floorConfig.find((fc: FloorConfig) => fc.floor_number === currentFloor)
+          : null
+        setCurrentFloorConfig(floorConfigForCurrent)
+
+        if (floorConfigForCurrent?.id) {
+          const apartmentsResponse = await fetch(`${API_BASE_URL}/apartments/floor/${floorConfigForCurrent.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!apartmentsResponse.ok)
+            throw new Error(`Error al obtener departamentos: ${apartmentsResponse.statusText}`)
+          const apartmentsApiData: any[] = await apartmentsResponse.json()
+
+          const formattedApartments: ApartmentDataMap = {}
+          apartmentsApiData.forEach((apt) => {
+            let aptSvgPath = apt.svg_path
+            if (!aptSvgPath) {
+              aptSvgPath = getApartmentSvgPath(apt.apartment_id, floorConfigForCurrent, config)
+            }
+
+            formattedApartments[apt.apartment_id] = {
+              id: apt.id,
+              buyer: apt.buyer || "",
+              date: apt.reservation_date || apt.sale_date || "",
+              price: apt.price || floorConfigForCurrent?.apartment_config?.[apt.apartment_id]?.default_price || "",
+              status: apt.status as ApartmentStatus,
+              contractUrl: apt.contract_url || "",
+              phoneNumber: apt.phone || "",
+              email: apt.email || "",
+              surface:
+                apt.surface || floorConfigForCurrent?.apartment_config?.[apt.apartment_id]?.default_surface || "",
+              assignedParkings: apt.assigned_parkings || [], // Ensure this is an array
+              notes: apt.notes || "",
+              svg_path: aptSvgPath,
+            }
+          })
+          setApartmentsData(formattedApartments)
+          updateUnitStats(formattedApartments)
+        } else {
+          setApartmentsData({})
+          updateUnitStats({})
+        }
+
+        const parkingResponse = await fetch(`${API_BASE_URL}/parking/project/${projectId}`, {
+          headers: { Authorization: `Bearer ${token}` },
         })
+        if (!parkingResponse.ok) throw new Error(`Error al obtener cocheras: ${parkingResponse.statusText}`)
+        const parkingApiData: any[] = await parkingResponse.json()
 
-        clearTimeout(timeoutId)
-        setApiAvailable(response.ok)
+        const formattedParkingSpots: ParkingSpot[] = parkingApiData.map((spot) => ({
+          dbId: spot.id,
+          id: spot.parking_spot_code, // This is "P1", "P2", etc.
+          level: spot.level,
+          status: spot.status as "libre" | "ocupado",
+          assignedTo: spot.assigned_to_apartment_code, // This is "1-1A", etc.
+          path: spot.svg_path || getParkingSvgPath(spot.parking_spot_code, config), // Fallback to defaultParkingPaths
+        }))
+        setParkingSpots(formattedParkingSpots)
+
+        const logsResponse = await fetch(`${API_BASE_URL}/activity-logs/project/${projectId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (logsResponse.ok) {
+          const logsData = await logsResponse.json()
+          setActivityLog(
+            logsData.map((log: any) => `${new Date(log.created_at).toLocaleString()} - ${log.description}`).reverse(),
+          )
+        }
       } catch (err) {
-        console.warn("API health check failed:", err)
-        setApiAvailable(false)
+        console.error("Error fetching full project data:", err)
+        setError(err instanceof Error ? err.message : "Error desconocido al cargar datos del proyecto.")
+        if (notyfInstance) notyfInstance.error("Error al cargar datos del proyecto.")
+      } finally {
+        setLoading(false)
+        setRefreshing(false)
       }
-    }
+    },
+    [projectId, currentFloor],
+  )
 
-    checkApiAvailability()
-  }, [])
+  useEffect(() => {
+    fetchFullProjectData()
+  }, [projectId, currentFloor, fetchFullProjectData])
 
-  // Set up auto-refresh
   useEffect(() => {
     if (autoRefresh && projectId) {
       refreshIntervalRef.current = setInterval(() => {
-        refreshData()
-      }, 30000) // Refresh every 30 seconds
+        if (!isModalOpen && !showParkingAssignment && !isParkingModalOpen && !isParkingInfoModalOpen) {
+          setRefreshing(true)
+          fetchFullProjectData(true)
+        }
+      }, 30000)
     }
-
     return () => {
-      if (refreshIntervalRef.current) {
-        clearInterval(refreshIntervalRef.current)
-      }
+      if (refreshIntervalRef.current) clearInterval(refreshIntervalRef.current)
     }
-  }, [autoRefresh, projectId, currentFloor])
+  }, [
+    autoRefresh,
+    projectId,
+    fetchFullProjectData,
+    isModalOpen,
+    showParkingAssignment,
+    isParkingModalOpen,
+    isParkingInfoModalOpen,
+  ])
 
-  // Function to refresh data
-  const refreshData = async () => {
-    if (!projectId || refreshing) return
-
+  const refreshDataManual = () => {
     setRefreshing(true)
-    try {
-      await fetchFloorData()
-      await fetchParkingSpots()
-      await fetchActivityLogs()
-    } catch (err) {
-      console.error("Error refreshing data:", err)
-    } finally {
-      setRefreshing(false)
-    }
+    fetchFullProjectData(true)
   }
 
-  // Modificar la función createFloorsAndApartments para usar las rutas existentes
-  const createFloorsAndApartments = async () => {
-    if (!projectId || creatingFloors) return
-
-    setCreatingFloors(true)
-    try {
-      // En lugar de intentar crear pisos directamente con POST,
-      // usamos la ruta GET existente que creará los pisos si no existen
-      const floorResponse = await fetch(`${API_BASE_URL}/floors/project/${projectId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-
-      if (!floorResponse.ok) {
-        throw new Error(`Error getting/creating floors: ${floorResponse.statusText}`)
-      }
-
-      const floors = await floorResponse.json()
-      console.log("Floors created or retrieved:", floors)
-
-      // Para cada piso, obtenemos los departamentos (que también se crearán si no existen)
-      for (const floor of floors) {
-        const apartmentsResponse = await fetch(`${API_BASE_URL}/apartments/floor/${floor.id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        })
-
-        if (!apartmentsResponse.ok) {
-          console.error(
-            `Error getting/creating apartments for floor ${floor.floor_number}:`,
-            apartmentsResponse.statusText,
-          )
-        } else {
-          console.log(`Apartments for floor ${floor.floor_number} created or retrieved`)
-        }
-      }
-
-      // Obtener las cocheras (que también se crearán si no existen)
-      const parkingResponse = await fetch(`${API_BASE_URL}/parking/project/${projectId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-
-      if (!parkingResponse.ok) {
-        console.error("Error getting/creating parking spots:", parkingResponse.statusText)
-      } else {
-        console.log("Parking spots created or retrieved")
-      }
-
-      if (notyf) notyf.success("Pisos y departamentos creados con éxito")
-
-      // Recargar los datos
-      await refreshData()
-    } catch (err) {
-      console.error("Error creating floors and apartments:", err)
-      if (notyf) notyf.error("Error al crear pisos y departamentos")
-    } finally {
-      setCreatingFloors(false)
-    }
-  }
-
-  // Fetch floor data
-  const fetchFloorData = async () => {
-    if (!projectId) return
-
-    try {
-      setLoading(true)
-
-      // First, get the floor by project and number
-      const floorResponse = await fetch(`${API_BASE_URL}/floors/project/${projectId}/number/${currentFloor}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-
-      if (!floorResponse.ok) {
-        // Si el piso no existe, usar datos de respaldo
-        console.warn(`Floor ${currentFloor} not found for project ${projectId}, using fallback data`)
-
-        // Intentar crear los pisos y departamentos
-        await createFloorsAndApartments()
-
-        // Usar datos de respaldo mientras tanto
-        const fallbackData = initialFloorData[currentFloor] || {
-          apartments: {},
-          svgPaths: {},
-          viewBox: "0 0 3200 2400",
-        }
-
-        setFloorData(fallbackData)
-        updateUnitStats(fallbackData.apartments)
-        setError(null)
-        setLoading(false)
-        return
-      }
-
-      const floorInfo = await floorResponse.json()
-      const floorId = floorInfo.id
-
-      // Then, get the apartments for this floor
-      const apartmentsResponse = await fetch(`${API_BASE_URL}/apartments/floor/${floorId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-
-      if (!apartmentsResponse.ok) {
-        throw new Error(`HTTP error! status: ${apartmentsResponse.status}`)
-      }
-
-      const apartments = await apartmentsResponse.json()
-
-      // Format data to match the expected structure
-      const formattedData: FloorData = {
-        apartments: {},
-        svgPaths: {},
-        viewBox: floorInfo.view_box || "0 0 3200 2400",
-        id: floorId,
-      }
-
-      // Process apartments
-      apartments.forEach((apt: any) => {
-        formattedData.apartments[apt.apartment_id] = {
-          buyer: apt.buyer || "",
-          date: apt.reservation_date || "",
-          price: apt.price || "",
-          status: apt.status as ApartmentStatus,
-          surface: apt.surface || "",
-          phoneNumber: apt.phone || "",
-          email: apt.email || "",
-          assignedParkings: [],
-          id: apt.id, // Make sure this is included
-        }
-
-        formattedData.svgPaths[apt.apartment_id] = apt.svg_path || ""
-      })
-
-      // Get parking assignments
-      const parkingResponse = await fetch(`${API_BASE_URL}/parking/project/${projectId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-
-      if (parkingResponse.ok) {
-        const parkingData = await parkingResponse.json()
-
-        // Assign parking spots to apartments
-        parkingData.forEach((spot: any) => {
-          if (spot.assigned_to) {
-            const [floorNum, aptId] = spot.assigned_to.split("-")
-            if (floorNum === currentFloor.toString() && formattedData.apartments[aptId]) {
-              formattedData.apartments[aptId].assignedParkings.push(spot.parking_id)
-            }
-          }
-        })
-      }
-
-      setFloorData(formattedData)
-      updateUnitStats(formattedData.apartments)
-      setError(null)
-    } catch (err) {
-      console.error("Error fetching floor data:", err)
-      setError(err instanceof Error ? err.message : "Error desconocido")
-
-      // Si hay un error, intentar crear los pisos y departamentos
-      await createFloorsAndApartments()
-
-      // Usar datos de respaldo mientras tanto
-      const fallbackData = initialFloorData[currentFloor] || {
-        apartments: {},
-        svgPaths: {},
-        viewBox: "0 0 3200 2400",
-      }
-
-      setFloorData(fallbackData)
-      updateUnitStats(fallbackData.apartments)
-
-      if (notyf) notyf.error("Error al cargar los datos del piso")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Add this function after the fetchFloorData function
-
-  const refreshApartmentData = async (floorNumber: number, apartmentId: string) => {
-    if (!projectId) return null
-
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/apartments/by-identifier/${floorNumber}/${apartmentId}?projectId=${projectId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        },
-      )
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      // Update the apartment data in the state
-      setFloorData((prevData) => ({
-        ...prevData,
-        apartments: {
-          ...prevData.apartments,
-          [apartmentId]: {
-            ...prevData.apartments[apartmentId],
-            id: data.id,
-          },
-        },
-      }))
-
-      return data
-    } catch (err) {
-      console.error("Error refreshing apartment data:", err)
-      return null
-    }
-  }
-
-  // Modify the handleApartmentClick function to fetch the apartment data if needed
-  const handleApartmentClick = async (apartment: string) => {
-    setSelectedApartment(apartment)
-    setIsModalOpen(true)
-    setAction(null)
-    setFormData({
-      name: "",
-      phone: "",
-      email: "",
-      reservationOrder: null,
-      price: "",
-      note: "",
-    })
-    setConfirmReservation(false)
-    setConfirmCancelReservation(false)
-    setConfirmRelease(false)
-
-    // If the apartment doesn't have an ID, try to fetch it
-    if (floorData.apartments[apartment] && !floorData.apartments[apartment].id) {
-      await refreshApartmentData(currentFloor, apartment)
-    }
-  }
-
-  // Fetch parking spots
-  const fetchParkingSpots = async () => {
-    if (!projectId) return
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/parking/project/${projectId}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-
-      if (!response.ok) {
-        // Si no hay cocheras, intentar crearlas
-        await createFloorsAndApartments()
-        return
-      }
-
-      const data = await response.json()
-
-      // Transform data to match the expected format
-      const formattedSpots: ParkingSpot[] = data.map((spot: any) => ({
-        id: spot.parking_id,
-        level: spot.level,
-        status: spot.status as "libre" | "ocupado",
-        assignedTo: spot.assigned_to,
-        path: spot.svg_path,
-        dbId: spot.id,
-      }))
-
-      setParkingSpots(formattedSpots)
-    } catch (err) {
-      console.error("Error fetching parking spots:", err)
-      if (notyf) notyf.error("Error al cargar las cocheras")
-    }
-  }
-
-  // Fetch activity logs
-  const fetchActivityLogs = async () => {
-    if (!projectId) return
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/floors/project/${projectId}/logs`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      })
-
-      if (!response.ok) {
-        return
-      }
-
-      const data = await response.json()
-
-      // Format logs
-      const formattedLogs = data.map((log: any) => {
-        const timestamp = new Date(log.created_at).toLocaleString()
-        return `${timestamp} - ${log.description}`
-      })
-
-      setActivityLog(formattedLogs)
-    } catch (err) {
-      console.error("Error fetching activity logs:", err)
-    }
-  }
-
-  // Load data when component mounts or floor changes
-  useEffect(() => {
-    if (projectId) {
-      fetchFloorData()
-      fetchParkingSpots()
-      fetchActivityLogs()
-    }
-  }, [projectId, currentFloor])
-
-  const updateUnitStats = (apartments: ApartmentDataMap) => {
-    const stats = Object.values(apartments).reduce(
+  const updateUnitStats = (currentApartments: ApartmentDataMap) => {
+    const stats = Object.values(currentApartments).reduce(
       (acc, apartment) => {
         if (apartment.status === "libre") acc.disponibles++
         else if (apartment.status === "reservado") acc.reservadas++
@@ -655,288 +311,150 @@ export default function InteractiveFloorPlan({
     setUnitStats(stats)
   }
 
-  const handleFloorClick = (floor: number) => {
-    setCurrentFloor(floor)
+  const handleFloorClick = (floorNum: number) => {
+    setCurrentFloor(floorNum)
     setSelectedApartment(null)
     setIsModalOpen(false)
+  }
+
+  const handleApartmentClick = (apartmentIdCode: string) => {
+    setSelectedApartment(apartmentIdCode)
+    const aptData = apartmentsData[apartmentIdCode]
+    setFormData({
+      name: aptData?.buyer || "",
+      phone: aptData?.phoneNumber || "",
+      email: aptData?.email || "",
+      price: aptData?.price || "",
+      note: aptData?.notes || "",
+      reservationOrder: null,
+    })
+    setAction(null)
+    setIsModalOpen(true)
   }
 
   const handleActionClick = (
     actionType: "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release",
   ) => {
     setAction(actionType)
-    setConfirmReservation(
-      actionType === "reserve" &&
-        selectedApartment !== null &&
-        floorData.apartments[selectedApartment]?.status === "bloqueado",
-    )
-    setConfirmCancelReservation(actionType === "cancelReservation")
-    setConfirmRelease(actionType === "release")
   }
 
-  // Dentro de la función handleFormSubmit, reemplazar la llamada a la API con:
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedApartment || !projectId || !user) return
+    if (
+      !selectedApartment ||
+      !projectId ||
+      !user ||
+      !currentFloorConfig?.id ||
+      !apartmentsData[selectedApartment]?.id
+    ) {
+      if (notyfInstance) notyfInstance.error("Faltan datos para realizar la acción.")
+      return
+    }
+
+    const apartmentDbId = apartmentsData[selectedApartment].id!
+    let newStatus: ApartmentStatus = apartmentsData[selectedApartment].status
+    let logDescription = ""
+
+    switch (action) {
+      case "block":
+        newStatus = "bloqueado"
+        logDescription = `${user.name} bloqueó ${selectedApartment}`
+        break
+      case "directReserve":
+        newStatus = "reservado"
+        logDescription = `${user.name} reservó (directo) ${selectedApartment} para ${formData.name}`
+        break
+      case "reserve":
+        newStatus = "reservado"
+        logDescription = `${user.name} reservó ${selectedApartment} (desde bloqueo)`
+        break
+      case "sell":
+        newStatus = "ocupado"
+        logDescription = `${user.name} vendió ${selectedApartment}`
+        break
+      case "unblock":
+        newStatus = "libre"
+        logDescription = `${user.name} liberó bloqueo de ${selectedApartment}. Nota: ${formData.note}`
+        break
+      case "cancelReservation":
+        newStatus = "libre"
+        logDescription = `${user.name} canceló reserva de ${selectedApartment}. Nota: ${formData.note}`
+        break
+      case "release":
+        newStatus = "libre"
+        logDescription = `${user.name} liberó ${selectedApartment} (vendido). Nota: ${formData.note}`
+        break
+      default:
+        if (notyfInstance) notyfInstance.error("Acción no reconocida")
+        return
+    }
+
+    if ((action === "unblock" || action === "cancelReservation" || action === "release") && !formData.note) {
+      if (notyfInstance) notyfInstance.error("Se requiere una nota para esta acción.")
+      return
+    }
+
+    const payload: any = {
+      status: newStatus,
+      price: formData.price || apartmentsData[selectedApartment].price,
+      description: logDescription,
+      userId: user.userId,
+      userName: user.name,
+      projectId: projectId,
+      buyer:
+        action === "directReserve" || action === "sell" || action === "block"
+          ? formData.name
+          : newStatus === "libre"
+            ? ""
+            : apartmentsData[selectedApartment].buyer,
+      phone:
+        action === "directReserve" || action === "sell" || action === "block"
+          ? formData.phone
+          : newStatus === "libre"
+            ? ""
+            : apartmentsData[selectedApartment].phoneNumber,
+      email:
+        action === "directReserve" || action === "sell" || action === "block"
+          ? formData.email
+          : newStatus === "libre"
+            ? ""
+            : apartmentsData[selectedApartment].email,
+      reservation_date:
+        newStatus === "reservado"
+          ? new Date().toISOString().split("T")[0]
+          : newStatus === "libre"
+            ? null
+            : apartmentsData[selectedApartment].date,
+      sale_date: newStatus === "ocupado" ? new Date().toISOString().split("T")[0] : null,
+      notes: formData.note || apartmentsData[selectedApartment].notes,
+    }
+
+    if (action === "sell" && formData.reservationOrder) {
+      payload.contractFile = formData.reservationOrder
+    }
 
     try {
-      const apartment = floorData.apartments[selectedApartment]
-      if (!apartment) {
-        if (notyf) notyf.error("No se encontró información del departamento")
-        return
-      }
-
-      let newStatus: ApartmentStatus = apartment.status
-      let description = ""
-
-      switch (action) {
-        case "block":
-          newStatus = "bloqueado"
-          description = `${user.name} bloqueó el departamento ${selectedApartment}`
-          break
-        case "reserve":
-        case "directReserve":
-          newStatus = "reservado"
-          description = `${user.name} reservó el departamento ${selectedApartment}`
-          break
-        case "sell":
-          newStatus = "ocupado"
-          description = `${user.name} vendió el departamento ${selectedApartment}`
-          break
-        case "unblock":
-          if (formData.note) {
-            newStatus = "libre"
-            description = `${user.name} liberó el bloqueo del departamento ${selectedApartment}. Nota: ${formData.note}`
-          } else {
-            if (notyf) notyf.error("Se requiere una nota para liberar el bloqueo")
-            return
-          }
-          break
-        case "cancelReservation":
-          if (formData.note) {
-            newStatus = "libre"
-            description = `${user.name} canceló la reserva del departamento ${selectedApartment}. Nota: ${formData.note}`
-          } else {
-            if (notyf) notyf.error("Se requiere una nota para cancelar la reserva")
-            return
-          }
-          break
-        case "release":
-          if (formData.note) {
-            newStatus = "libre"
-            description = `${user.name} liberó el departamento ${selectedApartment}. Nota: ${formData.note}`
-          } else {
-            if (notyf) notyf.error("Se requiere una nota para liberar el departamento")
-            return
-          }
-          break
-        default:
-          if (notyf) notyf.error("Acción no reconocida")
-          return
-      }
-
-      // Get the apartment ID from the database
-      const apartmentDbId = apartment.id
-      if (!apartmentDbId) {
-        // Log more details for debugging
-        console.error("No database ID found for apartment", selectedApartment, "Full apartment data:", apartment)
-
-        // Try to find the apartment in the database by querying for it
-        try {
-          const response = await fetch(
-            `${API_BASE_URL}/apartments/by-identifier/${currentFloor}/${selectedApartment}`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            },
-          )
-
-          if (response.ok) {
-            const data = await response.json()
-            if (data && data.id) {
-              // Usar la función optimizada para actualizar el departamento
-              const success = await updateApartment(
-                data.id,
-                {
-                  status: newStatus,
-                  buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
-                  phone: action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
-                  email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
-                  price: formData.price || apartment.price,
-                  description,
-                  userId: user.userId,
-                  userName: user.name,
-                  projectId: projectId,
-                },
-                projectId,
-                currentFloor,
-              )
-
-              if (!success) {
-                throw new Error("Error al actualizar departamento")
-              }
-
-              // Actualizar la interfaz inmediatamente sin esperar a la próxima actualización
-              setFloorData((prevData) => ({
-                ...prevData,
-                apartments: {
-                  ...prevData.apartments,
-                  [selectedApartment]: {
-                    ...prevData.apartments[selectedApartment],
-                    status: newStatus,
-                    buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
-                    phoneNumber:
-                      action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
-                    email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
-                    price: formData.price || apartment.price,
-                  },
-                },
-              }))
-
-              // Actualizar el registro de actividades
-              const timestamp = new Date().toLocaleString()
-              setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
-
-              if (notyf) {
-                switch (action) {
-                  case "block":
-                    notyf.success("Departamento bloqueado con éxito")
-                    break
-                  case "reserve":
-                  case "directReserve":
-                    notyf.success("Departamento reservado con éxito")
-                    break
-                  case "sell":
-                    notyf.success("Departamento vendido con éxito")
-                    break
-                  case "unblock":
-                    notyf.success("Bloqueo liberado con éxito")
-                    break
-                  case "cancelReservation":
-                    notyf.success("Reserva cancelada con éxito")
-                    break
-                  case "release":
-                    notyf.success("Departamento liberado con éxito")
-                    break
-                }
-              }
-
-              setIsModalOpen(false)
-              setAction(null)
-              setConfirmReservation(false)
-              setConfirmCancelReservation(false)
-              setConfirmRelease(false)
-              setFormData({
-                name: "",
-                phone: "",
-                email: "",
-                reservationOrder: null,
-                price: "",
-                note: "",
-              })
-
-              // Invalidar la caché para forzar una actualización en la próxima carga
-              invalidateCache(projectId, currentFloor)
-
-              return // Exit early since we've handled the update
-            }
-          }
-        } catch (err) {
-          console.error("Error trying to find apartment by identifier:", err)
-        }
-
-        if (notyf) notyf.error("Error: No se encontró el ID del departamento en la base de datos")
-        return
-      }
-
-      // Usar la función optimizada para actualizar el departamento
       const success = await updateApartment(
         apartmentDbId,
-        {
-          status: newStatus,
-          buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
-          phone: action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
-          email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
-          price: formData.price || apartment.price,
-          description,
-          userId: user.userId,
-          userName: user.name,
-          projectId: projectId,
-        },
+        payload,
         projectId,
-        currentFloor,
+        currentFloor, // This might not be needed if backend derives it
+        localStorage.getItem("token") || "",
+        !!formData.reservationOrder,
       )
-
-      if (!success) {
-        throw new Error("Error al actualizar departamento")
+      if (success) {
+        if (notyfInstance) notyfInstance.success("Departamento actualizado con éxito.")
+        setIsModalOpen(false)
+        setAction(null)
+        setFormData({ name: "", phone: "", email: "", reservationOrder: null, price: "", note: "" })
+        if (fileInputRef.current) fileInputRef.current.value = ""
+        fetchFullProjectData(true)
+      } else {
+        throw new Error("Error al actualizar departamento desde el servicio.")
       }
-
-      // Actualizar la interfaz inmediatamente sin esperar a la próxima actualización
-      setFloorData((prevData) => ({
-        ...prevData,
-        apartments: {
-          ...prevData.apartments,
-          [selectedApartment]: {
-            ...prevData.apartments[selectedApartment],
-            status: newStatus,
-            buyer: action === "block" || action === "directReserve" ? formData.name : apartment.buyer,
-            phoneNumber: action === "block" || action === "directReserve" ? formData.phone : apartment.phoneNumber,
-            email: action === "block" || action === "directReserve" ? formData.email : apartment.email,
-            price: formData.price || apartment.price,
-          },
-        },
-      }))
-
-      // Actualizar el registro de actividades
-      const timestamp = new Date().toLocaleString()
-      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
-
-      if (notyf) {
-        switch (action) {
-          case "block":
-            notyf.success("Departamento bloqueado con éxito")
-            break
-          case "reserve":
-            notyf.success("Departamento reservado con éxito")
-            break
-          case "directReserve":
-            notyf.success("Departamento reservado con éxito")
-            break
-          case "sell":
-            notyf.success("Departamento vendido con éxito")
-            break
-          case "unblock":
-            notyf.success("Bloqueo liberado con éxito")
-            break
-          case "cancelReservation":
-            notyf.success("Reserva cancelada con éxito")
-            break
-          case "release":
-            notyf.success("Departamento liberado con éxito")
-            break
-        }
-      }
-
-      setIsModalOpen(false)
-      setAction(null)
-      setConfirmReservation(false)
-      setConfirmCancelReservation(false)
-      setConfirmRelease(false)
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        reservationOrder: null,
-        price: "",
-        note: "",
-      })
-
-      // Invalidar la caché para forzar una actualización en la próxima carga
-      invalidateCache(projectId, currentFloor)
     } catch (err) {
       console.error("Error updating apartment:", err)
-      if (notyf) notyf.error("Error al actualizar el departamento")
+      if (notyfInstance) notyfInstance.error((err as Error).message || "Error al actualizar el departamento.")
     }
   }
 
@@ -947,300 +465,303 @@ export default function InteractiveFloorPlan({
   }
 
   const handleDownloadFloorPlan = () => {
-    if (!selectedApartment) return
+    if (!selectedApartment || !projectConfig?.files) return
+    const aptFile = Array.isArray(projectConfig.files)
+      ? projectConfig.files.find(
+          (f: any) =>
+            f.file_type === "apartment_pdf" && f.apartment_id === selectedApartment && f.floor_number === currentFloor,
+        )
+      : null
+    if (aptFile?.file_path) {
+      window.open(
+        aptFile.file_path.startsWith("http") || aptFile.file_path.startsWith("/")
+          ? aptFile.file_path
+          : aptFile.file_path, // Use relative path directly
+        "_blank",
+      )
+      if (notyfInstance) notyfInstance.success("Descargando plano...")
+    } else {
+      if (notyfInstance) notyfInstance.error("Plano no disponible para este departamento.")
+    }
+  }
 
-    const pdfPath = apartmentPDFs[selectedApartment]
-    if (!pdfPath) {
-      if (notyf) notyf.error("Plano no disponible")
+  const handleDownloadContract = () => {
+    if (!selectedApartment || !apartmentsData[selectedApartment]?.contractUrl) {
+      if (notyfInstance) notyfInstance.error("Contrato no disponible.")
+      return
+    }
+    const url = apartmentsData[selectedApartment].contractUrl!
+    window.open(url.startsWith("http") || url.startsWith("/") ? url : url, "_blank")
+    if (notyfInstance) notyfInstance.success("Descargando contrato...")
+  }
+
+  const handleParkingClick = (parkingSpotCode: string, level: number) => {
+    // parkingSpotCode is "P1", "P2"
+    const spot = parkingSpots.find((p) => p.id === parkingSpotCode && p.level === level)
+    if (spot) {
+      setSelectedParking(parkingSpotCode) // Store "P1", "P2"
+      setCurrentGarageLevel(level)
+      if (spot.status === "ocupado") {
+        setIsParkingInfoModalOpen(true)
+      } else {
+        setIsParkingModalOpen(true)
+      }
+    }
+  }
+
+  const handleParkingAssignmentAction = async (assignToApartmentIdCode: string | null) => {
+    // assignToApartmentIdCode is "1A", "2B"
+    if (!selectedParking || !projectId || !user || !currentGarageLevel) {
+      // selectedParking is "P1", "P2"
+      if (notyfInstance) notyfInstance.error("Faltan datos para la acción de cochera.")
+      return
+    }
+    const spotToUpdate = parkingSpots.find((p) => p.id === selectedParking && p.level === currentGarageLevel)
+    if (!spotToUpdate?.dbId) {
+      if (notyfInstance) notyfInstance.error("No se encontró la cochera en la base de datos.")
       return
     }
 
-    // Create a link element and trigger download
-    const link = document.createElement("a")
-    link.href = pdfPath
-    link.download = `Plano_${selectedApartment}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    const newStatus = assignToApartmentIdCode ? "ocupado" : "libre"
+    // Backend expects assigned_to_apartment_code as "FLOOR-APTCODE", e.g., "1-1A"
+    const assignedToDbFormat = assignToApartmentIdCode
+      ? `${currentFloorConfig?.floor_number || currentFloor}-${assignToApartmentIdCode}`
+      : null
 
-    if (notyf) notyf.success("Descargando plano...")
-  }
-
-  const handleDownloadAdditionalInfo = useCallback((type: string) => {
-    console.log(`Downloading ${type}...`)
-    if (notyf) notyf.success(`Descargando ${type}...`)
-  }, [])
-
-  const handleDownloadContract = (apartment: string) => {
-    const apartmentData = floorData.apartments[apartment]
-    if (apartmentData.contractFile) {
-      // Aquí iría la lógica para descargar el archivo
-      // Por ahora, solo mostraremos un mensaje en la consola
-      console.log(`Descargando contrato para el departamento ${apartment}`)
-      if (notyf) notyf.success(`Descargando contrato para el departamento ${apartment}`)
-    } else {
-      console.log(`No hay contrato disponible para el departamento ${apartment}`)
-      if (notyf) notyf.error(`No hay contrato disponible para el departamento ${apartment}`)
-    }
-  }
-
-  const handleParkingClick = (parkingId: string, level: number) => {
-    if (level === 1) {
-      const clickedSpot = parkingSpots.find((spot) => spot.id === parkingId)
-      if (clickedSpot) {
-        setSelectedParking(parkingId)
-        setCurrentGarageLevel(level)
-        if (clickedSpot.status === "ocupado") {
-          setIsParkingInfoModalOpen(true)
-        } else {
-          setIsParkingModalOpen(true)
-        }
-      }
-    }
-  }
-
-  const handleParkingAssignment = async () => {
-    if (!selectedApartment || !projectId || !user) return
+    const logDesc = assignToApartmentIdCode
+      ? `${user.name} asignó cochera ${selectedParking} (Nivel ${currentGarageLevel}) a depto. ${assignedToDbFormat}`
+      : `${user.name} liberó cochera ${selectedParking} (Nivel ${currentGarageLevel})`
 
     try {
-      const parkingIdsToAssign = Object.keys(selectedParkings).filter((id) => selectedParkings[id])
-
-      // Update parking assignments in database
-      const response = await fetch(`${API_BASE_URL}/parking/project/${projectId}/assign`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          apartmentId: `${currentFloor}-${selectedApartment}`,
-          parkingIds: parkingIdsToAssign,
-          userId: user.userId,
-          userName: user.name,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error assigning parking spots:", errorData)
-        if (notyf) notyf.error(`Error al asignar cocheras: ${errorData.message || "Error desconocido"}`)
-        return
-      }
-
-      // Refresh data to get the latest state
-      await refreshData()
-
-      if (notyf) notyf.success("Cocheras actualizadas con éxito")
-      setShowParkingAssignment(false)
-    } catch (err) {
-      console.error("Error assigning parking spots:", err)
-      if (notyf) notyf.error("Error al asignar cocheras")
-    }
-  }
-
-  const handleParkingUnassignment = async () => {
-    if (!selectedParking || !projectId || !user) return
-
-    try {
-      const spot = parkingSpots.find((s) => s.id === selectedParking)
-      if (!spot || !spot.assignedTo || !spot.dbId) {
-        if (notyf) notyf.error("No se encontró información de la cochera")
-        return
-      }
-
-      // Update parking spot in database
-      const response = await fetch(`${API_BASE_URL}/parking/${spot.dbId}`, {
+      const response = await fetch(`${API_BASE_URL}/parking/${spotToUpdate.dbId}`, {
         method: "PUT",
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
           "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
         body: JSON.stringify({
-          status: "libre",
-          assigned_to: null,
+          status: newStatus,
+          assigned_to: assignedToDbFormat, // Changed key here
           userId: user.userId,
           userName: user.name,
           projectId: projectId,
-          description: `${user.name} desasignó la cochera ${selectedParking} del departamento ${spot.assignedTo}`,
+          description: logDesc,
         }),
       })
-
       if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error unassigning parking spot:", errorData)
-        if (notyf) notyf.error(`Error al desasignar cochera: ${errorData.message || "Error desconocido"}`)
-        return
+        const errData = await response.json()
+        throw new Error(errData.message || "Error al actualizar cochera.")
       }
-
-      // Refresh data to get the latest state
-      await refreshData()
-
-      if (notyf) notyf.success(`Cochera ${selectedParking} desasignada con éxito`)
+      if (notyfInstance)
+        notyfInstance.success(`Cochera ${newStatus === "ocupado" ? "asignada" : "liberada"} con éxito.`)
+      setIsParkingModalOpen(false)
       setIsParkingInfoModalOpen(false)
       setSelectedParking(null)
-    } catch (err) {
-      console.error("Error unassigning parking spot:", err)
-      if (notyf) notyf.error("Error al desasignar cochera")
-    }
-  }
-
-  const handleParkingAssignment2 = async (apartmentId: string | null) => {
-    if (!selectedParking || !projectId || !user) return
-
-    try {
-      const spot = parkingSpots.find((s) => s.id === selectedParking)
-      if (!spot || !spot.dbId) {
-        if (notyf) notyf.error("No se encontró información de la cochera")
-        return
-      }
-
-      // Update parking spot in database
-      const response = await fetch(`${API_BASE_URL}/parking/${spot.dbId}`, {
-        method: "PUT",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          status: apartmentId ? "ocupado" : "libre",
-          assigned_to: apartmentId,
-          userId: user.userId,
-          userName: user.name,
-          projectId: projectId,
-          description: apartmentId
-            ? `${user.name} asignó la cochera ${selectedParking} al departamento ${apartmentId}`
-            : `${user.name} liberó la cochera ${selectedParking}`,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error updating parking spot:", errorData)
-        if (notyf) notyf.error(`Error al actualizar cochera: ${errorData.message || "Error desconocido"}`)
-        return
-      }
-
-      // Refresh data to get the latest state
-      await refreshData()
-
-      if (notyf) notyf.success(apartmentId ? "Cochera asignada con éxito" : "Cochera liberada con éxito")
-      setIsParkingModalOpen(false)
-      setSelectedParking(null)
+      fetchFullProjectData(true)
     } catch (err) {
       console.error("Error updating parking spot:", err)
-      if (notyf) notyf.error("Error al actualizar cochera")
+      if (notyfInstance) notyfInstance.error((err as Error).message || "Error al actualizar cochera.")
     }
   }
 
-  const handleOpenParkingAssignment = () => {
-    if (!selectedApartment || !floorData.apartments[selectedApartment]) {
-      console.error("No se ha seleccionado un apartamento válido")
-      if (notyf) notyf.error("No se ha seleccionado un apartamento válido")
-      return
-    }
-
-    const initialSelectedParkings = floorData.apartments[selectedApartment].assignedParkings.reduce(
-      (acc, parkingId) => {
-        acc[parkingId] = true
-        return acc
-      },
-      {} as { [key: string]: boolean },
-    )
-    setSelectedParkings(initialSelectedParkings)
+  const handleOpenParkingAssignmentModal = () => {
+    if (!selectedApartment) return
+    const currentAssigned = apartmentsData[selectedApartment]?.assignedParkings || []
+    const initialSelection: { [key: string]: boolean } = {}
+    currentAssigned.forEach((pid) => {
+      // pid here is "P1", "P2"
+      initialSelection[pid] = true
+    })
+    setSelectedParkingsForAssignment(initialSelection)
     setShowParkingAssignment(true)
   }
 
-  const getTextX = (id: string) => {
-    const spotIndex = Number.parseInt(id.slice(1)) - 1
-    if (spotIndex < 9) {
-      return parkingSpots[spotIndex]?.path.split(" ")[1] || "0"
-    } else if (spotIndex === 9) {
-      return "3770"
-    } else if (spotIndex === 10) {
-      return "3770"
-    } else {
-      return "1500"
+  const handleConfirmParkingAssignmentForApartment = async () => {
+    if (!selectedApartment || !projectId || !user || !apartmentsData[selectedApartment]?.id) {
+      if (notyfInstance) notyfInstance.error("Faltan datos para asignar cocheras.")
+      return
+    }
+    const apartmentDbId = apartmentsData[selectedApartment].id!
+    const parkingSpotCodesToAssign = Object.entries(selectedParkingsForAssignment) // parkingSpotCodes are "P1", "P2"
+      .filter(([_, checked]) => checked)
+      .map(([parkingSpotCode, _]) => parkingSpotCode)
+
+    const logDesc = `${user.name} actualizó asignación de cocheras para depto. ${selectedApartment}: ${parkingSpotCodesToAssign.join(", ")}`
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/apartments/${apartmentDbId}/assign-parking`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({
+          parking_spot_codes: parkingSpotCodesToAssign, // Send "P1", "P2"
+          userId: user.userId,
+          userName: user.name,
+          projectId: projectId,
+          description: logDesc,
+        }),
+      })
+      if (!response.ok) {
+        const errData = await response.json()
+        throw new Error(errData.message || "Error al asignar cocheras al departamento.")
+      }
+      if (notyfInstance) notyfInstance.success("Asignación de cocheras actualizada.")
+      setShowParkingAssignment(false)
+      fetchFullProjectData(true) // Refresh to show updated assignments
+    } catch (err) {
+      console.error("Error assigning parking to apartment:", err)
+      if (notyfInstance) notyfInstance.error((err as Error).message || "Error al asignar cocheras.")
     }
   }
 
-  const getTextY = (id: string) => {
-    const spotIndex = Number.parseInt(id.slice(1)) - 1
-    if (spotIndex < 9) {
-      return parkingSpots[spotIndex]?.path.split(" ")[2] || "0"
-    } else if (spotIndex === 9 || spotIndex === 10) {
-      return "1300"
-    } else {
-      return "2300"
+  const availableFloors: number[] = Array.isArray(projectConfig?.floorConfig)
+    ? projectConfig.floorConfig.map((fc: FloorConfig) => fc.floor_number).sort((a: number, b: number) => a - b)
+    : []
+
+  const garagePlanForCurrentLevel = Array.isArray(projectConfig?.files)
+    ? projectConfig.files.find((f: any) => {
+        if (f.file_type !== "garage_plan") return false
+        let fileLevel = Number(f.level)
+        if (isNaN(fileLevel) || fileLevel === 0) {
+          const nameMatch = f.file_name?.match(/Nivel\s*(\d+)/i)
+          if (nameMatch && nameMatch[1]) {
+            fileLevel = Number(nameMatch[1])
+          } else {
+            // Fallback if level is not in name
+            const garageConfigLevel = projectConfig?.parking_config?.levels?.find((l: number) =>
+              f.file_name?.includes(String(l)),
+            )
+            if (garageConfigLevel) fileLevel = garageConfigLevel
+          }
+        }
+        return fileLevel === currentGarageLevel
+      })?.file_path
+    : null
+
+  const currentAptData = selectedApartment ? apartmentsData[selectedApartment] : null
+
+  // Helper to get text coordinates for parking spots (example, adjust as needed)
+  const getParkingTextCoordinates = (path: string) => {
+    if (!path || typeof path !== "string" || !path.startsWith("M")) {
+      return { x: 0, y: 0 } // Default or error case
     }
+    // Basic parsing: assumes "M x y L ..." format
+    const parts = path
+      .substring(1)
+      .trim()
+      .split(/[ ,LMCZzHhVvSsQqTtAa]/)
+    const x = Number.parseFloat(parts[0])
+    const y = Number.parseFloat(parts[1])
+
+    // This is a very naive centroid calculation, might need a proper SVG path parser for complex shapes
+    // For simple rectangular-ish paths, this might be okay.
+    // A more robust solution would involve a library or more complex SVG path parsing.
+    let sumX = x,
+      sumY = y,
+      count = 1
+    for (let i = 2; i < parts.length - 1; i += 2) {
+      if (parts[i] && parts[i + 1]) {
+        sumX += Number.parseFloat(parts[i])
+        sumY += Number.parseFloat(parts[i + 1])
+        count++
+      }
+    }
+    return { x: count > 0 ? sumX / count : x, y: count > 0 ? sumY / count + 15 : y + 15 } // Adjust y for text position
   }
 
-  // Modify the loading/error section to include API availability message
-  if (!apiAvailable) {
+  if (loading && !projectConfig) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-        <p className="text-xl mb-4">No se puede conectar al servidor API</p>
-        <p className="text-zinc-400 text-center max-w-md mb-6">
-          El servidor API no está disponible en este momento. Verifique que el servidor esté en ejecución en{" "}
-          {API_BASE_URL}.
-        </p>
-        <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Volver al proyecto
-        </Button>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <p className="text-xl">Cargando datos del piso...</p>
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+        <p className="text-lg text-muted-foreground">Cargando datos del proyecto...</p>
+        {onReturnToProjectModal && (
+          <Button onClick={onReturnToProjectModal} variant="outline" className="mt-6">
+            <ChevronLeft className="mr-2 h-4 w-4" /> Volver
+          </Button>
+        )}
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-4">
-        <p className="text-xl text-red-500 mb-4">Error: {error}</p>
-        <div className="flex space-x-4 mb-6">
-          <Button onClick={refreshData} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reintentar
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error al cargar</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        <div className="flex space-x-4 mt-6">
+          <Button onClick={refreshDataManual} variant="outline" disabled={refreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} /> Reintentar
           </Button>
-          <Button onClick={createFloorsAndApartments} className="bg-green-600 hover:bg-green-700 text-white">
-            Crear pisos y departamentos
-          </Button>
+          {onReturnToProjectModal && (
+            <Button onClick={onReturnToProjectModal} variant="outline">
+              <ChevronLeft className="mr-2 h-4 w-4" /> Volver
+            </Button>
+          )}
         </div>
-        <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Volver al proyecto
-        </Button>
+      </div>
+    )
+  }
+
+  if (!projectConfig) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-4">
+        <AlertCircle className="h-12 w-12 text-destructive mb-4" />
+        <p className="text-lg text-muted-foreground">No se pudo cargar la configuración del proyecto.</p>
+        {onReturnToProjectModal && (
+          <Button onClick={onReturnToProjectModal} variant="outline" className="mt-6">
+            <ChevronLeft className="mr-2 h-4 w-4" /> Volver
+          </Button>
+        )}
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Volver al proyecto
-          </Button>
-          <div className="flex items-center space-x-2">
-            <Button onClick={refreshData} disabled={refreshing} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
-              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-              {refreshing ? "Actualizando..." : "Actualizar datos"}
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-6 sm:py-8">
+        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 sm:mb-8">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {onReturnToProjectModal && (
+              <Button onClick={onReturnToProjectModal} variant="outline" size="sm" className="text-xs sm:text-sm">
+                <ChevronLeft className="mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4" />
+                Volver
+              </Button>
+            )}
+            <h1 className="text-xl sm:text-2xl font-bold">{projectConfig?.project?.name || "Vista de Proyecto"}</h1>
+            {user?.rol === "admin" || user?.rol === "superadmin" ? (
+              <Link href={`/admin/configuracion-proyecto/${projectId}`}>
+                <Button variant="outline" size="icon" title="Configurar Proyecto">
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </Link>
+            ) : null}
+          </div>
+          <div className="flex items-center space-x-2 mt-4 sm:mt-0">
+            <Button
+              onClick={refreshDataManual}
+              variant="outline"
+              size="sm"
+              disabled={refreshing || loading}
+              className="text-xs sm:text-sm"
+            >
+              <RefreshCw
+                className={`mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 ${refreshing || loading ? "animate-spin" : ""}`}
+              />
+              {refreshing || loading ? "Actualizando..." : "Actualizar"}
             </Button>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-1 sm:space-x-2">
               <Checkbox
                 id="autoRefresh"
                 checked={autoRefresh}
                 onCheckedChange={(checked) => setAutoRefresh(checked === true)}
               />
-              <Label htmlFor="autoRefresh" className="text-sm">
-                Auto-actualizar
+              <Label htmlFor="autoRefresh" className="text-xs sm:text-sm text-muted-foreground">
+                Auto
               </Label>
             </div>
           </div>
@@ -1251,619 +772,643 @@ export default function InteractiveFloorPlan({
           onValueChange={(value) => setActiveView(value as "apartments" | "garage")}
           className="mb-8"
         >
-          <TabsList className="grid w-full grid-cols-2 bg-zinc-800">
-            <TabsTrigger value="apartments" className="data-[state=active]:bg-zinc-700">
+          <TabsList className="grid w-full grid-cols-2 bg-muted">
+            <TabsTrigger
+              value="apartments"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               Departamentos
             </TabsTrigger>
-            <TabsTrigger value="garage" className="data-[state=active]:bg-zinc-700">
+            <TabsTrigger
+              value="garage"
+              className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
               Cochera
             </TabsTrigger>
           </TabsList>
+
           <TabsContent value="apartments">
-            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
-              <div className="p-4 md:p-6">
-                <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
-                <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-                  <div className="flex items-center mb-4 md:mb-0">
-                    <button
-                      onClick={() => handleFloorClick(Math.max(1, currentFloor - 1))}
-                      className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                    >
-                      <ChevronLeft />
-                    </button>
-                    <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
-                    <button
-                      onClick={() => handleFloorClick(Math.min(9, currentFloor + 1))}
-                      className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                    >
-                      <ChevronRight />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {floors.map((floor) => (
+            <div className="bg-card p-3 sm:p-4 rounded-lg shadow-md overflow-hidden mb-8 border">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-4 sm:mb-6">
+                <div className="flex items-center mb-3 md:mb-0">
+                  <Button
+                    onClick={() => handleFloorClick(Math.max(availableFloors[0] || 1, currentFloor - 1))}
+                    variant="ghost"
+                    size="icon"
+                    disabled={currentFloor === (availableFloors[0] || 1)}
+                  >
+                    <ChevronLeft />
+                  </Button>
+                  <span className="mx-2 sm:mx-4 text-md sm:text-lg font-semibold">
+                    {currentFloorConfig?.floor_name || currentFloor}
+                  </span>
+                  <Button
+                    onClick={() =>
+                      handleFloorClick(Math.min(availableFloors[availableFloors.length - 1] || 9, currentFloor + 1))
+                    }
+                    variant="ghost"
+                    size="icon"
+                    disabled={currentFloor === (availableFloors[availableFloors.length - 1] || 9)}
+                  >
+                    <ChevronRight />
+                  </Button>
+                </div>
+                <ScrollArea className="w-full md:w-auto pb-2">
+                  <div className="flex justify-center space-x-1 sm:space-x-2">
+                    {availableFloors.map((floorNum: number) => (
                       <motion.button
-                        key={floor}
-                        onClick={() => handleFloorClick(floor)}
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold ${currentFloor === floor ? "bg-zinc-800" : ""}`}
-                        whileHover={{ scale: 1.1 }}
+                        key={`floor-btn-${floorNum}`}
+                        onClick={() => handleFloorClick(floorNum)}
+                        className={`px-2 py-1 sm:w-10 sm:h-10 rounded-md text-xs sm:text-sm font-medium border transition-colors ${currentFloor === floorNum ? "bg-primary text-primary-foreground" : "bg-muted hover:bg-accent"}`}
+                        whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                       >
-                        {floor}
+                        {(Array.isArray(projectConfig?.floorConfig)
+                          ? projectConfig.floorConfig.find((fc: FloorConfig) => fc.floor_number === floorNum)
+                              ?.floor_name
+                          : floorNum) || floorNum}
                       </motion.button>
                     ))}
                   </div>
-                </div>
+                </ScrollArea>
               </div>
 
-              <div className="relative aspect-video -ml-9 md:-ml-9">
-                <Image
-                  src={floorPlans[currentFloor] || "/placeholder.svg"}
-                  alt={`Plano del Piso ${currentFloor}`}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  style={{ objectFit: "contain" }}
-                  className="pointer-events-none"
-                />
-                <div className="absolute inset-0 z-10">
-                  <svg
-                    viewBox={floorData.viewBox || "-200 0 3200 2400"}
-                    className="w-full h-full"
-                    style={{ pointerEvents: "all" }}
-                  >
-                    <g transform="scale(1, 1) translate(-83, 10)">
-                      {Object.entries(floorData.apartments).map(([apt, data]) => (
-                        <path
-                          key={apt}
-                          d={floorData.svgPaths[apt] || ""}
-                          fill={statusColors[data.status]}
-                          stroke="black"
-                          strokeWidth="10"
-                          opacity="0.7"
-                          onClick={() => handleApartmentClick(apt)}
-                          style={{ cursor: "pointer" }}
-                        />
-                      ))}
-                    </g>
-                  </svg>
+              {currentFloorConfig?.background_image ? (
+                <div className="relative aspect-[1.77] sm:aspect-[2] md:aspect-[2.33] max-h-[60vh] mx-auto">
+                  <Image
+                    src={
+                      currentFloorConfig.background_image.startsWith("http")
+                        ? currentFloorConfig.background_image
+                        : currentFloorConfig.background_image // Use relative path directly for Next.js public folder
+                    }
+                    alt={`Plano del Piso ${currentFloorConfig.floor_name || currentFloor}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1000px"
+                    style={{ objectFit: "contain" }}
+                    className="pointer-events-none"
+                    priority
+                    onError={(e) => console.error("Error loading floor plan image:", e.currentTarget.src)}
+                  />
+                  <div className="absolute inset-0 z-10">
+                    <svg
+                      viewBox={currentFloorConfig.view_box || "0 0 1000 500"}
+                      className="w-full h-full"
+                      style={{ pointerEvents: "all" }}
+                    >
+                      <g transform="scale(1, 1) translate(-83, 10)">
+                        {Object.entries(apartmentsData).map(([aptIdCode, data]) => {
+                          const apartmentFullData = apartmentsData[aptIdCode]
+                          if (!apartmentFullData?.svg_path) {
+                            return null
+                          }
+                          return (
+                            <TooltipPrimitive.Provider key={`apt-tooltip-${aptIdCode}`}>
+                              <TooltipPrimitive.Root delayDuration={100}>
+                                <TooltipPrimitive.Trigger asChild>
+                                  <path
+                                    d={apartmentFullData.svg_path}
+                                    fill={statusColors[data.status] || "#ccc"}
+                                    stroke="black"
+                                    strokeWidth="1" // Adjusted for better visibility on complex SVGs
+                                    opacity="0.6"
+                                    onClick={() => handleApartmentClick(aptIdCode)}
+                                    style={{ cursor: "pointer" }}
+                                    className="hover:opacity-80 transition-opacity"
+                                  />
+                                </TooltipPrimitive.Trigger>
+                                <TooltipPrimitive.Content className="bg-background border text-foreground p-2 rounded shadow-lg text-xs z-50">
+                                  Depto: {aptIdCode} <br />
+                                  Estado: {data.status} <br />
+                                  {data.buyer && `Comprador: ${data.buyer}`}
+                                </TooltipPrimitive.Content>
+                              </TooltipPrimitive.Root>
+                            </TooltipPrimitive.Provider>
+                          )
+                        })}
+                      </g>
+                    </svg>
+                  </div>
                 </div>
-              </div>
-
-              <div className="p-4">
-                <h3 className="text-lg font-bold">Plano del Piso {currentFloor}</h3>
-                <p className="text-zinc-400 text-sm">Selecciona los departamentos para ver su estado.</p>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">Plano no disponible para este piso.</div>
+              )}
+              <div className="flex items-center justify-center space-x-4 mt-4 text-xs sm:text-sm">
+                {Object.entries(statusColors).map(([status, color]) => (
+                  <div key={status} className="flex items-center">
+                    <div className="w-3 h-3 rounded-sm mr-1.5" style={{ backgroundColor: color }}></div>
+                    <span>{status.charAt(0).toUpperCase() + status.slice(1)}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </TabsContent>
+
           <TabsContent value="garage">
-            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
-              <div className="p-4 md:p-6">
-                <h2 className="text-xl md:text-2xl font-semibold mb-4">
-                  Mapa de Cocheras - Nivel {currentGarageLevel}
-                </h2>
-                <div className="flex justify-center space-x-4 mb-4">
-                  {garageLevels.map((level) => (
+            <div className="bg-card p-3 sm:p-4 rounded-lg shadow-md overflow-hidden mb-8 border">
+              <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
+                Mapa de Cocheras - Nivel {currentGarageLevel}
+              </h2>
+              <div className="flex justify-center space-x-2 sm:space-x-4 mb-3 sm:mb-4">
+                {Array.isArray(projectConfig?.parking_config?.levels) &&
+                  projectConfig.parking_config.levels.map((level: number) => (
                     <Button
-                      key={level}
+                      key={`garage-level-btn-${level}`}
                       onClick={() => setCurrentGarageLevel(level)}
                       variant={currentGarageLevel === level ? "default" : "outline"}
+                      size="sm"
                     >
                       Nivel {level}
                     </Button>
                   ))}
-                </div>
-                <div className="relative aspect-video">
-                  {currentGarageLevel === 1 ? (
-                    <>
-                      <div className="relative aspect-video overflow-hidden">
-                        <div className="absolute inset-0 scale-100 origin-center">
-                          <Image
-                            src={garagePlans[currentGarageLevel] || "/placeholder.svg"}
-                            alt={`Plano de Cocheras Nivel ${currentGarageLevel}`}
-                            fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                            style={{ objectFit: "cover" }}
-                          />
-                        </div>
-                        <svg viewBox="90 450 4400 2600" className="absolute top-0 left-0 w-full h-full">
-                          {parkingSpots
-                            .filter((spot) => spot.level === currentGarageLevel)
-                            .map((spot) => (
-                              <g
-                                key={spot.id}
-                                onClick={() => handleParkingClick(spot.id, spot.level)}
-                                style={{ cursor: "pointer" }}
-                              >
-                                <path
-                                  d={spot.path}
-                                  fill={
-                                    spot.status === "libre" ? "rgba(135, 245, 175, 0.3)" : "rgba(245, 127, 127, 0.3)"
-                                  }
-                                  stroke={spot.status === "libre" ? "#22c55e" : "#ef4444"}
-                                  strokeWidth="3"
-                                />
-                                <text
-                                  x={getTextX(spot.id)}
-                                  y={getTextY(spot.id)}
-                                  textAnchor="middle"
-                                  fill="white"
-                                  fontSize="40"
-                                  dominantBaseline="middle"
-                                  stroke="black"
-                                  strokeWidth="1"
-                                >
-                                  {spot.id}
-                                </text>
-                                {spot.assignedTo && (
-                                  <text
-                                    x={getTextX(spot.id)}
-                                    y={Number.parseInt(getTextY(spot.id)) + 60}
-                                    textAnchor="middle"
-                                    fill="white"
-                                    fontSize="30"
-                                    dominantBaseline="middle"
-                                    stroke="black"
-                                    strokeWidth="1"
-                                  >
-                                    {spot.assignedTo}
-                                  </text>
-                                )}
-                              </g>
-                            ))}
-                        </svg>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full bg-zinc-800">
-                      <p className="text-xl text-zinc-400">No hay cocheras disponibles en este nivel aún</p>
-                    </div>
-                  )}
-                </div>
               </div>
+              {garagePlanForCurrentLevel ? (
+                <div className="relative aspect-[1.77] sm:aspect-[2] md:aspect-[2.33] max-h-[60vh] mx-auto">
+                  <Image
+                    src={
+                      garagePlanForCurrentLevel.startsWith("http")
+                        ? garagePlanForCurrentLevel
+                        : garagePlanForCurrentLevel // Use relative path directly for Next.js public folder
+                    }
+                    alt={`Plano de Cocheras Nivel ${currentGarageLevel}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 1000px"
+                    style={{ objectFit: "contain" }}
+                    onError={(e) => console.error("Error loading garage plan image:", e.currentTarget.src)}
+                  />
+                  <svg
+                    viewBox={projectConfig?.parking_config?.view_box || "0 0 4400 2600"} // Adjusted viewBox for parking
+                    className="absolute top-0 left-0 w-full h-full"
+                  >
+                    <g transform="scale(1,1) translate(100,-100)">
+                      {" "}
+                      {/* Adjust translate if needed */}
+                      {parkingSpots
+                        .filter((spot) => spot.level === currentGarageLevel)
+                        .map((spot) => {
+                          const textCoords = getParkingTextCoordinates(spot.path)
+                          return (
+                            <TooltipPrimitive.Provider key={`parking-tooltip-${spot.id}-${spot.level}`}>
+                              <TooltipPrimitive.Root delayDuration={100}>
+                                <TooltipPrimitive.Trigger asChild>
+                                  <g
+                                    onClick={() => handleParkingClick(spot.id, spot.level)}
+                                    style={{ cursor: "pointer" }}
+                                  >
+                                    <path
+                                      d={spot.path}
+                                      fill={
+                                        spot.status === "libre"
+                                          ? "rgba(135, 245, 175, 0.4)"
+                                          : "rgba(245, 127, 127, 0.4)"
+                                      }
+                                      stroke={spot.status === "libre" ? "#22c55e" : "#ef4444"}
+                                      strokeWidth="3" // Increased stroke width
+                                      className="hover:opacity-70 transition-opacity"
+                                    />
+                                    <text
+                                      x={textCoords.x}
+                                      y={textCoords.y}
+                                      textAnchor="middle"
+                                      fill="currentColor"
+                                      fontSize="40" // Adjusted font size
+                                      dominantBaseline="middle"
+                                      className="pointer-events-none font-semibold"
+                                      stroke="black"
+                                      strokeWidth="0.5"
+                                    >
+                                      {spot.id}
+                                    </text>
+                                  </g>
+                                </TooltipPrimitive.Trigger>
+                                <TooltipPrimitive.Content className="bg-background border text-foreground p-2 rounded shadow-lg text-xs z-50">
+                                  Cochera: {spot.id} (Nivel {spot.level}) <br />
+                                  Estado: {spot.status} <br />
+                                  {spot.assignedTo && `Asignada a: ${spot.assignedTo}`}
+                                </TooltipPrimitive.Content>
+                              </TooltipPrimitive.Root>
+                            </TooltipPrimitive.Provider>
+                          )
+                        })}
+                    </g>
+                  </svg>
+                </div>
+              ) : (
+                <div className="text-center py-10 text-muted-foreground">
+                  Plano de cocheras no disponible para este nivel.
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
 
         <Dialog
-          open={isParkingModalOpen}
-          onOpenChange={() => {
-            setIsParkingModalOpen(false)
-            setSelectedParking(null)
+          open={isModalOpen}
+          onOpenChange={(open) => {
+            setIsModalOpen(open)
+            if (!open) setAction(null)
           }}
         >
-          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+          <DialogContent className="sm:max-w-md bg-card max-h-[90vh] flex flex-col">
             <DialogHeader>
-              <DialogTitle>
-                {selectedParking && parkingSpots.find((spot) => spot.id === selectedParking)?.status === "ocupado"
-                  ? `Liberar Cochera ${selectedParking} (Nivel 1)`
-                  : `Asignar Cochera ${selectedParking} (Nivel 1)`}
-              </DialogTitle>
+              <DialogTitle>Departamento {selectedApartment}</DialogTitle>
+              {currentAptData && (
+                <DialogDescription className="text-xs">
+                  Estado:{" "}
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      currentAptData.status === "libre" && "text-green-500",
+                      currentAptData.status === "reservado" && "text-yellow-500",
+                      currentAptData.status === "ocupado" && "text-red-500",
+                      currentAptData.status === "bloqueado" && "text-blue-500",
+                    )}
+                  >
+                    {currentAptData.status}
+                  </span>{" "}
+                  | Precio: {currentAptData.price || "N/A"} | Sup: {currentAptData.surface || "N/A"}
+                </DialogDescription>
+              )}
             </DialogHeader>
-            <div className="py-4">
-              {selectedParking && (
-                <div className="mb-4">
-                  <p className="font-semibold">
-                    Estado: {parkingSpots.find((spot) => spot.id === selectedParking)?.status}
-                  </p>
-                  {parkingSpots.find((spot) => spot.id === selectedParking)?.assignedTo && (
-                    <p className="font-semibold">
-                      Asignada a: {parkingSpots.find((spot) => spot.id === selectedParking)?.assignedTo}
+            <ScrollArea className="flex-grow pr-2 -mr-4">
+              {currentAptData && !action && (
+                <div className="space-y-3 py-2">
+                  {currentAptData.buyer && (
+                    <p className="text-sm">
+                      <strong>Comprador:</strong> {currentAptData.buyer}
                     </p>
                   )}
-                </div>
-              )}
-              <h3 className="mb-4">
-                {selectedParking && parkingSpots.find((spot) => spot.id === selectedParking)?.status === "ocupado"
-                  ? "¿Estás seguro de que quieres liberar esta cochera?"
-                  : "Selecciona un departamento para asignar la cochera:"}
-              </h3>
-              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                {selectedParking && parkingSpots.find((spot) => spot.id === selectedParking)?.status === "ocupado" ? (
-                  <Button onClick={() => handleParkingAssignment2(null)} className="w-full bg-red-600 hover:bg-red-700">
-                    Liberar Cochera
-                  </Button>
-                ) : (
-                  <>
-                    {Object.entries(floorData.apartments).map(([apt, data]) => (
-                      <Button
-                        key={apt}
-                        onClick={() => handleParkingAssignment2(`${currentFloor}-${apt}`)}
-                        className="w-full bg-blue-600 hover:bg-blue-700 mb-1"
-                      >
-                        Asignar a {apt}
-                      </Button>
-                    ))}
-                  </>
-                )}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog
-          open={isParkingInfoModalOpen}
-          onOpenChange={() => {
-            setIsParkingInfoModalOpen(false)
-            setSelectedParking(null)
-          }}
-        >
-          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
-            <DialogHeader>
-              <DialogTitle>Información de la Cochera {selectedParking}</DialogTitle>
-            </DialogHeader>
-            <div className="py-4">
-              {selectedParking && (
-                <div className="space-y-4">
-                  <p className="font-semibold">
-                    Estado: {parkingSpots.find((spot) => spot.id === selectedParking)?.status}
-                  </p>
-                  <p className="font-semibold">
-                    Asignada a: {parkingSpots.find((spot) => spot.id === selectedParking)?.assignedTo}
-                  </p>
-                  <Button onClick={handleParkingUnassignment} className="w-full bg-red-600 hover:bg-red-700">
-                    Desasignar Cochera
-                  </Button>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle>Detalles del departamento {selectedApartment}</DialogTitle>
-            </DialogHeader>
-            {selectedApartment && floorData.apartments[selectedApartment] ? (
-              <div className="space-y-4">
-                <DialogDescription className="text-zinc-300">
-                  <p>
-                    <strong>Estado:</strong> {floorData.apartments[selectedApartment].status}
-                  </p>
-                  <p>
-                    <strong>Precio:</strong> {floorData.apartments[selectedApartment].price}
-                  </p>
-                  <p>
-                    <strong>Superficie:</strong> {floorData.apartments[selectedApartment].surface}
-                  </p>
-                  {floorData.apartments[selectedApartment].buyer && (
-                    <>
-                      <p>
-                        <strong>Comprador:</strong> {floorData.apartments[selectedApartment].buyer}
-                      </p>
-                      <p>
-                        <strong>Fecha:</strong> {floorData.apartments[selectedApartment].date}
-                      </p>
-                      {floorData.apartments[selectedApartment].phoneNumber && (
-                        <p>
-                          <strong>Teléfono:</strong> {floorData.apartments[selectedApartment].phoneNumber}
-                        </p>
-                      )}
-                      {floorData.apartments[selectedApartment].email && (
-                        <p>
-                          <strong>Email:</strong> {floorData.apartments[selectedApartment].email}
-                        </p>
-                      )}
-                    </>
+                  {currentAptData.date && (
+                    <p className="text-sm">
+                      <strong>Fecha:</strong> {new Date(currentAptData.date).toLocaleDateString()}
+                    </p>
                   )}
-                  <p>
-                    <strong>Cocheras asignadas:</strong>{" "}
-                    {floorData.apartments[selectedApartment].assignedParkings.length > 0
-                      ? floorData.apartments[selectedApartment].assignedParkings
-                          .map((parkingId) => {
-                            const parking = parkingSpots.find((spot) => spot.id === parkingId)
-                            return parking ? `${parkingId} (Nivel ${parking.level})` : parkingId
-                          })
-                          .join(", ")
-                      : "Ninguna"}
+                  {currentAptData.phoneNumber && (
+                    <p className="text-sm">
+                      <strong>Teléfono:</strong> {currentAptData.phoneNumber}
+                    </p>
+                  )}
+                  {currentAptData.email && (
+                    <p className="text-sm">
+                      <strong>Email:</strong> {currentAptData.email}
+                    </p>
+                  )}
+                  {currentAptData.notes && (
+                    <p className="text-sm">
+                      <strong>Notas:</strong> {currentAptData.notes}
+                    </p>
+                  )}
+                  <p className="text-sm">
+                    <strong>Cocheras:</strong> {currentAptData.assignedParkings?.join(", ") || "Ninguna"}
                   </p>
-                </DialogDescription>
-                {!action && (
-                  <div className="space-y-2">
-                    {floorData.apartments[selectedApartment].status === "libre" && (
+
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    {currentAptData.status === "libre" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
-                          <Download className="mr-2 h-4 w-4" /> Descargar plano
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("block")}
-                          className="bg-blue-600 hover:bg-blue-700 w-full"
-                        >
+                        <Button onClick={() => handleActionClick("block")} size="sm">
                           Bloquear
                         </Button>
-                        <Button
-                          onClick={() => handleActionClick("directReserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
-                        >
+                        <Button onClick={() => handleActionClick("directReserve")} size="sm" variant="secondary">
                           Reservar
                         </Button>
                       </>
                     )}
-                    {floorData.apartments[selectedApartment].status === "bloqueado" && (
+                    {currentAptData.status === "bloqueado" && (
                       <>
-                        <Button
-                          onClick={() => handleActionClick("reserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
-                        >
+                        <Button onClick={() => handleActionClick("reserve")} size="sm" variant="secondary">
                           Reservar
                         </Button>
-                        <Button
-                          onClick={() => handleActionClick("unblock")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
-                        >
+                        <Button onClick={() => handleActionClick("unblock")} size="sm" variant="destructive">
                           Liberar Bloqueo
                         </Button>
                       </>
                     )}
-                    {floorData.apartments[selectedApartment].status === "reservado" && (
+                    {currentAptData.status === "reservado" && (
                       <>
-                        <Button
-                          onClick={() => handleActionClick("sell")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
-                        >
+                        <Button onClick={() => handleActionClick("sell")} size="sm" variant="secondary">
                           Vender
                         </Button>
-                        <Button
-                          onClick={() => handleActionClick("cancelReservation")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
-                        >
+                        <Button onClick={() => handleActionClick("cancelReservation")} size="sm" variant="destructive">
                           Cancelar Reserva
                         </Button>
                       </>
                     )}
-                    {floorData.apartments[selectedApartment].status === "ocupado" && (
+                    {currentAptData.status === "ocupado" && (
                       <>
-                        <Button
-                          onClick={() => handleDownloadContract(selectedApartment)}
-                          className="bg-blue-600 hover:bg-blue-700 w-full"
-                        >
-                          Descargar contrato
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("release")}
-                          className="bg-yellow-600 hover:bg-yellow-700 w-full"
-                        >
-                          Liberar departamento
+                        {currentAptData.contractUrl && (
+                          <Button onClick={handleDownloadContract} size="sm">
+                            Desc. Contrato
+                          </Button>
+                        )}
+                        <Button onClick={() => handleActionClick("release")} size="sm" variant="destructive">
+                          Liberar Depto.
                         </Button>
                       </>
                     )}
-                    <Button
-                      onClick={handleOpenParkingAssignment}
-                      className="bg-purple-600 hover:bg-purple-700 w-full"
-                      disabled={!selectedApartment}
-                    >
-                      Asignar cocheras
+                    <Button onClick={handleDownloadFloorPlan} size="sm">
+                      Plano Depto.
+                    </Button>
+                    <Button onClick={handleOpenParkingAssignmentModal} size="sm" disabled={!selectedApartment}>
+                      Asignar Cocheras
                     </Button>
                   </div>
-                )}
-                {showParkingAssignment && (
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Seleccionar cocheras:</h3>
-                    <ScrollArea className="h-[200px] rounded-md border p-4">
-                      {parkingSpots
-                        .filter(
-                          (spot) =>
-                            spot.status === "libre" || spot.assignedTo === `${currentFloor}-${selectedApartment}`,
-                        )
-                        .map((spot) => (
-                          <div key={spot.id} className="flex items-center space-x-2 mb-2">
-                            <Checkbox
-                              id={spot.id}
-                              checked={selectedParkings[spot.id] || false}
-                              onCheckedChange={(checked) => {
-                                setSelectedParkings((prev) => ({
-                                  ...prev,
-                                  [spot.id]: checked === true,
-                                }))
-                              }}
-                            />
-                            <label
-                              htmlFor={spot.id}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              Cochera {spot.id}{" "}
-                              {spot.assignedTo === `${currentFloor}-${selectedApartment}` ? "(Asignada)" : ""}
-                            </label>
-                          </div>
-                        ))}
-                    </ScrollArea>
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setShowParkingAssignment(false)
-                        }}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button onClick={handleParkingAssignment}>Actualizar asignaciones</Button>
-                    </div>
-                  </div>
-                )}
-                {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
-                    {action !== "sell" && (
-                      <>
-                        <div>
-                          <Label htmlFor="name" className="text-white">
-                            Nombre
-                          </Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            required
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phone" className="text-white">
-                            Teléfono
-                          </Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-                      </>
-                    )}
+                </div>
+              )}
+              {action && (
+                <form onSubmit={handleFormSubmit} className="space-y-3 py-2">
+                  {(action === "block" || action === "directReserve" || action === "sell") && (
+                    <>
+                      <div>
+                        <Label htmlFor="name">Nombre Comprador/Interesado</Label>
+                        <Input
+                          id="name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required={action !== "block"}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="phone">Teléfono</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="email">Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        />
+                      </div>
+                    </>
+                  )}
+                  {(action === "directReserve" || action === "reserve" || action === "sell") && (
                     <div>
-                      <Label htmlFor="price" className="text-white">
-                        Precio
-                      </Label>
+                      <Label htmlFor="price">Precio</Label>
                       <Input
                         id="price"
-                        type="text"
-                        value={formData.price || floorData.apartments[selectedApartment].price}
+                        value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
+                        placeholder={currentAptData?.price}
                       />
                     </div>
-                    {action === "sell" && (
-                      <div>
-                        <Label htmlFor="reservationOrder" className="text-white">
-                          Contrato de Venta
-                        </Label>
-                        <Input
-                          id="reservationOrder"
-                          type="file"
-                          onChange={handleFileChange}
-                          required
-                          className="text-white bg-zinc-800 border-zinc-700"
-                          ref={fileInputRef}
-                        />
-                      </div>
-                    )}
-                    {/* Add optional note field for reservation cancellation */}
-                    {action === "reserve" && (
-                      <div>
-                        <Label htmlFor="note" className="text-white">
-                          Nota (Opcional)
-                        </Label>
-                        <Textarea
-                          id="note"
-                          value={formData.note}
-                          onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                          className="text-white bg-zinc-800 border-zinc-700"
-                        />
-                      </div>
-                    )}
-                    <Button type="submit" className="bg-green-600 hover:bg-green-700 w-full">
-                      {action === "block"
-                        ? "Confirmar Bloqueo"
-                        : action === "reserve" || action === "directReserve"
-                          ? "Confirmar Reserva"
-                          : action === "sell"
-                            ? "Confirmar Venta"
-                            : "Confirmar"}
-                    </Button>
-                  </form>
-                )}
-                {(action === "unblock" || action === "cancelReservation") && (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                  )}
+                  {action === "sell" && (
                     <div>
-                      <Label htmlFor="note" className="text-white">
-                        Nota (Obligatoria)
+                      <Label htmlFor="contractFile">Contrato (PDF)</Label>
+                      <Input
+                        id="contractFile"
+                        type="file"
+                        accept=".pdf"
+                        onChange={handleFileChange}
+                        ref={fileInputRef}
+                      />
+                    </div>
+                  )}
+                  {(action === "unblock" ||
+                    action === "cancelReservation" ||
+                    action === "release" ||
+                    action === "block" ||
+                    action === "reserve" ||
+                    action === "directReserve") && (
+                    <div>
+                      <Label htmlFor="note">
+                        Nota{" "}
+                        {(action === "unblock" || action === "cancelReservation" || action === "release") &&
+                          "(Obligatoria)"}
                       </Label>
                       <Textarea
                         id="note"
                         value={formData.note}
                         onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        required
-                        className="text-white bg-zinc-800 border-zinc-700"
+                        required={action === "unblock" || action === "cancelReservation" || action === "release"}
                       />
                     </div>
-                    <Button type="submit" className="bg-red-600 hover:bg-red-700 w-full">
-                      {action === "unblock" ? "Confirmar Liberación" : "Confirmar Cancelación de Reserva"}
+                  )}
+                  <DialogFooter className="pt-3">
+                    <Button type="button" variant="ghost" onClick={() => setAction(null)}>
+                      Cancelar
                     </Button>
-                  </form>
-                )}
-                {action === "release" && (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="note" className="text-white">
-                        Nota (Obligatoria)
+                    <Button
+                      type="submit"
+                      variant={
+                        action === "unblock" || action === "cancelReservation" || action === "release"
+                          ? "destructive"
+                          : "default"
+                      }
+                    >
+                      {action === "block" && "Confirmar Bloqueo"}
+                      {action === "directReserve" && "Confirmar Reserva"}
+                      {action === "reserve" && "Confirmar Reserva"}
+                      {action === "sell" && "Confirmar Venta"}
+                      {action === "unblock" && "Liberar Bloqueo"}
+                      {action === "cancelReservation" && "Cancelar Reserva"}
+                      {action === "release" && "Liberar Depto."}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              )}
+            </ScrollArea>
+            {!action && (
+              <DialogFooter className="mt-auto pt-4 border-t">
+                <DialogClose asChild>
+                  <Button variant="outline">Cerrar</Button>
+                </DialogClose>
+              </DialogFooter>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showParkingAssignment} onOpenChange={setShowParkingAssignment}>
+          <DialogContent className="sm:max-w-md bg-card">
+            <DialogHeader>
+              <DialogTitle>Asignar Cocheras a Depto. {selectedApartment}</DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] my-4">
+              <div className="space-y-2 p-1">
+                {parkingSpots
+                  .filter((s) => s.status === "libre" || currentAptData?.assignedParkings?.includes(s.id))
+                  .map((spot) => (
+                    <div
+                      key={`assign-park-div-${spot.id}-${spot.level}`}
+                      className="flex items-center space-x-2 p-2 rounded hover:bg-muted transition-colors"
+                    >
+                      <Checkbox
+                        id={`assign-park-${spot.id}-${spot.level}`}
+                        checked={selectedParkingsForAssignment[spot.id] || false}
+                        onCheckedChange={(checked) =>
+                          setSelectedParkingsForAssignment((prev) => ({ ...prev, [spot.id]: !!checked }))
+                        }
+                      />
+                      <Label htmlFor={`assign-park-${spot.id}-${spot.level}`} className="flex-grow cursor-pointer">
+                        Cochera {spot.id} (Nivel {spot.level})
+                        {currentAptData?.assignedParkings?.includes(spot.id) && spot.status === "ocupado" && (
+                          <span className="text-xs text-primary ml-1">(Ya asignada a este depto)</span>
+                        )}
                       </Label>
-                      <Textarea
-                        id="note"
-                        value={formData.note}
-                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        required
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
                     </div>
-                    <Button type="submit" className="bg-yellow-600 hover:bg-yellow-700 w-full">
-                      Confirmar Liberación
-                    </Button>
-                  </form>
+                  ))}
+                {parkingSpots.filter((s) => s.status === "libre" || currentAptData?.assignedParkings?.includes(s.id))
+                  .length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No hay cocheras disponibles o ya asignadas para modificar.
+                  </p>
                 )}
               </div>
-            ) : (
-              <p className="text-zinc-300">Este departamento está disponible.</p>
-            )}
+            </ScrollArea>
             <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setIsModalOpen(false)
-                  setShowParkingAssignment(false)
-                }}
-                className="text-white hover:bg-zinc-800 w-full"
-              >
-                Cerrar
+              <Button variant="ghost" onClick={() => setShowParkingAssignment(false)}>
+                Cancelar
               </Button>
+              <Button onClick={handleConfirmParkingAssignmentForApartment}>Guardar Asignaciones</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-zinc-900 p-4 rounded-lg">
-            <h4 className="font-semibold mb-4">Información adicional</h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <Button
-                onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
-                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
-              </Button>
-              <Button
-                onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
-                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
-              >
-                <Building className="mr-2 h-4 w-4" /> Plano del edificio
-              </Button>
-              <Button
-                onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
-                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
-              >
-                <Car className="mr-2 h-4 w-4" /> Plano de la cochera
-              </Button>
-              <Button
-                onClick={() => handleDownloadAdditionalInfo("Brochure")}
-                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
-              >
-                <FileText className="mr-2 h-4 w-4" /> Brochure
-              </Button>
-              <Button
-                onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
-                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
-              >
-                <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
-              </Button>
+
+        <Dialog open={isParkingInfoModalOpen} onOpenChange={setIsParkingInfoModalOpen}>
+          <DialogContent className="sm:max-w-xs bg-card">
+            <DialogHeader>
+              <DialogTitle>Info Cochera {selectedParking}</DialogTitle>
+            </DialogHeader>
+            {selectedParking &&
+              parkingSpots.find((s) => s.id === selectedParking && s.level === currentGarageLevel) && (
+                <div className="py-4 space-y-3">
+                  <p className="text-sm">
+                    <strong>Nivel:</strong> {currentGarageLevel}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Estado:</strong>{" "}
+                    {parkingSpots.find((s) => s.id === selectedParking && s.level === currentGarageLevel)!.status}
+                  </p>
+                  <p className="text-sm">
+                    <strong>Asignada a:</strong>{" "}
+                    {parkingSpots.find((s) => s.id === selectedParking && s.level === currentGarageLevel)!.assignedTo ||
+                      "N/A"}
+                  </p>
+                  <Button onClick={() => handleParkingAssignmentAction(null)} variant="destructive" className="w-full">
+                    Liberar Cochera
+                  </Button>
+                </div>
+              )}
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cerrar</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
+          <DialogContent className="sm:max-w-md bg-card">
+            <DialogHeader>
+              <DialogTitle>
+                Asignar Cochera {selectedParking} (Nivel {currentGarageLevel})
+              </DialogTitle>
+            </DialogHeader>
+            <p className="text-sm text-muted-foreground py-2">Selecciona un departamento para asignar esta cochera:</p>
+            <ScrollArea className="max-h-[50vh] my-2">
+              <div className="space-y-1 p-1">
+                {Object.entries(apartmentsData)
+                  // Only show apartments on the *currently selected floor* in the main view
+                  .filter(([aptIdCode, aptData]) => {
+                    const floorOfApt = projectConfig?.floorConfig?.find(
+                      (fc: FloorConfig) =>
+                        Object.keys(fc.apartment_config || {}).includes(aptIdCode) || // Check if aptIdCode is in apartment_config keys
+                        (fc.apartment_config && Object.values(fc.apartment_config).some((ac) => ac === aptIdCode)), // Or if it's a value (less likely)
+                    )?.floor_number
+                    return floorOfApt === currentFloor
+                  })
+                  .filter(([_, apt]) => apt.status !== "ocupado") // Filter out already sold apartments
+                  .map(([aptIdCode, aptData]) => (
+                    <Button
+                      key={`assignable-apt-${aptIdCode}`}
+                      variant="ghost"
+                      className="w-full justify-start"
+                      onClick={() => handleParkingAssignmentAction(aptIdCode)} // Pass "1A", "2B"
+                    >
+                      Depto. {aptIdCode} (Piso {currentFloor})
+                    </Button>
+                  ))}
+                {Object.keys(apartmentsData).filter((aptIdCode) => {
+                  const floorOfApt = projectConfig?.floorConfig?.find((fc: FloorConfig) =>
+                    Object.keys(fc.apartment_config || {}).includes(aptIdCode),
+                  )?.floor_number
+                  return floorOfApt === currentFloor
+                }).length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No hay departamentos en este piso para asignar.
+                  </p>
+                )}
+              </div>
+            </ScrollArea>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancelar</Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <div className="grid md:grid-cols-2 gap-6 sm:gap-8 mt-8">
+          <div className="bg-card p-3 sm:p-4 rounded-lg shadow border">
+            <h4 className="font-semibold mb-3 text-md sm:text-lg">Información Adicional</h4>
+            <div className="grid grid-cols-2 gap-2 sm:gap-3">
+              {projectConfig?.project?.brochure && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    window.open(
+                      projectConfig.project.brochure.startsWith("http") ||
+                        projectConfig.project.brochure.startsWith("/")
+                        ? projectConfig.project.brochure
+                        : projectConfig.project.brochure,
+                      "_blank",
+                    )
+                  }
+                >
+                  <Download className="mr-2 h-4 w-4" /> Brochure
+                </Button>
+              )}
+              {Array.isArray(projectConfig?.files) &&
+                projectConfig.files.find((f: any) => f.file_type === "building_plan") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const buildingPlanFile = projectConfig.files.find((f: any) => f.file_type === "building_plan")
+                      if (buildingPlanFile?.file_path) {
+                        window.open(
+                          buildingPlanFile.file_path.startsWith("http") || buildingPlanFile.file_path.startsWith("/")
+                            ? buildingPlanFile.file_path
+                            : buildingPlanFile.file_path,
+                          "_blank",
+                        )
+                      }
+                    }}
+                  >
+                    <Building className="mr-2 h-4 w-4" /> Plano Edificio
+                  </Button>
+                )}
             </div>
           </div>
-          <div className="max-w-4xl mx-auto mb-8 mt-8">
-            <div className="bg-zinc-900 p-4 rounded-lg">
-              <h4 className="font-semibold mb-4">Registro de Actividades</h4>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {activityLog.map((activity, index) => (
-                  <p key={index} className="text-sm text-zinc-300">
+          <div className="bg-card p-3 sm:p-4 rounded-lg shadow border">
+            <h4 className="font-semibold mb-3 text-md sm:text-lg">Registro de Actividades</h4>
+            <ScrollArea className="h-40 sm:h-48">
+              {activityLog.length > 0 ? (
+                activityLog.map((activity, index) => (
+                  <p key={`log-${index}`} className="text-xs sm:text-sm text-muted-foreground mb-1">
                     {activity}
                   </p>
-                ))}
-              </div>
-            </div>
+                ))
+              ) : (
+                <p className="text-xs sm:text-sm text-muted-foreground">No hay actividades registradas.</p>
+              )}
+            </ScrollArea>
           </div>
         </div>
       </div>

@@ -3,36 +3,31 @@
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { cn } from "@/lib/utils"
-import { useState, useCallback, useEffect, useMemo } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useState, useCallback, useEffect } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { DownloadIcon, ImageIcon, RefreshCw } from "lucide-react"
+import { DownloadIcon, ImageIcon, RefreshCw, Loader2 } from "lucide-react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import dynamic from "next/dynamic"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { fetchFloorData, fetchProjectStats } from "../../lib/proyectos"
 
-const LocationMap = dynamic(() => import("./LocationMap"), {
-  ssr: false,
-  loading: () => <p>Cargando mapa...</p>,
-})
-
-// Añadir la URL base de la API
-const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
 
 type Floor = {
+  id?: number
   number: number
+  floor_number?: number
   availableUnits: number
   reservedUnits: number
   soldUnits: number
   path: string
   x: number
   y: number
-  id?: number
+  total_apartments?: number
 }
 
 type UnitType = {
@@ -63,16 +58,27 @@ type Project = {
   sold_units: number
   total_units: number
   brochure: string
-  floors?: Floor[]
-  unitTypes?: UnitType[]
   amenities?: Amenity[]
-  parkingInfo?: string
-  financialOptions?: FinancialOption[]
-  promotions?: string
+  unit_types?: UnitType[]
+  financial_options?: FinancialOption[]
+  parking_config?: {
+    info?: string
+    promotions?: string
+  }
+  floors_config?: any
+  building_config?: any
+  map_config?: {
+    embed_url?: string
+    address?: string
+    postal_code?: string
+    details_link?: string
+    amenities_description?: string
+  }
+  general_promotions?: string
 }
 
 type ProjectModalProps = {
-  project: Project
+  project: Project | null
   isOpen: boolean
   onClose: () => void
   onViewProject: (projectId: number) => void
@@ -80,48 +86,18 @@ type ProjectModalProps = {
   onViewPlanes: (projectId: number, floorNumber?: number) => void
 }
 
-// Modificar la función getStatusColor para usar colores más distintivos
 const getStatusColor = (status: "sold" | "available" | "reserved") => {
   switch (status) {
     case "sold":
-      return "#fa4343" // Rojo para vendido
+      return "#fa4343"
     case "available":
-      return "#47fc47" // Verde para disponible
+      return "#47fc47"
     case "reserved":
-      return "#fafa4b" // Amarillo para reservado
+      return "#fafa4b"
     default:
-      return "#CCCCCC" // Gris para otros casos
+      return "#CCCCCC"
   }
 }
-
-const sampleUnitTypes: UnitType[] = [
-  { type: "Local", size: "60-140 m²", priceRange: "$100,000 - $150,000", status: "Finalizados" },
-  { type: "4 Ambientes", size: "150-250 m²", priceRange: "$160,000 - $300,000", status: "Listo para habitar" },
-]
-
-const sampleAmenities: Amenity[] = [
-  { name: "Hall de acceso", description: "Importante hall de acceso" },
-  { name: "Seguridad 24 Hs.", description: "Servicio de seguridad las 24 horas" },
-  { name: "Cocheras cubiertas", description: "En 3 subsuelos, con acceso por rampa" },
-  { name: "Salón de usos múltiples", description: "Con sus servicios en 1er subsuelo" },
-  { name: "Gimnasio", description: "Con baños y vestuario en 1er subsuelo" },
-  { name: "Piscina descubierta", description: "Con solárium, en terraza 10mo piso" },
-  { name: "Rooftop", description: "En 10mo piso" },
-  { name: "Laundry", description: "Servicio de lavandería" },
-  { name: "Bike Parking", description: "Estacionamiento para bicicletas" },
-  { name: "Local E-Commerce", description: "Espacio para comercio electrónico" },
-]
-
-const sampleFinancialOptions: FinancialOption[] = [
-  { name: "Financiamiento directo", description: "Hasta 60 cuotas con tasa preferencial" },
-  { name: "Hipoteca bancaria", description: "Acuerdos con principales bancos" },
-]
-
-const sampleParkingInfo =
-  "Disponemos de 50 espacios de estacionamiento subterráneo. Costo adicional de $15,000 por unidad. Acceso con tarjeta magnética y vigilancia 24/7."
-
-const samplePromotions =
-  "10% de descuento en compras al contado. Financiamiento especial: 24 cuotas sin interés en unidades seleccionadas."
 
 const Tooltip = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
@@ -139,166 +115,184 @@ const Tooltip = React.forwardRef<
 ))
 Tooltip.displayName = TooltipPrimitive.Content.displayName
 
-// Modificar la función ProjectModal para obtener datos de la API
 export function ProjectModal({
-  project,
+  project: initialProject,
   isOpen,
   onClose,
   onViewProject,
   onViewGallery,
   onViewPlanes,
 }: ProjectModalProps) {
-  const [selectedFloor, setSelectedFloor] = useState<number | null>(null)
+  const [project, setProject] = useState<Project | null>(initialProject)
+  const [floors, setFloors] = useState<Floor[]>([])
+  const [loadingProjectData, setLoadingProjectData] = useState(false)
   const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
   const [activeTab, setActiveTab] = useState<"overview" | "units" | "features" | "financial" | "location">("overview")
-  const [floors, setFloors] = useState<Floor[]>([])
-  const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Función para obtener los pisos y sus departamentos de manera optimizada
-  const fetchFloors = useCallback(
-    async (forceRefresh = false) => {
-      if (!project.id) return
+  const fetchProjectDetails = useCallback(async (projectId: number, forceRefresh = false) => {
+    if (!projectId) return
+    setLoadingProjectData(true)
+    setError(null)
 
-      setLoading(true)
-      try {
-        // Obtener los pisos del proyecto
-        const floorsResponse = await fetch(`${API_BASE_URL}/floors/project/${project.id}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        })
+    try {
+      const token = localStorage.getItem("token")
+      if (!token) {
+        throw new Error("No hay token de autenticación")
+      }
 
-        if (!floorsResponse.ok) {
-          throw new Error(`Error al obtener pisos: ${floorsResponse.statusText}`)
-        }
+      // 1. Obtener datos del proyecto
+      const projectResponse = await fetch(`${API_BASE_URL}/projects/${projectId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
 
-        const floorsData = await floorsResponse.json()
+      if (!projectResponse.ok) {
+        throw new Error(`Error al obtener proyecto: ${projectResponse.statusText}`)
+      }
 
-        // Para cada piso, obtener sus departamentos en paralelo
-        const floorsPromises = floorsData.map(async (floor: any) => {
-          // Obtener los departamentos del piso usando la función optimizada
-          const floorData = await fetchFloorData(project.id, floor.floor_number, forceRefresh)
+      const projectData: Project = await projectResponse.json()
+      setProject(projectData)
 
-          if (!floorData) {
-            return {
-              number: floor.floor_number,
-              availableUnits: 0,
-              reservedUnits: 0,
-              soldUnits: 0,
+      // 2. Obtener pisos del proyecto
+      const floorsResponse = await fetch(`${API_BASE_URL}/projects/${projectId}/floors`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      if (floorsResponse.ok) {
+        const floorsApiData = await floorsResponse.json()
+        console.log("Floors data received:", floorsApiData)
+
+        // Procesar datos de pisos
+        const processedFloors: Floor[] = []
+
+        for (const floorApi of floorsApiData) {
+          try {
+            // Obtener estadísticas específicas del piso
+            const floorStats = await fetchFloorData(projectId, floorApi.floor_number, forceRefresh)
+
+            // Buscar configuración del piso
+            let floorConfig = null
+            if (projectData.floors_config && Array.isArray(projectData.floors_config)) {
+              floorConfig = projectData.floors_config.find((fc: any) => fc.floor_number === floorApi.floor_number)
+            }
+
+            // Coordenadas por defecto basadas en el número de piso
+            const defaultX = 448
+            const defaultY =
+              floorApi.floor_number <= 7
+                ? 680 - (floorApi.floor_number - 1) * 80
+                : floorApi.floor_number === 8
+                  ? 125
+                  : 55
+
+            const processedFloor: Floor = {
+              id: floorApi.id,
+              number: floorApi.floor_number,
+              floor_number: floorApi.floor_number,
+              availableUnits: floorStats?.availableUnits || floorApi.available_apartments || 0,
+              reservedUnits: floorStats?.reservedUnits || floorApi.reserved_apartments || 0,
+              soldUnits: floorStats?.soldUnits || floorApi.sold_apartments || 0,
+              total_apartments: floorApi.total_apartments || 0,
+              path: floorConfig?.svg_path || "",
+              x: floorConfig?.coordinates?.x || defaultX,
+              y: floorConfig?.coordinates?.y || defaultY,
+            }
+
+            processedFloors.push(processedFloor)
+          } catch (err) {
+            console.warn(`Error al obtener datos del piso ${floorApi.floor_number}:`, err)
+
+            // Agregar piso con datos por defecto
+            const defaultFloor: Floor = {
+              id: floorApi.id,
+              number: floorApi.floor_number,
+              floor_number: floorApi.floor_number,
+              availableUnits: floorApi.available_apartments || 0,
+              reservedUnits: floorApi.reserved_apartments || 0,
+              soldUnits: floorApi.sold_apartments || 0,
+              total_apartments: floorApi.total_apartments || 0,
               path: "",
               x: 448,
-              y: floor.floor_number <= 7 ? 680 - (floor.floor_number - 1) * 80 : floor.floor_number === 8 ? 125 : 55,
-              id: floor.id,
+              y:
+                floorApi.floor_number <= 7
+                  ? 680 - (floorApi.floor_number - 1) * 80
+                  : floorApi.floor_number === 8
+                    ? 125
+                    : 55,
             }
+
+            processedFloors.push(defaultFloor)
           }
+        }
 
-          // Contar departamentos por estado
-          let availableUnits = 0
-          let reservedUnits = 0
-          let soldUnits = 0
+        // Ordenar pisos por número
+        processedFloors.sort((a, b) => a.number - b.number)
+        setFloors(processedFloors)
 
-          Object.values(floorData.apartments).forEach((apt: any) => {
-            if (apt.status === "libre") availableUnits++
-            else if (apt.status === "reservado") reservedUnits++
-            else if (apt.status === "ocupado") soldUnits++
-          })
-
-          return {
-            number: floor.floor_number,
-            availableUnits,
-            reservedUnits,
-            soldUnits,
-            path: "", // No necesitamos el path para la visualización actual
-            x: 448,
-            y: floor.floor_number <= 7 ? 680 - (floor.floor_number - 1) * 80 : floor.floor_number === 8 ? 125 : 55,
-            id: floor.id,
-          }
-        })
-
-        // Esperar a que todas las promesas se resuelvan
-        const floorsWithApartments = await Promise.all(floorsPromises)
-
-        setFloors(floorsWithApartments)
-        setError(null)
-      } catch (err) {
-        console.error("Error al obtener datos de pisos:", err)
-        setError(err instanceof Error ? err.message : "Error desconocido")
-      } finally {
-        setLoading(false)
-      }
-    },
-    [project.id],
-  )
-
-  // Función para refrescar los datos
-  const refreshData = useCallback(async () => {
-    if (!project.id) return
-
-    setRefreshing(true)
-    try {
-      // Forzar actualización de la caché
-      await fetchFloors(true)
-
-      // Actualizar estadísticas del proyecto
-      const stats = await fetchProjectStats(project.id, true)
-
-      // Actualizar el proyecto con los datos calculados
-      if (stats) {
-        project.available_units = stats.available_units
-        project.reserved_units = stats.reserved_units
-        project.sold_units = stats.sold_units
-        project.total_units = stats.total_units
+        console.log("Processed floors:", processedFloors)
+      } else {
+        console.warn("No se pudieron obtener los pisos del proyecto")
+        setFloors([])
       }
     } catch (err) {
-      console.error("Error al refrescar datos:", err)
+      console.error("Error al obtener datos del proyecto y pisos:", err)
+      setError(err instanceof Error ? err.message : "Error desconocido")
+      setProject(null)
+      setFloors([])
     } finally {
-      setRefreshing(false)
+      setLoadingProjectData(false)
     }
-  }, [project, fetchFloors])
+  }, [])
 
-  // Cargar datos cuando se abre el modal
   useEffect(() => {
-    if (isOpen && project.id) {
-      fetchFloors()
+    if (isOpen && initialProject?.id) {
+      fetchProjectDetails(initialProject.id)
+    } else if (!isOpen) {
+      setProject(null)
+      setFloors([])
+      setError(null)
+      setActiveTab("overview")
+      setCurrentFilter("all")
     }
-  }, [isOpen, project.id, fetchFloors])
+  }, [isOpen, initialProject, fetchProjectDetails])
 
-  // Actualizar las estadísticas del proyecto cuando cambian los pisos
-  useEffect(() => {
-    if (floors.length > 0 && project.id) {
-      // Calcular totales
-      const available = floors.reduce((sum, floor) => sum + floor.availableUnits, 0)
-      const reserved = floors.reduce((sum, floor) => sum + floor.reservedUnits, 0)
-      const sold = floors.reduce((sum, floor) => sum + floor.soldUnits, 0)
-      const total = available + reserved + sold
+  const refreshData = useCallback(async () => {
+    if (!project?.id) return
+    setRefreshing(true)
+    await fetchProjectDetails(project.id, true)
 
-      // Actualizar el proyecto con los datos calculados
-      project.available_units = available
-      project.reserved_units = reserved
-      project.sold_units = sold
-      project.total_units = total
+    const stats = await fetchProjectStats(project.id, true)
+    if (stats && project) {
+      setProject((prev) =>
+        prev
+          ? {
+              ...prev,
+              available_units: stats.available_units,
+              reserved_units: stats.reserved_units,
+              sold_units: stats.sold_units,
+              total_units: stats.total_units,
+            }
+          : null,
+      )
     }
-  }, [floors, project])
+    setRefreshing(false)
+  }, [project, fetchProjectDetails])
 
-  const handleBrochureClick = (brochurePath: string) => {
-    window.open(brochurePath, "_blank")
+  const handleBrochureClick = () => {
+    if (project?.brochure) {
+      const url = project.brochure.startsWith("http") ? project.brochure : `${API_BASE_URL}${project.brochure}`
+      window.open(url, "_blank")
+    }
   }
 
-  // Usar los pisos obtenidos de la API o los de muestra como respaldo
-  const floorsToDisplay = useMemo(() => (floors.length > 0 ? floors : []), [floors])
-
-  const unitTypesToDisplay = project.unitTypes || sampleUnitTypes
-  const amenitiesToDisplay = project.amenities || sampleAmenities
-  const financialOptionsToDisplay = project.financialOptions || sampleFinancialOptions
-  const parkingInfoToDisplay = project.parkingInfo || sampleParkingInfo
-  const promotionsToDisplay = project.promotions || samplePromotions
-
-  const handleFloorClick = (floorNumber: number) => {
-    setSelectedFloor(floorNumber)
-    onViewPlanes(project.id, floorNumber)
-  }
+  const unitTypesToDisplay = project?.unit_types || []
+  const amenitiesToDisplay = project?.amenities || []
+  const financialOptionsToDisplay = project?.financial_options || []
+  const parkingInfoToDisplay = project?.parking_config?.info || "Información de estacionamiento no disponible."
+  const promotionsToDisplay =
+    project?.general_promotions || project?.parking_config?.promotions || "No hay promociones disponibles."
+  const mapConfig = project?.map_config
 
   const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold") => {
     setCurrentFilter(filter)
@@ -320,41 +314,82 @@ export function ProjectModal({
     [currentFilter],
   )
 
+  if (!isOpen) return null
+
+  if (loadingProjectData && !project) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="w-full h-[100dvh] p-0 overflow-hidden flex flex-col sm:max-w-[90vw] sm:h-[90vh] items-center justify-center">
+          <DialogTitle className="sr-only">Cargando proyecto</DialogTitle>
+          <DialogDescription className="sr-only">Cargando datos del proyecto</DialogDescription>
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-muted-foreground">Cargando datos del proyecto...</p>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  if (error) {
+    return (
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="w-full h-[100dvh] p-0 overflow-hidden flex flex-col sm:max-w-[90vw] sm:h-[90vh] items-center justify-center">
+          <DialogTitle className="sr-only">Error</DialogTitle>
+          <DialogDescription className="sr-only">Error al cargar el proyecto</DialogDescription>
+          <p className="text-red-500">Error: {error}</p>
+          <Button onClick={onClose} className="mt-4">
+            Cerrar
+          </Button>
+        </DialogContent>
+      </Dialog>
+    )
+  }
+
+  if (!project) return null
+
+  const totalUnits = project.total_units || project.available_units + project.reserved_units + project.sold_units || 1
+
   return (
     <AnimatePresence>
       {isOpen && (
         <Dialog open={isOpen} onOpenChange={onClose}>
           <DialogContent className="w-full h-[100dvh] p-0 overflow-hidden flex flex-col sm:max-w-[90vw] sm:h-[90vh]">
+            <DialogTitle className="sr-only">{project.name}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Detalles del proyecto {project.name} ubicado en {project.location}
+            </DialogDescription>
             <motion.div className="flex flex-col h-full lg:flex-row">
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
-                  src={project.edificio || "/placeholder.svg"}
-                  alt={project.name}
-                  layout="fill"
-                  objectFit="cover"
+                  src={project.edificio || "/placeholder.svg?width=800&height=1200&query=modern+building+facade"}
+                  alt={project.name || "Edificio del proyecto"}
+                  fill
+                  style={{ objectFit: "cover" }}
                   className="rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none"
+                  priority
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
                 <svg
-                  viewBox="0 0 1000 2400"
+                  viewBox={project.building_config?.viewBox || "0 0 1000 2400"}
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
-                  <g transform="scale(2.4, 2.4) translate(-515, 135)">
+                  <g transform={project.building_config?.transform || "scale(2.4, 2.4) translate(-515, 135)"}>
                     <AnimatePresence>
-                      {floorsToDisplay.map((floor) => {
-                        const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
-                        if (totalUnits === 0) return null // No mostrar pisos sin unidades
+                      {floors.map((floor) => {
+                        const floorTotalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
+                        if (floorTotalUnits === 0 && !project.building_config?.show_empty_floors) return null
 
-                        const floorWidth = 613 // Ancho total del piso
-                        const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
-                        const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
-                        const availableWidth = floorWidth - soldWidth - reservedWidth
+                        const floorWidth = project.building_config?.floor_width || 613
+                        const soldWidth = floorTotalUnits > 0 ? (floor.soldUnits / floorTotalUnits) * floorWidth : 0
+                        const reservedWidth =
+                          floorTotalUnits > 0 ? (floor.reservedUnits / floorTotalUnits) * floorWidth : 0
+                        const availableWidth = Math.max(0, floorWidth - soldWidth - reservedWidth)
 
                         return (
                           <TooltipPrimitive.Provider key={floor.number}>
                             <TooltipPrimitive.Root delayDuration={0}>
                               <TooltipPrimitive.Trigger asChild>
-                                <g onClick={() => handleFloorClick(floor.number)} style={{ cursor: "pointer" }}>
+                                <g onClick={() => onViewPlanes(project.id, floor.number)} style={{ cursor: "pointer" }}>
                                   <motion.rect
                                     x={floor.x}
                                     y={floor.y}
@@ -398,10 +433,10 @@ export function ProjectModal({
                                     transition={{ duration: 0.2 }}
                                   />
                                   <text
-                                    x={floor.x - 28}
-                                    y={floor.y + 30}
-                                    fill="white"
-                                    fontSize="14"
+                                    x={floor.x - (project.building_config?.floor_label_offset_x || 28)}
+                                    y={floor.y + (project.building_config?.floor_label_offset_y || 30)}
+                                    fill={project.building_config?.floor_label_color || "white"}
+                                    fontSize={project.building_config?.floor_label_fontsize || "14"}
                                     fontWeight="bold"
                                     textAnchor="end"
                                   >
@@ -410,7 +445,7 @@ export function ProjectModal({
                                 </g>
                               </TooltipPrimitive.Trigger>
                               <Tooltip>
-                                {`Piso ${floor.number}: ${floor.availableUnits} disponibles, ${floor.reservedUnits} reservadas, ${floor.soldUnits} vendidas`}
+                                {`Piso ${floor.number}: ${floor.availableUnits} disp, ${floor.reservedUnits} res, ${floor.soldUnits} vend`}
                               </Tooltip>
                             </TooltipPrimitive.Root>
                           </TooltipPrimitive.Provider>
@@ -421,28 +456,28 @@ export function ProjectModal({
                 </svg>
                 <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 p-2 rounded">
                   <div className="flex items-center mb-1">
-                    <div className="w-4 h-4 bg-red-500 mr-2"></div>
-                    <span className="text-white text-xs">Vendido</span>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("sold") }} />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Vendido</span>
                   </div>
                   <div className="flex items-center mb-1">
-                    <div className="w-4 h-4 bg-yellow-500 mr-2"></div>
-                    <span className="text-white text-xs">Reservado</span>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("reserved") }} />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Reservado</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-4 h-4 bg-green-500 mr-2"></div>
-                    <span className="text-white text-xs">Disponible</span>
+                    <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("available") }} />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Disponible</span>
                   </div>
                 </div>
                 <div className="absolute top-4 right-4">
                   <Button
                     onClick={refreshData}
-                    disabled={refreshing}
+                    disabled={refreshing || loadingProjectData}
                     size="sm"
                     variant="outline"
-                    className="bg-black bg-opacity-50 text-white border-white"
+                    className="bg-black bg-opacity-50 text-white border-white hover:bg-opacity-75"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                    {refreshing ? "Actualizando..." : "Actualizar"}
+                    <RefreshCw className={`h-4 w-4 mr-2 ${refreshing || loadingProjectData ? "animate-spin" : ""}`} />
+                    {refreshing || loadingProjectData ? "Actualizando..." : "Actualizar"}
                   </Button>
                 </div>
               </div>
@@ -453,12 +488,7 @@ export function ProjectModal({
                     <p className="text-sm sm:text-base text-muted-foreground">{project.location}</p>
                   </DialogHeader>
                   <div className="block sm:hidden mb-4">
-                    <Select
-                      onValueChange={(value: string) =>
-                        setActiveTab(value as "overview" | "units" | "features" | "financial" | "location")
-                      }
-                      value={activeTab}
-                    >
+                    <Select onValueChange={(value) => setActiveTab(value as any)} value={activeTab}>
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Seleccionar vista" />
                       </SelectTrigger>
@@ -471,228 +501,244 @@ export function ProjectModal({
                       </SelectContent>
                     </Select>
                   </div>
-                  <Tabs
-                    value={activeTab}
-                    onValueChange={(value: string) =>
-                      setActiveTab(value as "overview" | "units" | "features" | "financial" | "location")
-                    }
-                  >
-                    <TabsList className="hidden sm:flex h-12 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground mb-4 overflow-x-auto whitespace-nowrap w-full">
-                      <TabsTrigger
-                        value="overview"
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-                      >
-                        Resumen
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="units"
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-                      >
-                        Unidades
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="features"
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring f-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-                      >
-                        Características
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="financial"
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring f-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-                      >
-                        Financiamiento
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="location"
-                        className="inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring f-none disabled:opacity-50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
-                      >
-                        Ubicación
-                      </TabsTrigger>
+                  <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as any)} className="w-full">
+                    <TabsList className="hidden sm:grid w-full grid-cols-5 h-12 items-center justify-start rounded-lg bg-muted p-1 text-muted-foreground mb-4 whitespace-nowrap">
+                      {["Resumen", "Unidades", "Características", "Financiamiento", "Ubicación"].map((tabName, idx) => {
+                        const tabValue = ["overview", "units", "features", "financial", "location"][idx]
+                        return (
+                          <TabsTrigger
+                            key={tabValue}
+                            value={tabValue}
+                            className="text-xs px-2 sm:text-sm sm:px-3 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow"
+                          >
+                            {tabName}
+                          </TabsTrigger>
+                        )
+                      })}
                     </TabsList>
                     <TabsContent value="overview" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm sm:text-base">Total de unidades: {project.total_units}</h4>
+                          <h4 className="font-medium text-sm sm:text-base">
+                            Total de unidades: {project.total_units || 0}
+                          </h4>
                           <Progress value={100} className="w-full" />
                         </div>
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades disponibles: {project.available_units}
+                            Unidades disponibles: {project.available_units || 0}
                           </h4>
-                          <Progress value={(project.available_units / project.total_units) * 100} className="w-full" />
+                          <Progress
+                            value={totalUnits > 0 ? ((project.available_units || 0) / totalUnits) * 100 : 0}
+                            className="w-full"
+                          />
                         </div>
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades reservadas: {project.reserved_units}
+                            Unidades reservadas: {project.reserved_units || 0}
                           </h4>
-                          <Progress value={(project.reserved_units / project.total_units) * 100} className="w-full" />
+                          <Progress
+                            value={totalUnits > 0 ? ((project.reserved_units || 0) / totalUnits) * 100 : 0}
+                            className="w-full"
+                          />
                         </div>
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm sm:text-base">Unidades vendidas: {project.sold_units}</h4>
-                          <Progress value={(project.sold_units / project.total_units) * 100} className="w-full" />
+                          <h4 className="font-medium text-sm sm:text-base">
+                            Unidades vendidas: {project.sold_units || 0}
+                          </h4>
+                          <Progress
+                            value={totalUnits > 0 ? ((project.sold_units || 0) / totalUnits) * 100 : 0}
+                            className="w-full"
+                          />
                         </div>
-                        <div className="mt-6 bg-black text-white p-4 rounded-lg">
-                          <h4 className="font-medium mb-4 text-base sm:text-lg text-white">Unidades por piso:</h4>
+                        <div className="mt-6 bg-card p-4 rounded-lg border">
+                          <h4 className="font-medium mb-4 text-base sm:text-lg">Unidades por piso:</h4>
                           <div className="mb-4 flex flex-wrap gap-1 sm:gap-2">
-                            <Button
-                              variant={currentFilter === "all" ? "default" : "outline"}
-                              onClick={() => handleFilterChange("all")}
-                              className="text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                            >
-                              Todas
-                            </Button>
-                            <Button
-                              variant={currentFilter === "available" ? "default" : "outline"}
-                              onClick={() => handleFilterChange("available")}
-                              className="text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                            >
-                              Disponibles
-                            </Button>
-                            <Button
-                              variant={currentFilter === "reserved" ? "default" : "outline"}
-                              onClick={() => handleFilterChange("reserved")}
-                              className="text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                            >
-                              Reservadas
-                            </Button>
-                            <Button
-                              variant={currentFilter === "sold" ? "default" : "outline"}
-                              onClick={() => handleFilterChange("sold")}
-                              className="text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
-                            >
-                              Vendidas
-                            </Button>
-                          </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1 sm:gap-2">
-                            {floorsToDisplay.map((floor) => (
+                            {["all", "available", "reserved", "sold"].map((filterType) => (
                               <Button
-                                key={floor.number}
-                                variant="outline"
-                                className="flex flex-col items-center justify-center p-4 w-full h-full text-s sm:text-sm"
-                                onClick={() => onViewPlanes(project.id, floor.number)}
+                                key={filterType}
+                                variant={currentFilter === filterType ? "default" : "outline"}
+                                onClick={() => handleFilterChange(filterType as any)}
+                                className="text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
                               >
-                                <span className="font-medium">Piso {floor.number}</span>
-                                <span className="text-[10px] sm:text-xs font-semibold mt-2">
-                                  {getFilteredUnits(floor)}{" "}
-                                  {currentFilter === "all"
-                                    ? "Total"
-                                    : currentFilter === "available"
-                                      ? "Libre"
-                                      : currentFilter === "reserved"
-                                        ? "Reservadas"
-                                        : "Vendidas"}
-                                </span>
+                                {filterType === "all"
+                                  ? "Todas"
+                                  : filterType === "available"
+                                    ? "Disponibles"
+                                    : filterType === "reserved"
+                                      ? "Reservadas"
+                                      : "Vendidas"}
                               </Button>
                             ))}
                           </div>
+                          {floors.length > 0 ? (
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 sm:gap-2">
+                              {floors.map((floor) => (
+                                <Button
+                                  key={floor.number}
+                                  variant="outline"
+                                  className="flex flex-col items-center justify-center p-2 sm:p-4 w-full h-full text-xs sm:text-sm bg-transparent"
+                                  onClick={() => onViewPlanes(project.id, floor.number)}
+                                >
+                                  <span className="font-medium">Piso {floor.number}</span>
+                                  <span className="text-[10px] sm:text-xs font-semibold mt-1 sm:mt-2">
+                                    {getFilteredUnits(floor)}{" "}
+                                    {currentFilter === "all"
+                                      ? "Total"
+                                      : currentFilter === "available"
+                                        ? "Libre"
+                                        : currentFilter === "reserved"
+                                          ? "Reserv."
+                                          : "Vend."}
+                                  </span>
+                                </Button>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground text-sm">No hay información de pisos disponible.</p>
+                          )}
                         </div>
                       </div>
                     </TabsContent>
                     <TabsContent value="units" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Detalles de las Unidades</h4>
-                        {unitTypesToDisplay.map((unit, index) => (
-                          <div key={index} className="bg-muted p-4 rounded-lg">
-                            <h5 className="font-medium">{unit.type}</h5>
-                            <p className="text-sm">Tamaño: {unit.size}</p>
-                            <p className="text-sm">Rango de precios: {unit.priceRange}</p>
-                            <p className="text-sm">Estado: {unit.status}</p>
-                          </div>
-                        ))}
+                        {unitTypesToDisplay.length > 0 ? (
+                          unitTypesToDisplay.map((unit, index) => (
+                            <div key={index} className="bg-muted p-4 rounded-lg">
+                              <h5 className="font-medium">{unit.type}</h5>
+                              <p className="text-sm text-muted-foreground">Tamaño: {unit.size}</p>
+                              <p className="text-sm text-muted-foreground">Rango de precios: {unit.priceRange}</p>
+                              <p className="text-sm text-muted-foreground">Estado: {unit.status}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-muted-foreground">No hay tipos de unidades definidos.</p>
+                        )}
                       </div>
                     </TabsContent>
                     <TabsContent value="features" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Características del Edificio</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {amenitiesToDisplay.map((amenity, index) => (
-                            <div key={index} className="bg-muted p-4 rounded-lg">
-                              <h5 className="font-medium">{amenity.name}</h5>
-                              <p className="text-sm">{amenity.description}</p>
-                            </div>
-                          ))}
-                        </div>
+                        {amenitiesToDisplay.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {amenitiesToDisplay.map((amenity, index) => (
+                              <div key={index} className="bg-muted p-4 rounded-lg">
+                                <h5 className="font-medium">{amenity.name}</h5>
+                                <p className="text-sm text-muted-foreground">{amenity.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-muted-foreground">No hay características definidas.</p>
+                        )}
                         <div className="bg-muted p-4 rounded-lg mt-4">
                           <h5 className="font-medium">Estacionamiento</h5>
-                          <p className="text-sm">{parkingInfoToDisplay}</p>
+                          <p className="text-sm text-muted-foreground">{parkingInfoToDisplay}</p>
                         </div>
                       </div>
                     </TabsContent>
                     <TabsContent value="financial" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Financiamiento</h4>
-                        {financialOptionsToDisplay.map((option, index) => (
-                          <div key={index} className="bg-muted p-4 rounded-lg">
-                            <h5 className="font-medium">{option.name}</h5>
-                            <p className="text-sm">{option.description}</p>
-                          </div>
-                        ))}
+                        {financialOptionsToDisplay.length > 0 ? (
+                          financialOptionsToDisplay.map((option, index) => (
+                            <div key={index} className="bg-muted p-4 rounded-lg">
+                              <h5 className="font-medium">{option.name}</h5>
+                              <p className="text-sm text-muted-foreground">{option.description}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-muted-foreground">No hay opciones de financiamiento definidas.</p>
+                        )}
                         <div className="bg-muted p-4 rounded-lg mt-4">
                           <h5 className="font-medium">Promociones y Descuentos</h5>
-                          <p className="text-sm">{promotionsToDisplay}</p>
+                          <p className="text-sm text-muted-foreground">{promotionsToDisplay}</p>
                         </div>
                       </div>
                     </TabsContent>
                     <TabsContent value="location" className="mt-2">
                       <div className="space-y-6 mt-4">
                         <h4 className="font-medium text-xl">Ubicación del Proyecto</h4>
-                        <div className="bg-gray-100 rounded-lg overflow-hidden shadow-md">
-                          <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.955759537342!2d-58.415668523393144!3d-34.57998595624697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcb579134f34b3%3A0x6d06db0893f18a5b!2sRep%C3%BAblica%20%C3%81rabe%20Siria%20%26%20Cabello%2C%20C1425%20Cdad.%20Aut%C3%B3noma%20de%20Buenos%20Aires!5e0!3m2!1ses!2sar!4v1733140225777!5m2!1ses!2sar"
-                            width="100%"
-                            height="400"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                          ></iframe>
-                        </div>
+                        {mapConfig?.embed_url ? (
+                          <div className="bg-muted rounded-lg overflow-hidden shadow-md aspect-video">
+                            <iframe
+                              src={mapConfig.embed_url}
+                              width="100%"
+                              height="100%"
+                              style={{ border: 0 }}
+                              allowFullScreen
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                            ></iframe>
+                          </div>
+                        ) : (
+                          <div className="bg-gray-100 rounded-lg overflow-hidden shadow-md">
+                            <iframe
+                              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.955759537342!2d-58.415668523393144!3d-34.57998595624697!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x95bcb579134f34b3%3A0x6d06db0893f18a5b!2sRep%C3%BAblica%20%C3%81rabe%20Siria%20%26%20Cabello%2C%20C1425%20Cdad.%20Aut%C3%B3noma%20de%20Buenos%20Aires!5e0!3m2!1ses!2sar!4v1733140225777!5m2!1ses!2sar"
+                              width="100%"
+                              height="400"
+                              style={{ border: 0 }}
+                              allowFullScreen
+                              loading="lazy"
+                              referrerPolicy="no-referrer-when-downgrade"
+                            ></iframe>
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <div className="p-6 rounded-lg shadow-md">
+                          <div className="bg-muted p-6 rounded-lg shadow-md">
                             <h5 className="font-medium text-lg mb-3">Detalles de Ubicación</h5>
-                            <ul className="space-y-2">
-                              <li className="flex items-center space-x-2">
-                                <span className="font-semibold">Link de ubicación:</span>
-                                <input
-                                  type="text"
-                                  value="https://maps.app.goo.gl/1XqsNPMyqdYwzErn7"
-                                  readOnly
-                                  className="flex-grow bg-gray-900 px-2 py-1 rounded text-sm"
-                                />
-                                <Button
-                                  onClick={() => {
-                                    navigator.clipboard.writeText("https://maps.app.goo.gl/1XqsNPMyqdYwzErn7")
-                                  }}
-                                  className="px-2 py-1 text-xs"
-                                >
-                                  Copiar
-                                </Button>
-                              </li>
-                              <li>
-                                <span className="font-semibold">Código postal:</span> C1425
-                              </li>
+                            <ul className="space-y-2 text-sm text-muted-foreground">
+                              {mapConfig?.address && (
+                                <li>
+                                  <span className="font-semibold text-foreground">Dirección:</span> {mapConfig.address}
+                                </li>
+                              )}
+                              {mapConfig?.postal_code && (
+                                <li>
+                                  <span className="font-semibold text-foreground">Código postal:</span>{" "}
+                                  {mapConfig.postal_code}
+                                </li>
+                              )}
+                              {mapConfig?.details_link && (
+                                <li className="flex items-center space-x-2">
+                                  <span className="font-semibold text-foreground">Link de ubicación:</span>
+                                  <input
+                                    type="text"
+                                    value={mapConfig.details_link}
+                                    readOnly
+                                    className="flex-grow bg-background px-2 py-1 rounded text-xs border"
+                                  />
+                                  <Button
+                                    onClick={() => navigator.clipboard.writeText(mapConfig.details_link!)}
+                                    size="sm"
+                                    variant="outline"
+                                  >
+                                    Copiar
+                                  </Button>
+                                </li>
+                              )}
                             </ul>
                           </div>
-                          <div className=" p-6 rounded-lg shadow-md">
-                            <h5 className="font-medium text-lg mb-3">Comodidades</h5>
-                            <p>
-                              DOME Palermo Residence se encuentra ubicado en una importante esquina de Palermo, con
-                              amplia conexión con medios de transporte y en el centro de un importante polo gastronómico
-                              y recreativo de la ciudad.
-                            </p>
-                          </div>
+                          {mapConfig?.amenities_description && (
+                            <div className="bg-muted p-6 rounded-lg shadow-md">
+                              <h5 className="font-medium text-lg mb-3">Comodidades Cercanas</h5>
+                              <p className="text-sm text-muted-foreground">{mapConfig.amenities_description}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TabsContent>
                   </Tabs>
                 </ScrollArea>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 sm:p-4 bg-background border-t">
-                  <Button onClick={() => onViewPlanes(project.id)} className="w-full py-2 sm:py-6 text-xs sm:text-base">
+                  <Button onClick={() => onViewPlanes(project.id)} className="w-full py-3 sm:py-6 text-xs sm:text-base">
                     Ver planos
                   </Button>
                   <Button
-                    onClick={() => handleBrochureClick(project.brochure)}
-                    className="w-full py-2 sm:py-6 text-xs sm:text-base"
+                    onClick={handleBrochureClick}
+                    disabled={!project.brochure}
+                    className="w-full py-3 sm:py-6 text-xs sm:text-base"
                   >
                     <DownloadIcon className="mr-1 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="hidden sm:inline">Descargar </span>
@@ -700,7 +746,7 @@ export function ProjectModal({
                   </Button>
                   <Button
                     onClick={() => onViewGallery(project.id)}
-                    className="w-full py-2 sm:py-6 text-xs sm:text-base"
+                    className="w-full py-3 sm:py-6 text-xs sm:text-base"
                   >
                     <ImageIcon className="mr-1 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="hidden sm:inline">Ver </span>

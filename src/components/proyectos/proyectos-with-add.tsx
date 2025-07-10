@@ -2,8 +2,11 @@
 
 import { useState, useEffect, useCallback, memo } from "react"
 import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { ProjectModal } from "./project-modal"
+import { AddProjectModal } from "./add-project-modal"
 import { AnimatePresence, motion } from "framer-motion"
+import { PlusCircle } from "lucide-react"
 import "notyf/notyf.min.css"
 
 type Floor = {
@@ -82,28 +85,20 @@ const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () 
 
 ProjectCard.displayName = "ProjectCard"
 
-type AdnProps = {
+type ProyectosWithAddProps = {
   onViewProject: (projectId: number) => void
   onViewPlanes: (projectId: number, floorNumber?: number) => void
   onViewGallery: (projectId: number) => void
-  isProjectModalOpen: boolean
-  setIsProjectModalOpen: (isOpen: boolean) => void
-  selectedProjectId: number | null
-  setSelectedProjectId: (projectId: number | null) => void
 }
 
-export function Adn({
-  onViewProject,
-  onViewPlanes,
-  onViewGallery,
-  isProjectModalOpen,
-  setIsProjectModalOpen,
-  selectedProjectId,
-  setSelectedProjectId,
-}: AdnProps) {
+export function ProyectosWithAdd({ onViewProject, onViewPlanes, onViewGallery }: ProyectosWithAddProps) {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false)
+  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null)
 
   useEffect(() => {
     fetchProjects()
@@ -112,25 +107,15 @@ export function Adn({
   const fetchProjects = async () => {
     try {
       setLoading(true)
-      setError(null)
-      console.log(`Fetching projects from: ${API_BASE_URL}/projects`)
-
       const response = await fetch(`${API_BASE_URL}/projects`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       })
-
-      console.log(`Response status: ${response.status}`)
-
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error(`HTTP error! status: ${response.status}, body: ${errorText}`)
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-
       const data = await response.json()
-      console.log(`Received ${data.length} projects:`, data)
       setProjects(data)
     } catch (err) {
       console.error("Error fetching projects:", err)
@@ -153,6 +138,11 @@ export function Adn({
     setSelectedProjectId(null)
   }, [setIsProjectModalOpen, setSelectedProjectId])
 
+  const handleProjectAdded = useCallback(() => {
+    fetchProjects() // Refresh the projects list
+    setRefreshKey((prevKey) => prevKey + 1)
+  }, [])
+
   if (loading) return <div className="p-4">Cargando proyectos...</div>
   if (error) return <div className="p-4 text-red-500">Error: {error}</div>
 
@@ -160,7 +150,14 @@ export function Adn({
 
   return (
     <div className="bg-black min-h-screen">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6 p-6">
+      <div className="p-6 flex justify-end">
+        <Button onClick={() => setIsAddModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Agregar Nuevo Proyecto
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <AnimatePresence>
           {projects.map((project) => (
             <motion.div
@@ -175,6 +172,7 @@ export function Adn({
           ))}
         </AnimatePresence>
       </div>
+
       <AnimatePresence>
         {selectedProject && (
           <ProjectModal
@@ -187,6 +185,12 @@ export function Adn({
           />
         )}
       </AnimatePresence>
+
+      <AddProjectModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onProjectAdded={handleProjectAdded}
+      />
     </div>
   )
 }
