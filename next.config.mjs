@@ -16,6 +16,11 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'adndash.vercel.app',
         pathname: '/images/**',
+      },
+            {
+        protocol: 'https',
+        hostname: 'www.adncrm.com.ar',
+        pathname: '/images/**',
       }
     ],
   },
