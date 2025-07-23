@@ -5,9 +5,11 @@ import { Card } from "@/components/ui/card"
 import { AnimatePresence, motion } from "framer-motion"
 import DomeProjectShowcase from "@/components/proyectos/lagos/dome-project-showcase"
 import DomeSuitesProjectShowcase from "@/components/proyectos/suites/dome-suites-project-showcase"
+import { DomePalermoProjectShowcase } from "@/components/proyectos/palermo/dome-palermo-project-showcase"
+import { DomePalermoFloorPlan } from "@/components/proyectos/palermo/dome-palermo-floor-plan"
 
 type ProjectType = "lagos" | "suites" | "palermo"
-type ViewMode = "cards" | "project"
+type ViewMode = "cards" | "project" | "floorplan"
 
 type StaticProject = {
   id: string
@@ -61,6 +63,7 @@ const ProjectCard = memo(({ project, onClick }: { project: StaticProject; onClic
         </div>
       </div>
       <div className="p-3 text-center bg-black text-white">
+        <h3 className="font-semibold text-lg mb-1">{project.name}</h3>
         <p className="text-sm text-gray-400">{project.location}</p>
       </div>
     </Card>
@@ -78,15 +81,24 @@ export default function DomePuertosPage() {
     setCurrentView("project")
   }
 
+  const handleViewFloorPlan = () => {
+    setCurrentView("floorplan")
+  }
+
   const handleBackToCards = () => {
     setCurrentView("cards")
     setSelectedProject(null)
+  }
+
+  const handleBackToProject = () => {
+    setCurrentView("project")
   }
 
   const handleProjectClick = useCallback((project: StaticProject) => {
     handleViewProject(project.type)
   }, [])
 
+  // Renderizar el showcase correspondiente según el proyecto seleccionado
   if (currentView === "project" && selectedProject === "lagos") {
     return <DomeProjectShowcase onBack={handleBackToCards} />
   }
@@ -96,26 +108,33 @@ export default function DomePuertosPage() {
   }
 
   if (currentView === "project" && selectedProject === "palermo") {
-    // Por ahora redirige a lagos hasta que se implemente Palermo
-    return <DomeProjectShowcase onBack={handleBackToCards} />
+    return <DomePalermoProjectShowcase onBack={handleBackToCards} onOpenFloorPlan={handleViewFloorPlan} />
   }
 
+  if (currentView === "floorplan" && selectedProject === "palermo") {
+    return <DomePalermoFloorPlan onBack={handleBackToProject} />
+  }
+
+  // Vista principal con las cartas de proyectos
   return (
     <div className="bg-black min-h-screen">
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
-        <AnimatePresence>
-          {staticProjects.map((project) => (
-            <motion.div
-              key={project.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <ProjectCard project={project} onClick={() => handleProjectClick(project)} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div className="container mx-auto px-4 py-8">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence>
+            {staticProjects.map((project, index) => (
+              <motion.div
+                key={project.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3, delay: index * 0.1 }}
+              >
+                <ProjectCard project={project} onClick={() => handleProjectClick(project)} />
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   )

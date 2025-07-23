@@ -1,14 +1,38 @@
 "use client"
 import { useState, useCallback, useEffect, useRef } from "react"
 import type React from "react"
-
+import Image from "next/image"
+import { motion } from "framer-motion"
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  Building,
+  Car,
+  FileSpreadsheet,
+  FileBarChart,
+  RefreshCw,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, ChevronLeft, ChevronRight, Download, RefreshCw } from "lucide-react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { motion } from "framer-motion"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
+import { Notyf } from "notyf"
+import "notyf/notyf.min.css"
+import { useAuth } from "@/app/auth/auth-context"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   suitesFloorsData,
   suitesFloorPlans,
@@ -19,9 +43,6 @@ import {
   updateSuitesApartmentStatus,
   getSuitesStatusColor,
 } from "@/lib/dome-suites-data"
-import Image from "next/image"
-import { Notyf } from "notyf"
-import "notyf/notyf.min.css"
 
 let notyf: Notyf | null = null
 
@@ -31,11 +52,21 @@ type SuitesFloorPlanProps = {
 }
 
 const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+
+// Planos de cocheras para Dome Suites
+const garageLevels = [1, 2]
+const garagePlans = {
+  1: "/images/suites/cochera1.svg",
+  2: "/images/suites/cochera2.svg",
+}
 
 export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }: SuitesFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedApartment, setSelectedApartment] = useState<SuitesApartment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [activityLog, setActivityLog] = useState<string[]>([])
+  const { user } = useAuth()
   const [action, setAction] = useState<
     "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | null
   >(null)
@@ -50,8 +81,18 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   const [confirmReservation, setConfirmReservation] = useState(false)
   const [confirmCancelReservation, setConfirmCancelReservation] = useState(false)
   const [confirmRelease, setConfirmRelease] = useState(false)
-  const [refreshing, setRefreshing] = useState(false)
+  const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedParking, setSelectedParking] = useState<string | null>(null)
+  const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
+  const [parkingSpots, setParkingSpots] = useState<any[]>([])
+  const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
+  const [showParkingAssignment, setShowParkingAssignment] = useState(false)
+  const [selectedParkings, setSelectedParkings] = useState<{ [key: string]: boolean }>({})
+  const [isParkingInfoModalOpen, setIsParkingInfoModalOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Initialize Notyf
   useEffect(() => {
@@ -99,7 +140,7 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   ) => {
     setAction(actionType)
     setConfirmReservation(
-      actionType === "reserve" && selectedApartment !== null && selectedApartment.status === "DISPONIBLE",
+      actionType === "reserve" && selectedApartment !== null && selectedApartment.status === "BLOQUEADO",
     )
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
@@ -107,7 +148,7 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedApartment) return
+    if (!selectedApartment || !user) return
 
     try {
       let newStatus: SuitesApartment["status"] = selectedApartment.status
@@ -157,6 +198,11 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
           }
         }
 
+        // Actualizar el registro de actividades
+        const timestamp = new Date().toLocaleString()
+        const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} la unidad ${selectedApartment.unitNumber}`
+        setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
         setIsModalOpen(false)
         setAction(null)
         setFormData({
@@ -187,6 +233,11 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
     if (notyf) notyf.success("Descargando plano...")
   }
 
+  const handleDownloadAdditionalInfo = useCallback((type: string) => {
+    console.log(`Downloading ${type}...`)
+    if (notyf) notyf.success(`Descargando ${type}...`)
+  }, [])
+
   const refreshData = async () => {
     setRefreshing(true)
     await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -203,15 +254,13 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   if (!currentFloorData) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
-        <Card className="w-full max-w-md bg-zinc-900 text-white">
-          <CardContent className="p-6 text-center">
-            <p className="text-zinc-300 mb-4">Piso no encontrado</p>
-            <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Volver al proyecto
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-md bg-zinc-900 text-white p-6 rounded-lg text-center">
+          <p className="text-zinc-300 mb-4">Piso no encontrado</p>
+          <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Volver al proyecto
+          </Button>
+        </div>
       </div>
     )
   }
@@ -230,120 +279,172 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
               <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
               {refreshing ? "Actualizando..." : "Actualizar datos"}
             </Button>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="autoRefresh"
+                checked={autoRefresh}
+                onCheckedChange={(checked) => setAutoRefresh(checked === true)}
+              />
+              <Label htmlFor="autoRefresh" className="text-sm">
+                Auto-actualizar
+              </Label>
+            </div>
           </div>
         </div>
 
-        {/* Floor Selection */}
-        <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
-          <div className="p-4 md:p-6">
-            <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
-            <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-              <div className="flex items-center mb-4 md:mb-0">
-                <button
-                  onClick={() => handleFloorClick(Math.max(1, currentFloor - 1))}
-                  className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                >
-                  <ChevronLeft />
-                </button>
-                <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
-                <button
-                  onClick={() => handleFloorClick(Math.min(12, currentFloor + 1))}
-                  className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                >
-                  <ChevronRight />
-                </button>
+        <Tabs
+          value={activeView}
+          onValueChange={(value) => setActiveView(value as "apartments" | "garage")}
+          className="mb-8"
+        >
+          <TabsList className="grid w-full grid-cols-2 bg-zinc-800">
+            <TabsTrigger value="apartments" className="data-[state=active]:bg-zinc-700">
+              Unidades
+            </TabsTrigger>
+            <TabsTrigger value="garage" className="data-[state=active]:bg-zinc-700">
+              Cochera
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="apartments">
+            {/* Floor Selection */}
+            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
+              <div className="p-4 md:p-6">
+                <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
+                <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+                  <div className="flex items-center mb-4 md:mb-0">
+                    <button
+                      onClick={() => handleFloorClick(Math.max(1, currentFloor - 1))}
+                      className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                    >
+                      <ChevronLeft />
+                    </button>
+                    <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
+                    <button
+                      onClick={() => handleFloorClick(Math.min(12, currentFloor + 1))}
+                      className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                    >
+                      <ChevronRight />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap justify-center gap-2">
+                    {floors.map((floor) => (
+                      <motion.button
+                        key={floor}
+                        onClick={() => handleFloorClick(floor)}
+                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold ${
+                          currentFloor === floor ? "bg-zinc-800" : "bg-zinc-700 hover:bg-zinc-600"
+                        }`}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                      >
+                        {floor}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="flex flex-wrap justify-center gap-2">
-                {floors.map((floor) => (
-                  <motion.button
-                    key={floor}
-                    onClick={() => handleFloorClick(floor)}
-                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold ${
-                      currentFloor === floor ? "bg-zinc-800" : "bg-zinc-700 hover:bg-zinc-600"
-                    }`}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    {floor}
-                  </motion.button>
-                ))}
+
+              {/* Floor Plan with Image Map */}
+              <div className="relative aspect-video">
+                <Image
+                  src={getFloorPlanImage() || "/placeholder.svg"}
+                  alt={`Plano ${currentFloorData.name}`}
+                  fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                  style={{ objectFit: "contain" }}
+                  className="pointer-events-none"
+                />
+
+                {/* SVG overlay for clickable areas */}
+                <div className="absolute inset-0 z-10">
+                  <svg viewBox="0 0 910 743" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                    {currentFloorData.apartments.map((apartment) => {
+                      if (!apartment.coordinates) return null
+
+                      const coords = apartment.coordinates.split(",").map(Number)
+
+                      // Si son 4 coordenadas, es un rectángulo (x1,y1,x2,y2)
+                      if (coords.length === 4) {
+                        const [x1, y1, x2, y2] = coords
+                        const points = `${x1},${y1} ${x2},${y1} ${x2},${y2} ${x1},${y2}`
+
+                        return (
+                          <polygon
+                            key={apartment.id}
+                            points={points}
+                            fill={getSuitesStatusColor(apartment.status)}
+                            stroke="white"
+                            strokeWidth="2"
+                            opacity="0.7"
+                            onClick={() => handleApartmentClick(apartment)}
+                            style={{ cursor: "pointer" }}
+                            className="hover:opacity-100 transition-opacity"
+                          />
+                        )
+                      } else {
+                        // Si son más de 4 coordenadas, es un polígono
+                        const points = []
+                        for (let i = 0; i < coords.length; i += 2) {
+                          points.push(`${coords[i]},${coords[i + 1]}`)
+                        }
+
+                        return (
+                          <polygon
+                            key={apartment.id}
+                            points={points.join(" ")}
+                            fill={getSuitesStatusColor(apartment.status)}
+                            stroke="white"
+                            strokeWidth="2"
+                            opacity="0.7"
+                            onClick={() => handleApartmentClick(apartment)}
+                            style={{ cursor: "pointer" }}
+                            className="hover:opacity-100 transition-opacity"
+                          />
+                        )
+                      }
+                    })}
+                  </svg>
+                </div>
+              </div>
+
+              <div className="p-4">
+                <h3 className="text-lg font-bold">{currentFloorData.name}</h3>
+                <p className="text-zinc-400 text-sm">Selecciona las unidades para ver su estado.</p>
               </div>
             </div>
-          </div>
+          </TabsContent>
 
-          {/* Floor Plan with Image Map */}
-          <div className="relative aspect-video">
-            <Image
-              src={getFloorPlanImage() || "/placeholder.svg"}
-              alt={`Plano ${currentFloorData.name}`}
-              fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-              style={{ objectFit: "contain" }}
-              className="pointer-events-none"
-            />
-
-            {/* SVG overlay for clickable areas */}
-            <div className="absolute inset-0 z-10">
-              <svg viewBox="0 0 910 743" className="w-full h-full" style={{ pointerEvents: "all" }}>
-                {currentFloorData.apartments.map((apartment) => {
-                  if (!apartment.coordinates) return null
-
-                  const coords = apartment.coordinates.split(",").map(Number)
-
-                  // Si son 4 coordenadas, es un rectángulo (x1,y1,x2,y2)
-                  if (coords.length === 4) {
-                    const [x1, y1, x2, y2] = coords
-                    const points = `${x1},${y1} ${x2},${y1} ${x2},${y2} ${x1},${y2}`
-
-                    return (
-                      <polygon
-                        key={apartment.id}
-                        points={points}
-                        fill={getSuitesStatusColor(apartment.status)}
-                        stroke="white"
-                        strokeWidth="2"
-                        opacity="0.7"
-                        onClick={() => handleApartmentClick(apartment)}
-                        style={{ cursor: "pointer" }}
-                        className="hover:opacity-100 transition-opacity"
-                      />
-                    )
-                  } else {
-                    // Si son más de 4 coordenadas, es un polígono
-                    const points = []
-                    for (let i = 0; i < coords.length; i += 2) {
-                      points.push(`${coords[i]},${coords[i + 1]}`)
-                    }
-
-                    return (
-                      <polygon
-                        key={apartment.id}
-                        points={points.join(" ")}
-                        fill={getSuitesStatusColor(apartment.status)}
-                        stroke="white"
-                        strokeWidth="2"
-                        opacity="0.7"
-                        onClick={() => handleApartmentClick(apartment)}
-                        style={{ cursor: "pointer" }}
-                        className="hover:opacity-100 transition-opacity"
-                      />
-                    )
-                  }
-                })}
-              </svg>
+          <TabsContent value="garage">
+            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
+              <div className="p-4 md:p-6">
+                <h2 className="text-xl md:text-2xl font-semibold mb-4">
+                  Mapa de Cocheras - Nivel {currentGarageLevel}
+                </h2>
+                <div className="flex justify-center space-x-4 mb-4">
+                  {garageLevels.map((level) => (
+                    <Button
+                      key={level}
+                      onClick={() => setCurrentGarageLevel(level)}
+                      variant={currentGarageLevel === level ? "default" : "outline"}
+                    >
+                      Nivel {level}
+                    </Button>
+                  ))}
+                </div>
+                <div className="relative aspect-video">
+                  <div className="flex items-center justify-center h-full bg-zinc-800">
+                    <p className="text-xl text-zinc-400">Cocheras en desarrollo</p>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-
-          <div className="p-4">
-            <h3 className="text-lg font-bold">{currentFloorData.name}</h3>
-            <p className="text-zinc-400 text-sm">Selecciona las unidades para ver su estado.</p>
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
 
         {/* Legend */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-zinc-900 p-4 rounded-lg">
-            <h4 className="font-semibold mb-4">Leyenda</h4>
             <div className="flex flex-wrap gap-4">
               <div className="flex items-center">
                 <div className="w-4 h-4 bg-green-400 mr-2 rounded"></div>
@@ -373,7 +474,7 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
             </DialogHeader>
             {selectedApartment && (
               <div className="space-y-4">
-                <div className="text-zinc-300 space-y-2">
+                <DialogDescription className="text-zinc-300 space-y-2">
                   <p>
                     <strong>Estado:</strong> {getSuitesStatusLabel(selectedApartment.status)}
                   </p>
@@ -398,7 +499,7 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
                   <p>
                     <strong>Precio por m²:</strong> {formatSuitesPrice(selectedApartment.pricePerM2)}
                   </p>
-                </div>
+                </DialogDescription>
 
                 {!action && (
                   <div className="space-y-2">
@@ -536,6 +637,30 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
                   </form>
                 )}
 
+                {(action === "unblock" || action === "cancelReservation" || action === "release") && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="note" className="text-white">
+                        Nota (Obligatoria)
+                      </Label>
+                      <Textarea
+                        id="note"
+                        value={formData.note}
+                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                        required
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    <Button type="submit" className="bg-red-600 hover:bg-red-700 w-full">
+                      {action === "unblock"
+                        ? "Confirmar Liberación"
+                        : action === "cancelReservation"
+                          ? "Confirmar Cancelación"
+                          : "Confirmar Liberación"}
+                    </Button>
+                  </form>
+                )}
+
                 {(confirmReservation || confirmCancelReservation || confirmRelease) && (
                   <div className="space-y-4">
                     <p className="text-yellow-400">
@@ -572,6 +697,61 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Additional Information */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-4">Información adicional</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <Building className="mr-2 h-4 w-4" /> Plano del edificio
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <Car className="mr-2 h-4 w-4" /> Plano de la cochera
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Brochure")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileText className="mr-2 h-4 w-4" /> Brochure
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Activity Log */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-4">Registro de Actividades</h4>
+            <ScrollArea className="h-60">
+              <div className="space-y-2">
+                {activityLog.map((activity, index) => (
+                  <p key={index} className="text-sm text-zinc-300">
+                    {activity}
+                  </p>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
       </div>
     </div>
   )
