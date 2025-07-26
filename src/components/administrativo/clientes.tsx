@@ -131,6 +131,7 @@ export function Clientes() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
   const [clienteToDelete, setClienteToDelete] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<{ id: string; message: string }[]>([])
+  const [isMobileView, setIsMobileView] = useState(false)
 
   const [openDropdowns, setOpenDropdowns] = useState({
     tipo: false,
@@ -179,6 +180,17 @@ export function Clientes() {
   const [itemsPerPage, setItemsPerPage] = useState(10)
 
   const [notificationCount, setNotificationCount] = useState(0)
+
+  // Detectar vista móvil
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobileView(window.innerWidth < 768)
+    }
+
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   useEffect(() => {
     fetchClientes()
@@ -581,585 +593,690 @@ export function Clientes() {
     setDialogoAbierto(true)
   }
 
+  // Componente de tarjeta para vista móvil
+  const ClienteCard = ({ cliente }: { cliente: Cliente }) => (
+    <Card className="mb-4">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-lg">
+              {cliente.nombre} {cliente.apellido}
+            </CardTitle>
+            <CardDescription className="text-sm mt-1">
+              {cliente.tipo} • {cliente.caracteristica}-{cliente.telefono}
+            </CardDescription>
+          </div>
+          <Badge variant={cliente.estado === "Completo" ? "default" : "secondary"}>{cliente.estado}</Badge>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 text-sm mt-3">
+          <div>
+            <span className="font-medium">Email:</span>
+            <p className="text-muted-foreground truncate">{cliente.email}</p>
+          </div>
+          <div>
+            <span className="font-medium">Conoció por:</span>
+            <p className="text-muted-foreground">{cliente.como_nos_conocio}</p>
+          </div>
+          <div>
+            <span className="font-medium">Metros:</span>
+            <p className="text-muted-foreground">
+              {cliente.metros_min}-{cliente.metros_max}
+            </p>
+          </div>
+          <div>
+            <span className="font-medium">Precio:</span>
+            <p className="text-muted-foreground">
+              {cliente.precio_min}-{cliente.precio_max}
+            </p>
+          </div>
+        </div>
+
+        {(getEmprendimientosNames(cliente.emprendimientos) || getTipologiasNames(cliente.tipologias)) && (
+          <div className="mt-3 text-sm">
+            {getEmprendimientosNames(cliente.emprendimientos) && (
+              <div>
+                <span className="font-medium">Emprendimientos:</span>
+                <p className="text-muted-foreground">{getEmprendimientosNames(cliente.emprendimientos)}</p>
+              </div>
+            )}
+            {getTipologiasNames(cliente.tipologias) && (
+              <div className="mt-1">
+                <span className="font-medium">Tipologías:</span>
+                <p className="text-muted-foreground">{getTipologiasNames(cliente.tipologias)}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2 mt-4">
+          <Button variant="outline" size="sm" onClick={() => handleEditar(cliente)}>
+            <Pencil className="h-3 w-3 mr-1" />
+            Editar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleBorrar(cliente.id)}>
+            <Trash2 className="h-3 w-3 mr-1" />
+            Eliminar
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => handleEnviarFicha(cliente)}>
+            <Send className="h-3 w-3 mr-1" />
+            Enviar
+          </Button>
+        </div>
+      </CardHeader>
+    </Card>
+  )
+
   return (
-    <div className="flex flex-col p-4 md:p-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div className="flex flex-col p-2 md:p-4 lg:p-6 space-y-4 md:space-y-6">
+      {/* Cards de estadísticas - mejoradas para móvil */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         <Card>
-          <CardHeader>
-            <CardTitle>Clientes totales</CardTitle>
-            <CardDescription>{clientes.length}</CardDescription>
+          <CardHeader className="p-3 md:p-6">
+            <CardTitle className="text-sm md:text-base">Clientes totales</CardTitle>
+            <CardDescription className="text-lg md:text-xl font-bold">{clientes.length}</CardDescription>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Clientes por mes</CardTitle>
-            <CardDescription>{Math.floor(clientes.length / 2)}</CardDescription>
+          <CardHeader className="p-3 md:p-6">
+            <CardTitle className="text-sm md:text-base">Por mes</CardTitle>
+            <CardDescription className="text-lg md:text-xl font-bold">
+              {Math.floor(clientes.length / 2)}
+            </CardDescription>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Clientes pendientes</CardTitle>
-            <CardDescription>{clientes.filter((c) => c.estado === "Pendiente").length}</CardDescription>
+          <CardHeader className="p-3 md:p-6">
+            <CardTitle className="text-sm md:text-base">Pendientes</CardTitle>
+            <CardDescription className="text-lg md:text-xl font-bold">
+              {clientes.filter((c) => c.estado === "Pendiente").length}
+            </CardDescription>
           </CardHeader>
         </Card>
         <Card>
-          <CardHeader>
-            <CardTitle>Clientes finalizados</CardTitle>
-            <CardDescription>{clientes.filter((c) => c.estado === "Completo").length}</CardDescription>
+          <CardHeader className="p-3 md:p-6">
+            <CardTitle className="text-sm md:text-base">Finalizados</CardTitle>
+            <CardDescription className="text-lg md:text-xl font-bold">
+              {clientes.filter((c) => c.estado === "Completo").length}
+            </CardDescription>
           </CardHeader>
         </Card>
       </div>
-      <div className="flex flex-col sm:flex-row items-center justify-between mb-4 gap-4">
-        <Dialog open={dialogoAbierto} onOpenChange={setDialogoAbierto}>
-          <DialogTrigger asChild>
-            <Button
-              onClick={() => {
-                setModoEdicion(false)
-                setNuevoCliente(clienteVacio)
-              }}
-            >
-              Añadir Cliente
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px]">
-            <DialogHeader>
-              <DialogTitle>{modoEdicion ? "Editar Cliente" : "Añadir Cliente"}</DialogTitle>
-              <DialogDescription>
-                {modoEdicion ? "Modifica los detalles del cliente." : "Ingresa los detalles del nuevo cliente."}
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
-              <Tabs value={tabActual} onValueChange={setTabActual}>
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="detalles">Detalles del Cliente</TabsTrigger>
-                  <TabsTrigger value="busqueda">Información de Búsqueda</TabsTrigger>
-                </TabsList>
-                <TabsContent value="detalles">
-                  <div className="grid gap-4 py-4">
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="nombre" className="text-right">
-                        Nombre
-                      </Label>
-                      <Input
-                        id="nombre"
-                        required
-                        value={modoEdicion ? clienteEditando?.nombre : nuevoCliente.nombre}
-                        onChange={handleInputChange}
-                        placeholder="Nombre del cliente"
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="apellido" className="text-right">
-                        Apellido
-                      </Label>
-                      <Input
-                        id="apellido"
-                        required
-                        value={modoEdicion ? clienteEditando?.apellido : nuevoCliente.apellido}
-                        onChange={handleInputChange}
-                        placeholder="Apellido del cliente"
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="tipo" className="text-right">
-                        Tipo de cliente
-                      </Label>
-                      <Select
-                        onValueChange={(value) => handleSelectChange(value, "tipo")}
-                        value={modoEdicion ? clienteEditando?.tipo : nuevoCliente.tipo}
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Consumidor final">Consumidor final</SelectItem>
-                          <SelectItem value="Inversor">Inversor</SelectItem>
-                          <SelectItem value="Inmobiliaria">Inmobiliaria</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {(modoEdicion ? clienteEditando?.tipo : nuevoCliente.tipo) === "Inmobiliaria" && (
-                      <div className="grid items-center grid-cols-4 gap-4">
-                        <Label htmlFor="agencia_inmobiliaria_id" className="text-right">
-                          Agencia Inmobiliaria
+
+      {/* Controles superiores - mejorados para móvil */}
+      <div className="flex flex-col space-y-4">
+        {/* Primera fila: Botón añadir y acciones */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <Dialog open={dialogoAbierto} onOpenChange={setDialogoAbierto}>
+            <DialogTrigger asChild>
+              <Button
+                onClick={() => {
+                  setModoEdicion(false)
+                  setNuevoCliente(clienteVacio)
+                }}
+                className="w-full sm:w-auto"
+              >
+                Añadir Cliente
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="w-[95vw] max-w-[600px] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{modoEdicion ? "Editar Cliente" : "Añadir Cliente"}</DialogTitle>
+                <DialogDescription>
+                  {modoEdicion ? "Modifica los detalles del cliente." : "Ingresa los detalles del nuevo cliente."}
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit}>
+                <Tabs value={tabActual} onValueChange={setTabActual}>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="detalles" className="text-xs md:text-sm">
+                      Detalles
+                    </TabsTrigger>
+                    <TabsTrigger value="busqueda" className="text-xs md:text-sm">
+                      Búsqueda
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="detalles">
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="nombre" className="md:text-right">
+                          Nombre
+                        </Label>
+                        <Input
+                          id="nombre"
+                          required
+                          value={modoEdicion ? clienteEditando?.nombre : nuevoCliente.nombre}
+                          onChange={handleInputChange}
+                          placeholder="Nombre del cliente"
+                          className="md:col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="apellido" className="md:text-right">
+                          Apellido
+                        </Label>
+                        <Input
+                          id="apellido"
+                          required
+                          value={modoEdicion ? clienteEditando?.apellido : nuevoCliente.apellido}
+                          onChange={handleInputChange}
+                          placeholder="Apellido del cliente"
+                          className="md:col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="tipo" className="md:text-right">
+                          Tipo de cliente
                         </Label>
                         <Select
-                          onValueChange={(value) => handleSelectChange(value, "agencia_inmobiliaria_id")}
-                          value={
-                            modoEdicion
-                              ? clienteEditando?.agencia_inmobiliaria_id?.toString()
-                              : nuevoCliente.agencia_inmobiliaria_id?.toString()
-                          }
+                          onValueChange={(value) => handleSelectChange(value, "tipo")}
+                          value={modoEdicion ? clienteEditando?.tipo : nuevoCliente.tipo}
                         >
-                          <SelectTrigger className="col-span-3">
-                            <SelectValue placeholder="Seleccionar agencia" />
+                          <SelectTrigger className="md:col-span-3">
+                            <SelectValue placeholder="Seleccionar" />
                           </SelectTrigger>
                           <SelectContent>
-                            {agenciasInmobiliarias.map((agencia) => (
-                              <SelectItem key={agencia.id} value={agencia.id.toString()}>
-                                {agencia.nombre}
-                              </SelectItem>
-                            ))}
+                            <SelectItem value="Consumidor final">Consumidor final</SelectItem>
+                            <SelectItem value="Inversor">Inversor</SelectItem>
+                            <SelectItem value="Inmobiliaria">Inmobiliaria</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-                    )}
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="caracteristica" className="text-right">
-                        Característica
-                      </Label>
-                      <Input
-                        id="caracteristica"
-                        value={modoEdicion ? clienteEditando?.caracteristica : nuevoCliente.caracteristica}
-                        onChange={handleInputChange}
-                        placeholder="Ej: 11"
-                        className="col-span-1"
-                      />
-                      <Label htmlFor="telefono" className="text-right">
-                        Teléfono
-                      </Label>
-                      <Input
-                        id="telefono"
-                        required
-                        value={modoEdicion ? clienteEditando?.telefono : nuevoCliente.telefono}
-                        onChange={handleInputChange}
-                        placeholder="Número de teléfono"
-                        className="col-span-1"
-                      />
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="email" className="text-right">
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={modoEdicion ? clienteEditando?.email : nuevoCliente.email}
-                        onChange={handleInputChange}
-                        placeholder="Email del cliente"
-                        className="col-span-3"
-                      />
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="como_nos_conocio" className="text-right">
-                        ¿Cómo nos conoció?
-                      </Label>
-                      <Select
-                        onValueChange={(value) => handleSelectChange(value, "como_nos_conocio")}
-                        value={modoEdicion ? clienteEditando?.como_nos_conocio : nuevoCliente.como_nos_conocio}
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Referido">Referido</SelectItem>
-                          <SelectItem value="Pauta">Pauta</SelectItem>
-                          <SelectItem value="Instagram">Instagram</SelectItem>
-                          <SelectItem value="Vía pública">Vía pública</SelectItem>
-                          <SelectItem value="ZonaProp">ZonaProp</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="rango_edad" className="text-right">
-                        Rango de edad
-                      </Label>
-                      <Select
-                        onValueChange={(value) => handleSelectChange(value, "rango_edad")}
-                        value={modoEdicion ? clienteEditando?.rango_edad : nuevoCliente.rango_edad}
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Seleccionar" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="20-30">20-30</SelectItem>
-                          <SelectItem value="30-40">30-40</SelectItem>
-                          <SelectItem value="40-50">40-50</SelectItem>
-                          <SelectItem value="50-60">50-60</SelectItem>
-                          <SelectItem value="+60">+60</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </TabsContent>
-                <TabsContent value="busqueda">
-                  <div className="grid gap-4 py-4">
-                    <div className="grid items-start grid-cols-4 gap-4">
-                      <Label className="text-right">Emprendimientos</Label>
-                      <div className="col-span-3 space-y-2">
-                        {emprendimientos.length > 0 ? (
-                          emprendimientos.map((emprendimiento) => (
-                            <div key={emprendimiento.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`emprendimiento-${emprendimiento.id}`}
-                                checked={(
-                                  (modoEdicion ? clienteEditando?.emprendimientos : nuevoCliente.emprendimientos) || []
-                                ).includes(emprendimiento.id)}
-                                onCheckedChange={(checked) =>
-                                  handleMultiSelectChange(checked as boolean, emprendimiento.id, "emprendimientos")
-                                }
-                              />
-                              <label
-                                htmlFor={`emprendimiento-${emprendimiento.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {emprendimiento.nombre}
-                              </label>
-                            </div>
-                          ))
-                        ) : (
-                          <p>No hay emprendimientos disponibles</p>
-                        )}
+                      {(modoEdicion ? clienteEditando?.tipo : nuevoCliente.tipo) === "Inmobiliaria" && (
+                        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                          <Label htmlFor="agencia_inmobiliaria_id" className="md:text-right">
+                            Agencia Inmobiliaria
+                          </Label>
+                          <Select
+                            onValueChange={(value) => handleSelectChange(value, "agencia_inmobiliaria_id")}
+                            value={
+                              modoEdicion
+                                ? clienteEditando?.agencia_inmobiliaria_id?.toString()
+                                : nuevoCliente.agencia_inmobiliaria_id?.toString()
+                            }
+                          >
+                            <SelectTrigger className="md:col-span-3">
+                              <SelectValue placeholder="Seleccionar agencia" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {agenciasInmobiliarias.map((agencia) => (
+                                <SelectItem key={agencia.id} value={agencia.id.toString()}>
+                                  {agencia.nombre}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="caracteristica" className="md:text-right text-sm">
+                          Característica
+                        </Label>
+                        <Input
+                          id="caracteristica"
+                          value={modoEdicion ? clienteEditando?.caracteristica : nuevoCliente.caracteristica}
+                          onChange={handleInputChange}
+                          placeholder="Ej: 11"
+                          className="col-span-1"
+                        />
+                        <Label htmlFor="telefono" className="md:text-right text-sm">
+                          Teléfono
+                        </Label>
+                        <Input
+                          id="telefono"
+                          required
+                          value={modoEdicion ? clienteEditando?.telefono : nuevoCliente.telefono}
+                          onChange={handleInputChange}
+                          placeholder="Número de teléfono"
+                          className="col-span-1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="email" className="md:text-right">
+                          Email
+                        </Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={modoEdicion ? clienteEditando?.email : nuevoCliente.email}
+                          onChange={handleInputChange}
+                          placeholder="Email del cliente"
+                          className="md:col-span-3"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="como_nos_conocio" className="md:text-right">
+                          ¿Cómo nos conoció?
+                        </Label>
+                        <Select
+                          onValueChange={(value) => handleSelectChange(value, "como_nos_conocio")}
+                          value={modoEdicion ? clienteEditando?.como_nos_conocio : nuevoCliente.como_nos_conocio}
+                        >
+                          <SelectTrigger className="md:col-span-3">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Referido">Referido</SelectItem>
+                            <SelectItem value="Pauta">Pauta</SelectItem>
+                            <SelectItem value="Instagram">Instagram</SelectItem>
+                            <SelectItem value="Vía pública">Vía pública</SelectItem>
+                            <SelectItem value="ZonaProp">ZonaProp</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="rango_edad" className="md:text-right">
+                          Rango de edad
+                        </Label>
+                        <Select
+                          onValueChange={(value) => handleSelectChange(value, "rango_edad")}
+                          value={modoEdicion ? clienteEditando?.rango_edad : nuevoCliente.rango_edad}
+                        >
+                          <SelectTrigger className="md:col-span-3">
+                            <SelectValue placeholder="Seleccionar" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="20-30">20-30</SelectItem>
+                            <SelectItem value="30-40">30-40</SelectItem>
+                            <SelectItem value="40-50">40-50</SelectItem>
+                            <SelectItem value="50-60">50-60</SelectItem>
+                            <SelectItem value="+60">+60</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
-                    <div className="grid items-start grid-cols-4 gap-4">
-                      <Label className="text-right">Tipologías</Label>
-                      <div className="col-span-3 space-y-2">
-                        {tipologias.length > 0 ? (
-                          tipologias.map((tipologia) => (
-                            <div key={tipologia.id} className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`tipologia-${tipologia.id}`}
-                                checked={(
-                                  (modoEdicion ? clienteEditando?.tipologias : nuevoCliente.tipologias) || []
-                                ).includes(tipologia.id)}
-                                onCheckedChange={(checked) =>
-                                  handleMultiSelectChange(checked as boolean, tipologia.id, "tipologias")
-                                }
-                              />
-                              <label
-                                htmlFor={`tipologia-${tipologia.id}`}
-                                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                              >
-                                {tipologia.nombre}
-                              </label>
-                            </div>
-                          ))
-                        ) : (
-                          <p>No hay tipologías disponibles</p>
-                        )}
+                  </TabsContent>
+                  <TabsContent value="busqueda">
+                    <div className="grid gap-4 py-4">
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-2 md:gap-4">
+                        <Label className="md:text-right">Emprendimientos</Label>
+                        <div className="md:col-span-3 space-y-2 max-h-32 overflow-y-auto">
+                          {emprendimientos.length > 0 ? (
+                            emprendimientos.map((emprendimiento) => (
+                              <div key={emprendimiento.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`emprendimiento-${emprendimiento.id}`}
+                                  checked={(
+                                    (modoEdicion ? clienteEditando?.emprendimientos : nuevoCliente.emprendimientos) ||
+                                    []
+                                  ).includes(emprendimiento.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleMultiSelectChange(checked as boolean, emprendimiento.id, "emprendimientos")
+                                  }
+                                />
+                                <label
+                                  htmlFor={`emprendimiento-${emprendimiento.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {emprendimiento.nombre}
+                                </label>
+                              </div>
+                            ))
+                          ) : (
+                            <p>No hay emprendimientos disponibles</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-2 md:gap-4">
+                        <Label className="md:text-right">Tipologías</Label>
+                        <div className="md:col-span-3 space-y-2 max-h-32 overflow-y-auto">
+                          {tipologias.length > 0 ? (
+                            tipologias.map((tipologia) => (
+                              <div key={tipologia.id} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`tipologia-${tipologia.id}`}
+                                  checked={(
+                                    (modoEdicion ? clienteEditando?.tipologias : nuevoCliente.tipologias) || []
+                                  ).includes(tipologia.id)}
+                                  onCheckedChange={(checked) =>
+                                    handleMultiSelectChange(checked as boolean, tipologia.id, "tipologias")
+                                  }
+                                />
+                                <label
+                                  htmlFor={`tipologia-${tipologia.id}`}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                >
+                                  {tipologia.nombre}
+                                </label>
+                              </div>
+                            ))
+                          ) : (
+                            <p>No hay tipologías disponibles</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="metros_min" className="md:text-right text-sm">
+                          Metros mín:
+                        </Label>
+                        <Input
+                          id="metros_min"
+                          value={modoEdicion ? clienteEditando?.metros_min : nuevoCliente.metros_min}
+                          onChange={handleInputChange}
+                          placeholder="Mínimo"
+                          className="col-span-1"
+                        />
+                        <Label htmlFor="metros_max" className="md:text-right text-sm">
+                          Metros máx:
+                        </Label>
+                        <Input
+                          id="metros_max"
+                          value={modoEdicion ? clienteEditando?.metros_max : nuevoCliente.metros_max}
+                          onChange={handleInputChange}
+                          placeholder="Máximo"
+                          className="col-span-1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="precio_min" className="md:text-right text-sm">
+                          Precio mín:
+                        </Label>
+                        <Input
+                          id="precio_min"
+                          value={modoEdicion ? clienteEditando?.precio_min : nuevoCliente.precio_min}
+                          onChange={handleInputChange}
+                          placeholder="Mínimo"
+                          className="col-span-1"
+                        />
+                        <Label htmlFor="precio_max" className="md:text-right text-sm">
+                          Precio máx:
+                        </Label>
+                        <Input
+                          id="precio_max"
+                          value={modoEdicion ? clienteEditando?.precio_max : nuevoCliente.precio_max}
+                          onChange={handleInputChange}
+                          placeholder="Máximo"
+                          className="col-span-1"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="estado" className="md:text-right">
+                          Estado
+                        </Label>
+                        <Select
+                          onValueChange={(value) => handleSelectChange(value, "estado")}
+                          value={modoEdicion ? clienteEditando?.estado : nuevoCliente.estado}
+                        >
+                          <SelectTrigger className="md:col-span-3">
+                            <SelectValue placeholder="Seleccionar estado" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Pendiente">Pendiente</SelectItem>
+                            <SelectItem value="En proceso">En proceso</SelectItem>
+                            <SelectItem value="Completo">Completo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-2 md:gap-4">
+                        <Label htmlFor="dato_extra" className="md:text-right">
+                          Dato extra
+                        </Label>
+                        <Textarea
+                          id="dato_extra"
+                          value={modoEdicion ? clienteEditando?.dato_extra : nuevoCliente.dato_extra}
+                          onChange={handleInputChange}
+                          placeholder="Información adicional"
+                          className="md:col-span-3"
+                        />
                       </div>
                     </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="metros_min" className="text-right">
-                        Metros mínimos:
-                      </Label>
-                      <Input
-                        id="metros_min"
-                        value={modoEdicion ? clienteEditando?.metros_min : nuevoCliente.metros_min}
-                        onChange={handleInputChange}
-                        placeholder="Mínimo"
-                        className="col-span-1"
-                      />
-                      <Label htmlFor="metros_max" className="text-right">
-                        Metros máximos:
-                      </Label>
-                      <Input
-                        id="metros_max"
-                        value={modoEdicion ? clienteEditando?.metros_max : nuevoCliente.metros_max}
-                        onChange={handleInputChange}
-                        placeholder="Máximo"
-                        className="col-span-1"
-                      />
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="precio_min" className="text-right">
-                        Precio mínimo:
-                      </Label>
-                      <Input
-                        id="precio_min"
-                        value={modoEdicion ? clienteEditando?.precio_min : nuevoCliente.precio_min}
-                        onChange={handleInputChange}
-                        placeholder="Mínimo"
-                        className="col-span-1"
-                      />
-                      <Label htmlFor="precio_max" className="text-right">
-                        Precio máximo:
-                      </Label>
-                      <Input
-                        id="precio_max"
-                        value={modoEdicion ? clienteEditando?.precio_max : nuevoCliente.precio_max}
-                        onChange={handleInputChange}
-                        placeholder="Máximo"
-                        className="col-span-1"
-                      />
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="estado" className="text-right">
-                        Estado
-                      </Label>
-                      <Select
-                        onValueChange={(value) => handleSelectChange(value, "estado")}
-                        value={modoEdicion ? clienteEditando?.estado : nuevoCliente.estado}
-                      >
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Seleccionar estado" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Pendiente">Pendiente</SelectItem>
-                          <SelectItem value="En proceso">En proceso</SelectItem>
-                          <SelectItem value="Completo">Completo</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid items-center grid-cols-4 gap-4">
-                      <Label htmlFor="dato_extra" className="text-right">
-                        Dato extra
-                      </Label>
-                      <Textarea
-                        id="dato_extra"
-                        value={modoEdicion ? clienteEditando?.dato_extra : nuevoCliente.dato_extra}
-                        onChange={handleInputChange}
-                        placeholder="Información adicional"
-                        className="col-span-3"
-                      />
-                    </div>
-                  </div>
-                </TabsContent>
-              </Tabs>
-              <DialogFooter>
-                <Button type="submit">{modoEdicion ? "Guardar cambios" : "Añadir cliente"}</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
-        <div className="flex gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" className="relative">
-                <Bell className="h-4 w-4" />
-                {notifications.length > 0 && (
-                  <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500" />
+                  </TabsContent>
+                </Tabs>
+                <DialogFooter className="mt-4">
+                  <Button type="submit" className="w-full sm:w-auto">
+                    {modoEdicion ? "Guardar cambios" : "Añadir cliente"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+
+          {/* Acciones - mejoradas para móvil */}
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="relative bg-transparent">
+                  <Bell className="h-4 w-4" />
+                  {notifications.length > 0 && (
+                    <span className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-red-500" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80">
+                <DropdownMenuCheckboxItem>Notificaciones</DropdownMenuCheckboxItem>
+                {notifications.length > 0 ? (
+                  notifications.map((notification) => (
+                    <DropdownMenuItem key={notification.id} onSelect={() => handleNotificationClick(notification.id)}>
+                      <span className="text-xs">{notification.message}</span>
+                    </DropdownMenuItem>
+                  ))
+                ) : (
+                  <DropdownMenuItem disabled>No hay notificaciones pendientes</DropdownMenuItem>
                 )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-80">
-              <DropdownMenuCheckboxItem>Notificaciones</DropdownMenuCheckboxItem>
-              {notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <DropdownMenuItem key={notification.id} onSelect={() => handleNotificationClick(notification.id)}>
-                    {notification.message}
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <DropdownMenuItem disabled>No hay notificaciones pendientes</DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button onClick={exportarPDF} variant="outline">
-            Exportar PDF
-          </Button>
-          <Button onClick={exportarExcel} variant="outline">
-            Exportar Excel
-          </Button>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Button onClick={exportarPDF} variant="outline" size="sm">
+              PDF
+            </Button>
+            <Button onClick={exportarExcel} variant="outline" size="sm">
+              Excel
+            </Button>
+          </div>
+        </div>
+
+        {/* Segunda fila: Filtros y búsqueda */}
+        <div className="flex flex-col space-y-2">
+          {/* Filtros - mejorados para móvil */}
+          <div className="flex flex-wrap gap-2">
+            <DropdownMenu open={openDropdowns.tipo} onOpenChange={() => toggleDropdown("tipo")}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Tipo <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuCheckboxItem
+                  checked={filtros.tipo.includes("Consumidor final")}
+                  onCheckedChange={() => handleFiltroChange("tipo", "Consumidor final")}
+                >
+                  Consumidor final
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filtros.tipo.includes("Inversor")}
+                  onCheckedChange={() => handleFiltroChange("tipo", "Inversor")}
+                >
+                  Inversor
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filtros.tipo.includes("Inmobiliaria")}
+                  onCheckedChange={() => handleFiltroChange("tipo", "Inmobiliaria")}
+                >
+                  Inmobiliaria
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu open={openDropdowns.emprendimientos} onOpenChange={() => toggleDropdown("emprendimientos")}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Emprendimientos <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                {emprendimientos.map((emprendimiento) => (
+                  <DropdownMenuCheckboxItem
+                    key={emprendimiento.id}
+                    checked={filtros.emprendimientos.includes(emprendimiento.id.toString())}
+                    onCheckedChange={() => handleFiltroChange("emprendimientos", emprendimiento.id.toString())}
+                  >
+                    {emprendimiento.nombre}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu open={openDropdowns.tipologias} onOpenChange={() => toggleDropdown("tipologias")}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Tipologías <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                {tipologias.map((tipologia) => (
+                  <DropdownMenuCheckboxItem
+                    key={tipologia.id}
+                    checked={filtros.tipologias.includes(tipologia.id.toString())}
+                    onCheckedChange={() => handleFiltroChange("tipologias", tipologia.id.toString())}
+                  >
+                    {tipologia.nombre}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu open={openDropdowns.estado} onOpenChange={() => toggleDropdown("estado")}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  Estado <ChevronDown className="ml-1 h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56">
+                <DropdownMenuCheckboxItem
+                  checked={filtros.estado.includes("Pendiente")}
+                  onCheckedChange={() => handleFiltroChange("estado", "Pendiente")}
+                >
+                  Pendiente
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filtros.estado.includes("En proceso")}
+                  onCheckedChange={() => handleFiltroChange("estado", "En proceso")}
+                >
+                  En proceso
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={filtros.estado.includes("Completo")}
+                  onCheckedChange={() => handleFiltroChange("estado", "Completo")}
+                >
+                  Completo
+                </DropdownMenuCheckboxItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Búsqueda */}
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => setIsSearchOpen(!isSearchOpen)}>
+              <Search className="h-4 w-4" />
+            </Button>
+            {isSearchOpen && (
+              <Input
+                type="text"
+                placeholder="Buscar..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+            )}
+          </div>
         </div>
       </div>
-      <div className="flex flex-wrap gap-4 mb-4">
-        <DropdownMenu open={openDropdowns.tipo} onOpenChange={() => toggleDropdown("tipo")}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Tipo de cliente <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuCheckboxItem
-              checked={filtros.tipo.includes("Consumidor final")}
-              onCheckedChange={() => handleFiltroChange("tipo", "Consumidor final")}
-            >
-              Consumidor final
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filtros.tipo.includes("Inversor")}
-              onCheckedChange={() => handleFiltroChange("tipo", "Inversor")}
-            >
-              Inversor
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filtros.tipo.includes("Inmobiliaria")}
-              onCheckedChange={() => handleFiltroChange("tipo", "Inmobiliaria")}
-            >
-              Inmobiliaria
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
-        <DropdownMenu open={openDropdowns.emprendimientos} onOpenChange={() => toggleDropdown("emprendimientos")}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Emprendimientos <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            {emprendimientos.map((emprendimiento) => (
-              <DropdownMenuCheckboxItem
-                key={emprendimiento.id}
-                checked={filtros.emprendimientos.includes(emprendimiento.id.toString())}
-                onCheckedChange={() => handleFiltroChange("emprendimientos", emprendimiento.id.toString())}
-              >
-                {emprendimiento.nombre}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu open={openDropdowns.tipologias} onOpenChange={() => toggleDropdown("tipologias")}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Tipologías <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            {tipologias.map((tipologia) => (
-              <DropdownMenuCheckboxItem
-                key={tipologia.id}
-                checked={filtros.tipologias.includes(tipologia.id.toString())}
-                onCheckedChange={() => handleFiltroChange("tipologias", tipologia.id.toString())}
-              >
-                {tipologia.nombre}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        <DropdownMenu open={openDropdowns.estado} onOpenChange={() => toggleDropdown("estado")}>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline">
-              Estado <ChevronDown className="ml-2 h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56">
-            <DropdownMenuCheckboxItem
-              checked={filtros.estado.includes("Pendiente")}
-              onCheckedChange={() => handleFiltroChange("estado", "Pendiente")}
-            >
-              Pendiente
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filtros.estado.includes("En proceso")}
-              onCheckedChange={() => handleFiltroChange("estado", "En proceso")}
-            >
-              En proceso
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={filtros.estado.includes("Completo")}
-              onCheckedChange={() => handleFiltroChange("estado", "Completo")}
-            >
-              Completo
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon" onClick={() => setIsSearchOpen(!isSearchOpen)}>
-            <Search className="h-4 w-4" />
-          </Button>
-          {isSearchOpen && (
-            <Input
-              type="text"
-              placeholder="Buscar..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-96"
-            />
-          )}
+      {/* Lista de clientes - Vista adaptativa */}
+      {isMobileView ? (
+        // Vista móvil: Cards
+        <div className="space-y-4">
+          {currentItems.map((cliente) => (
+            <ClienteCard key={cliente.id} cliente={cliente} />
+          ))}
         </div>
-      </div>
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Emprendimientos</TableHead>
-              <TableHead>Tipologías</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>¿Cómo nos conoció?</TableHead>
-              <TableHead>Metros</TableHead>
-              <TableHead>Precio</TableHead>
-              <TableHead>Rango de edad</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Dato extra</TableHead>
-              <TableHead>Último Contacto</TableHead>
-              <TableHead>Próximo Contacto</TableHead>
-              <TableHead>Fecha de Creación</TableHead>
-              <TableHead>Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {currentItems.map((cliente) => (
-              <TableRow key={cliente.id}>
-                <TableCell>
-                  {cliente.nombre} {cliente.apellido}
-                </TableCell>
-                <TableCell>{cliente.tipo}</TableCell>
-                <TableCell>{getEmprendimientosNames(cliente.emprendimientos)}</TableCell>
-                <TableCell>{getTipologiasNames(cliente.tipologias)}</TableCell>
-                <TableCell>
-                  {cliente.caracteristica}-{cliente.telefono}
-                </TableCell>
-                <TableCell>{cliente.email}</TableCell>
-                <TableCell>{cliente.como_nos_conocio}</TableCell>
-                <TableCell>
-                  {cliente.metros_min}-{cliente.metros_max}
-                </TableCell>
-                <TableCell>
-                  {cliente.precio_min}-{cliente.precio_max}
-                </TableCell>
-                <TableCell>{cliente.rango_edad}</TableCell>
-                <TableCell>
-                  <Badge variant={cliente.estado === "Completo" ? "default" : "secondary"}>{cliente.estado}</Badge>
-                </TableCell>
-                <TableCell>{cliente.dato_extra}</TableCell>
-                <TableCell>
-                  {cliente.ultimo_contacto ? new Date(cliente.ultimo_contacto).toLocaleDateString() : "N/A"}
-                </TableCell>
-                <TableCell>
-                  {cliente.proximo_contacto ? new Date(cliente.proximo_contacto).toLocaleDateString() : "N/A"}
-                </TableCell>
-                <TableCell>
-                  {cliente.fecha_creacion ? new Date(cliente.fecha_creacion).toLocaleDateString() : "N/A"}
-                </TableCell>
-                <TableCell>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="icon" onClick={() => handleEditar(cliente)}>
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleBorrar(cliente.id)}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => handleEnviarFicha(cliente)}>
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+      ) : (
+        // Vista desktop: Tabla
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Emprendimientos</TableHead>
+                <TableHead>Tipologías</TableHead>
+                <TableHead>Teléfono</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>¿Cómo nos conoció?</TableHead>
+                <TableHead>Metros</TableHead>
+                <TableHead>Precio</TableHead>
+                <TableHead>Rango de edad</TableHead>
+                <TableHead>Estado</TableHead>
+                <TableHead>Dato extra</TableHead>
+                <TableHead>Último Contacto</TableHead>
+                <TableHead>Próximo Contacto</TableHead>
+                <TableHead>Fecha de Creación</TableHead>
+                <TableHead>Acciones</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar eliminación</DialogTitle>
-            <DialogDescription>
-              ¿Estás seguro de que quieres eliminar este cliente? Esta acción no se puede deshacer.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>
-              Cancelar
-            </Button>
-            <Button variant="destructive" onClick={confirmDelete}>
-              Eliminar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      <div className="flex items-center justify-between space-x-2 py-4">
-        <Button variant="outline" size="sm" onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}>
-          <ChevronLeft className="h-4 w-4" />
+            </TableHeader>
+            <TableBody>
+              {currentItems.map((cliente) => (
+                <TableRow key={cliente.id}>
+                  <TableCell>
+                    {cliente.nombre} {cliente.apellido}
+                  </TableCell>
+                  <TableCell>{cliente.tipo}</TableCell>
+                  <TableCell>{getEmprendimientosNames(cliente.emprendimientos)}</TableCell>
+                  <TableCell>{getTipologiasNames(cliente.tipologias)}</TableCell>
+                  <TableCell>
+                    {cliente.caracteristica}-{cliente.telefono}
+                  </TableCell>
+                  <TableCell>{cliente.email}</TableCell>
+                  <TableCell>{cliente.como_nos_conocio}</TableCell>
+                  <TableCell>
+                    {cliente.metros_min}-{cliente.metros_max}
+                  </TableCell>
+                  <TableCell>
+                    {cliente.precio_min}-{cliente.precio_max}
+                  </TableCell>
+                  <TableCell>{cliente.rango_edad}</TableCell>
+                  <TableCell>
+                    <Badge variant={cliente.estado === "Completo" ? "default" : "secondary"}>{cliente.estado}</Badge>
+                  </TableCell>
+                  <TableCell>{cliente.dato_extra}</TableCell>
+                  <TableCell>
+                    {cliente.ultimo_contacto ? new Date(cliente.ultimo_contacto).toLocaleDateString() : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {cliente.proximo_contacto ? new Date(cliente.proximo_contacto).toLocaleDateString() : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    {cliente.fecha_creacion ? new Date(cliente.fecha_creacion).toLocaleDateString() : "N/A"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="outline" size="icon" onClick={() => handleEditar(cliente)}>
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => handleBorrar(cliente.id)}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={() => handleEnviarFicha(cliente)}>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+
+      {/* Paginación - mejorada para móvil */}
+      <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0 py-4">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => paginate(currentPage - 1)}
+          disabled={currentPage === 1}
+          className="w-full sm:w-auto"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" />
           Anterior
         </Button>
         <div className="text-sm text-muted-foreground">
@@ -1170,18 +1287,40 @@ export function Clientes() {
           size="sm"
           onClick={() => paginate(currentPage + 1)}
           disabled={indexOfLastItem >= clientesFiltrados.length}
+          className="w-full sm:w-auto"
         >
           Siguiente
-          <ChevronRight className="h-4 w-4" />
+          <ChevronRight className="h-4 w-4 ml-1" />
         </Button>
       </div>
+
+      {/* Diálogos existentes */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="w-[95vw] max-w-md">
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              ¿Estás seguro de que quieres eliminar este cliente? Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)} className="w-full sm:w-auto">
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmDelete} className="w-full sm:w-auto">
+              Eliminar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogoEnvioAbierto} onOpenChange={setDialogoEnvioAbierto}>
-        <DialogContent>
+        <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader>
             <DialogTitle>Enviar ficha de departamentos</DialogTitle>
             <DialogDescription>Selecciona los departamentos para enviar al cliente.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-60 overflow-y-auto">
             {departamentos.map((departamento) => (
               <div key={departamento.id} className="flex items-center space-x-2">
                 <Checkbox
@@ -1198,13 +1337,16 @@ export function Clientes() {
               </div>
             ))}
           </div>
-          <DialogFooter>
-            <Button onClick={enviarPorWhatsApp}>Enviar por WhatsApp</Button>
-            <Button onClick={enviarPorEmail}>Enviar por Email</Button>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button onClick={enviarPorWhatsApp} className="w-full sm:w-auto">
+              Enviar por WhatsApp
+            </Button>
+            <Button onClick={enviarPorEmail} className="w-full sm:w-auto">
+              Enviar por Email
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
   )
 }
-

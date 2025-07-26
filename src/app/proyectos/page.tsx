@@ -57,13 +57,11 @@ const ProjectCard = memo(({ project, onClick }: { project: StaticProject; onClic
         <div className="absolute inset-0 bg-black">
           <img
             src={project.image || "/placeholder.svg"}
-            alt={project.name}
             className="w-[200%] h-[200%] object-cover absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-300"
           />
         </div>
       </div>
       <div className="p-3 text-center bg-black text-white">
-        <h3 className="font-semibold text-lg mb-1">{project.name}</h3>
         <p className="text-sm text-gray-400">{project.location}</p>
       </div>
     </Card>

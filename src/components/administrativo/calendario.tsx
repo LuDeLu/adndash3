@@ -29,6 +29,7 @@ import {
   AlertCircle,
   CalendarIcon,
   Loader2,
+  Menu,
 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
@@ -36,6 +37,8 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useToast } from "@/components/ui/use-toast"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 import FullCalendar from "@fullcalendar/react"
 import dayGridPlugin from "@fullcalendar/daygrid"
@@ -50,6 +53,24 @@ if (typeof window !== "undefined") {
     duration: 3000,
     position: { x: "right", y: "top" },
   })
+}
+
+// Hook para detectar móvil
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+
+    checkIsMobile()
+    window.addEventListener("resize", checkIsMobile)
+
+    return () => window.removeEventListener("resize", checkIsMobile)
+  }, [])
+
+  return isMobile
 }
 
 type Event = {
@@ -83,7 +104,6 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Fetch clients from the API
     setLoading(true)
     fetch("https://adndashboard.squareweb.app/api/clientes", {
       headers: {
@@ -102,7 +122,6 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
   }, [])
 
   useEffect(() => {
-    // Verificar si el valor actual no está en la lista de clientes
     if (value && clients.length > 0) {
       const clientExists = clients.some((client) => client.id === value)
       setIsOther(!clientExists)
@@ -124,7 +143,7 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
       {loading ? (
         <div className="flex items-center space-x-2">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Cargando clientes...</span>
+          <span className="text-sm">Cargando clientes...</span>
         </div>
       ) : (
         <Select value={isOther ? "other" : value} onValueChange={handleChange}>
@@ -153,9 +172,92 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
   )
 }
 
+// Componente de evento para móvil
+function MobileEventCard({
+  event,
+  onEdit,
+  onDelete,
+  onComplete,
+  onRemind,
+  loading,
+}: {
+  event: Event
+  onEdit: () => void
+  onDelete: () => void
+  onComplete: () => void
+  onRemind: () => void
+  loading: boolean
+}) {
+  return (
+    <Card
+      className={`${event.completed ? "bg-green-900" : event.reminded ? "bg-yellow-900" : "bg-gray-900"} text-white border border-gray-700 mb-3`}
+    >
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <CardTitle className="text-base">{event.title}</CardTitle>
+          <div className="flex space-x-1">
+            {event.completed && <Badge className="bg-green-500 text-white text-xs">Finalizado</Badge>}
+            {event.reminded && !event.completed && (
+              <Badge className="bg-yellow-500 text-white text-xs">Recordado</Badge>
+            )}
+          </div>
+        </div>
+        <CardDescription className="text-sm">Cliente: {event.client}</CardDescription>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <div className="space-y-2 text-sm mb-4">
+          <p>Inicio: {format(event.start, "dd/MM/yyyy HH:mm", { locale: es })}</p>
+          <p>Fin: {format(event.end, "dd/MM/yyyy HH:mm", { locale: es })}</p>
+          {event.location && <p>Ubicación: {event.location}</p>}
+          {event.description && <p>Descripción: {event.description}</p>}
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onEdit}
+            className="bg-gray-800 text-white hover:bg-gray-700 p-2"
+            disabled={loading}
+          >
+            <Edit className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onDelete}
+            className="bg-gray-800 text-white hover:bg-gray-700 p-2"
+            disabled={loading}
+          >
+            <Trash2 className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant={event.completed ? "secondary" : "default"}
+            onClick={onComplete}
+            className="bg-gray-800 text-white hover:bg-gray-700 p-2"
+            disabled={loading}
+          >
+            <CheckCircle className="h-3 w-3" />
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRemind}
+            className="bg-gray-800 text-white hover:bg-gray-700 p-2"
+            disabled={loading || event.reminded}
+          >
+            <MessageCircle className="h-3 w-3" />
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 export default function Calendar() {
   const { user } = useAuth()
   const { toast } = useToast()
+  const isMobile = useIsMobile()
   const [events, setEvents] = useState<Event[]>([])
   const [showEventModal, setShowEventModal] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
@@ -180,8 +282,8 @@ export default function Calendar() {
   })
   const [showGoogleAuthModal, setShowGoogleAuthModal] = useState(false)
   const [googleAuthUrl, setGoogleAuthUrl] = useState("")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  // Verificar el estado de conexión con Google Calendar
   const checkGoogleConnection = useCallback(async () => {
     try {
       setGoogleStatus((prev) => ({ ...prev, loading: true, error: null }))
@@ -219,14 +321,11 @@ export default function Calendar() {
     fetchEvents()
     checkGoogleConnection()
 
-    // Verificar si venimos de una redirección de Google OAuth
     const urlParams = new URLSearchParams(window.location.search)
     const status = urlParams.get("status")
 
     if (status === "connected") {
       notyf?.success("Tu cuenta de Google Calendar ha sido conectada correctamente.")
-
-      // Limpiar la URL
       window.history.replaceState({}, document.title, window.location.pathname)
     }
   }, [checkGoogleConnection])
@@ -323,7 +422,6 @@ export default function Calendar() {
 
           notyf?.success(selectedEvent ? "Evento actualizado" : "Evento creado")
         } else if (response.status === 207) {
-          // Evento creado localmente pero falló la sincronización con Google
           const data = await response.json()
           await fetchEvents()
           setShowEventModal(false)
@@ -370,10 +468,8 @@ export default function Calendar() {
         await fetchEvents()
         notyf?.success("Evento eliminado")
       } else if (response.status === 207) {
-        // Evento eliminado localmente pero falló la eliminación en Google
         const data = await response.json()
         await fetchEvents()
-
         notyf?.error(data.message)
       } else {
         console.error("Failed to delete event")
@@ -451,7 +547,6 @@ export default function Calendar() {
     try {
       setSyncLoading(true)
 
-      // Si no está conectado, iniciar el flujo de autenticación
       if (!googleStatus.connected) {
         const response = await fetch("https://adndashboard.squareweb.app/api/events/google/auth", {
           headers: {
@@ -469,7 +564,6 @@ export default function Calendar() {
         return
       }
 
-      // Si ya está conectado, sincronizar eventos
       const response = await fetch("https://adndashboard.squareweb.app/api/events/sync", {
         method: "POST",
         headers: {
@@ -484,7 +578,6 @@ export default function Calendar() {
           `Se importaron ${data.stats.imported} eventos nuevos y se actualizaron ${data.stats.updated} eventos existentes.`,
         )
       } else if (response.status === 401) {
-        // Token expirado, necesita reconectar
         const data = await response.json()
         if (data.action === "reauthorize") {
           setGoogleStatus((prev) => ({ ...prev, connected: false }))
@@ -517,6 +610,340 @@ export default function Calendar() {
     }
   })
 
+  // Sidebar de eventos para móvil
+  const EventsSidebar = () => (
+    <div className="h-full flex flex-col">
+      <div className="p-4 border-b">
+        <h2 className="text-lg font-bold text-white">Citas registradas</h2>
+        <Tabs
+          value={filter}
+          onValueChange={(value: string) => setFilter(value as "pendientes" | "cerrados" | "recordados")}
+          className="mt-4"
+        >
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="pendientes" className="text-xs">
+              Pendientes
+            </TabsTrigger>
+            <TabsTrigger value="cerrados" className="text-xs">
+              Cerrados
+            </TabsTrigger>
+            <TabsTrigger value="recordados" className="text-xs">
+              Recordados
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      <ScrollArea className="flex-1 p-4">
+        {loading ? (
+          <div className="flex justify-center items-center p-8">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+          </div>
+        ) : filteredEvents.length === 0 ? (
+          <div className="text-center p-8 text-gray-400">
+            No hay eventos {filter === "pendientes" ? "pendientes" : filter === "cerrados" ? "cerrados" : "recordados"}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {filteredEvents.map((event) => (
+              <MobileEventCard
+                key={event.id}
+                event={event}
+                onEdit={() => {
+                  setSelectedEvent(event)
+                  setNewEvent(event)
+                  setShowEventModal(true)
+                  setSidebarOpen(false)
+                }}
+                onDelete={() => handleDeleteEvent(event.id)}
+                onComplete={() => handleCompleteEvent(event.id)}
+                onRemind={() => handleRemindEvent(event.id)}
+                loading={loading}
+              />
+            ))}
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  )
+
+  if (isMobile) {
+    return (
+      <div className="h-screen flex flex-col bg-black text-white">
+        {/* Header móvil */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <h1 className="text-lg font-bold text-white">Calendario</h1>
+          <div className="flex space-x-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelectedEvent(null)
+                setNewEvent({
+                  id: "",
+                  title: "",
+                  client: "",
+                  start: new Date(),
+                  end: new Date(),
+                  completed: false,
+                  reminded: false,
+                  description: "",
+                  location: "",
+                })
+                setShowEventModal(true)
+              }}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              disabled={loading}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleSyncWithGoogleCalendar}
+              className="bg-blue-600 text-white hover:bg-blue-700"
+              disabled={syncLoading}
+            >
+              {syncLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sync className="h-4 w-4" />}
+            </Button>
+            <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button size="sm" variant="outline">
+                  <Menu className="h-4 w-4" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-full bg-black text-white border-gray-700 p-0">
+                <EventsSidebar />
+              </SheetContent>
+            </Sheet>
+          </div>
+        </div>
+
+        {/* Alertas */}
+        {googleStatus.connected && (
+          <Alert className="m-4 bg-green-900 border-green-700">
+            <CalendarIcon className="h-4 w-4" />
+            <AlertTitle className="text-sm">Google Calendar conectado</AlertTitle>
+            <AlertDescription className="text-xs">Los eventos se sincronizarán automáticamente.</AlertDescription>
+          </Alert>
+        )}
+
+        {googleStatus.error && (
+          <Alert className="m-4 bg-red-900 border-red-700">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle className="text-sm">Error de conexión</AlertTitle>
+            <AlertDescription className="text-xs">{googleStatus.error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Calendario */}
+        <div className="flex-1 p-4 overflow-hidden">
+          <div className="h-full">
+            <FullCalendar
+              plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+              initialView="dayGridMonth"
+              headerToolbar={{
+                left: "prev,next",
+                center: "title",
+                right: "today",
+              }}
+              height="100%"
+              events={events.map((event) => ({
+                id: event.id,
+                title: event.title,
+                start: event.start,
+                end: event.end,
+                backgroundColor: event.completed ? "#22543d" : event.reminded ? "#744210" : "#2a4365",
+                borderColor: event.completed ? "#22543d" : event.reminded ? "#744210" : "#2a4365",
+                textColor: "#ffffff",
+                extendedProps: {
+                  client: event.client,
+                  completed: event.completed,
+                  reminded: event.reminded,
+                  description: event.description,
+                  location: event.location,
+                },
+              }))}
+              dateClick={handleDateClick}
+              eventClick={handleEventClick}
+              editable={true}
+              selectable={true}
+              selectMirror={true}
+              dayMaxEvents={2}
+              weekends={true}
+              locale={es}
+              buttonText={{
+                today: "Hoy",
+                month: "Mes",
+                week: "Semana",
+                day: "Día",
+              }}
+              eventDisplay="block"
+              dayMaxEventRows={3}
+              moreLinkClick="popover"
+            />
+          </div>
+        </div>
+
+        {/* Modal para crear/editar eventos */}
+        <Dialog open={showEventModal} onOpenChange={setShowEventModal}>
+          <DialogContent className="w-[95vw] max-w-md bg-gray-900 text-white border border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-base">
+                {selectedEvent ? "Editar Evento" : "Agregar Nuevo Evento"}
+              </DialogTitle>
+              <DialogDescription className="text-sm">
+                {selectedEvent ? "Modifica los detalles del evento" : "Ingresa los detalles del nuevo evento"}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="title" className="text-sm">
+                  Título
+                </Label>
+                <Input
+                  id="title"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="client" className="text-sm">
+                  Cliente
+                </Label>
+                <ClientSelector
+                  value={newEvent.client}
+                  onChange={(value) => setNewEvent({ ...newEvent, client: value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location" className="text-sm">
+                  Ubicación
+                </Label>
+                <Input
+                  id="location"
+                  value={newEvent.location || ""}
+                  onChange={(e) => setNewEvent({ ...newEvent, location: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Opcional"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="start" className="text-sm">
+                    Inicio
+                  </Label>
+                  <Input
+                    id="start"
+                    type="datetime-local"
+                    value={newEvent.start ? format(newEvent.start, "yyyy-MM-dd'T'HH:mm") : ""}
+                    onChange={(e) => setNewEvent({ ...newEvent, start: new Date(e.target.value) })}
+                    className="bg-gray-800 text-white border-gray-700 text-sm"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="end" className="text-sm">
+                    Fin
+                  </Label>
+                  <Input
+                    id="end"
+                    type="datetime-local"
+                    value={newEvent.end ? format(newEvent.end, "yyyy-MM-dd'T'HH:mm") : ""}
+                    onChange={(e) => setNewEvent({ ...newEvent, end: new Date(e.target.value) })}
+                    className="bg-gray-800 text-white border-gray-700 text-sm"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm">
+                  Descripción
+                </Label>
+                <Textarea
+                  id="description"
+                  value={newEvent.description || ""}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  className="bg-gray-800 text-white border-gray-700"
+                  placeholder="Opcional"
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEventModal(false)
+                  setSelectedEvent(null)
+                  setNewEvent({
+                    id: "",
+                    title: "",
+                    client: "",
+                    start: new Date(),
+                    end: new Date(),
+                    completed: false,
+                    reminded: false,
+                    description: "",
+                    location: "",
+                  })
+                }}
+                className="bg-gray-800 text-white hover:bg-gray-700 w-full sm:w-auto"
+                disabled={loading}
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAddOrEditEvent}
+                className="bg-blue-600 text-white hover:bg-blue-700 w-full sm:w-auto"
+                disabled={loading}
+              >
+                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {selectedEvent ? "Guardar" : "Agregar"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal para autenticación de Google */}
+        <Dialog open={showGoogleAuthModal} onOpenChange={setShowGoogleAuthModal}>
+          <DialogContent className="w-[95vw] max-w-md bg-gray-900 text-white border border-gray-700">
+            <DialogHeader>
+              <DialogTitle className="text-base">Conectar con Google Calendar</DialogTitle>
+              <DialogDescription className="text-sm">
+                Para sincronizar tus eventos con Google Calendar, necesitas autorizar la aplicación.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Alert className="bg-blue-900 border-blue-700">
+                <CalendarIcon className="h-4 w-4" />
+                <AlertTitle className="text-sm">Autorización requerida</AlertTitle>
+                <AlertDescription className="text-xs">
+                  Serás redirigido a Google para autorizar el acceso a tu calendario.
+                </AlertDescription>
+              </Alert>
+            </div>
+            <DialogFooter className="flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowGoogleAuthModal(false)}
+                className="bg-gray-800 text-white hover:bg-gray-700 w-full sm:w-auto"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={() => {
+                  window.location.href = googleAuthUrl
+                }}
+                className="bg-blue-600 text-white hover:bg-blue-700 w-full sm:w-auto"
+              >
+                Conectar con Google
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    )
+  }
+
+  // Vista desktop (código original)
   return (
     <div className="h-screen flex flex-col md:flex-row bg-black text-white">
       <div className="flex-grow p-4 md:p-6 overflow-auto">

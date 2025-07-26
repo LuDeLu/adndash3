@@ -62,6 +62,7 @@ import {
   Plus,
   Trash2,
   RefreshCw,
+  Menu,
 } from "lucide-react"
 import {
   Dialog,
@@ -81,6 +82,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { useMobile } from "@/hooks/use-mobile"
 
 // Tipos de datos disponibles
 const DATA_SOURCES = {
@@ -299,6 +302,7 @@ const ChartRenderer = ({
   onResize: (id: string, isFullscreen: boolean) => void
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false)
+  const isMobile = useMobile()
   const dataSource = DATA_SOURCES[widget.dataSource as keyof typeof DATA_SOURCES]
   const chartType = CHART_TYPES[widget.chartType as keyof typeof CHART_TYPES]
 
@@ -346,7 +350,7 @@ const ChartRenderer = ({
                   </text>
                 )
               }}
-              outerRadius={80}
+              outerRadius={isMobile ? 60 : 80}
               dataKey={dataSource.valueKey}
               nameKey={dataSource.nameKey}
             >
@@ -365,8 +369,14 @@ const ChartRenderer = ({
         <ResponsiveContainer width="100%" height="100%">
           <ChartComponent data={dataSource.data}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey={dataSource.xAxis} />
-            <YAxis />
+            <XAxis
+              dataKey={dataSource.xAxis}
+              fontSize={isMobile ? 10 : 12}
+              angle={isMobile ? -45 : 0}
+              textAnchor={isMobile ? "end" : "middle"}
+              height={isMobile ? 60 : 30}
+            />
+            <YAxis fontSize={isMobile ? 10 : 12} />
             <Tooltip />
             {widget.showLegend && <Legend />}
             {dataSource.keys.map((key: string, index: number) => {
@@ -398,6 +408,7 @@ const ChartRenderer = ({
                     type="monotone"
                     dataKey={key}
                     stroke={dataSource.colors[index % dataSource.colors.length]}
+                    strokeWidth={isMobile ? 1 : 2}
                   />
                 )
               } else if (chartType.dataComponent === Radar) {
@@ -421,7 +432,7 @@ const ChartRenderer = ({
       // Tipo de gráfico incompatible con los datos
       return (
         <div className="flex items-center justify-center h-full">
-          <p className="text-muted-foreground">Tipo de gráfico incompatible con estos datos</p>
+          <p className="text-muted-foreground text-center text-sm">Tipo de gráfico incompatible con estos datos</p>
         </div>
       )
     }
@@ -429,24 +440,32 @@ const ChartRenderer = ({
 
   return (
     <Card className={`w-full h-full flex flex-col ${isFullscreen ? "fixed inset-0 z-50" : ""}`}>
-      <CardHeader className="p-3 flex-row items-center justify-between space-y-0 drag-handle">
-        <div>
-          <CardTitle className="text-sm font-medium">{widget.title || dataSource.name}</CardTitle>
-          <CardDescription className="text-xs">{widget.description || dataSource.description}</CardDescription>
+      <CardHeader className={`${isMobile ? "p-2" : "p-3"} flex-row items-center justify-between space-y-0 drag-handle`}>
+        <div className="flex-1 min-w-0">
+          <CardTitle className={`${isMobile ? "text-xs" : "text-sm"} font-medium truncate`}>
+            {widget.title || dataSource.name}
+          </CardTitle>
+          <CardDescription className={`${isMobile ? "text-xs" : "text-xs"} truncate`}>
+            {widget.description || dataSource.description}
+          </CardDescription>
         </div>
-        <div className="flex items-center space-x-1">
-          <Button variant="ghost" size="icon" onClick={() => onEdit(widget.id)}>
-            <Settings className="h-4 w-4" />
+        <div className="flex items-center space-x-1 flex-shrink-0">
+          <Button variant="ghost" size={isMobile ? "sm" : "icon"} onClick={() => onEdit(widget.id)}>
+            <Settings className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
           </Button>
-          <Button variant="ghost" size="icon" onClick={toggleFullscreen}>
-            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          <Button variant="ghost" size={isMobile ? "sm" : "icon"} onClick={toggleFullscreen}>
+            {isFullscreen ? (
+              <Minimize2 className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
+            ) : (
+              <Maximize2 className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
+            )}
           </Button>
-          <Button variant="ghost" size="icon" onClick={() => onRemove(widget.id)}>
-            <Trash2 className="h-4 w-4" />
+          <Button variant="ghost" size={isMobile ? "sm" : "icon"} onClick={() => onRemove(widget.id)}>
+            <Trash2 className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="p-3 flex-grow">{renderChart()}</CardContent>
+      <CardContent className={`${isMobile ? "p-2" : "p-3"} flex-grow`}>{renderChart()}</CardContent>
     </Card>
   )
 }
@@ -464,6 +483,7 @@ const EditWidgetDialog = ({
   onSave: (widget: ChartWidget) => void
 }) => {
   const [editedWidget, setEditedWidget] = useState<ChartWidget | null>(null)
+  const isMobile = useMobile()
 
   useEffect(() => {
     if (widget) {
@@ -487,45 +507,47 @@ const EditWidgetDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent
+        className={`${isMobile ? "w-[95vw] max-w-[95vw] h-[90vh] max-h-[90vh] overflow-y-auto" : "sm:max-w-[500px]"}`}
+      >
         <DialogHeader>
           <DialogTitle>Configurar Gráfico</DialogTitle>
           <DialogDescription>Personaliza las opciones de visualización para este gráfico.</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="title" className="text-right">
+          <div className={`grid ${isMobile ? "grid-cols-1 gap-2" : "grid-cols-4"} items-center gap-4`}>
+            <Label htmlFor="title" className={isMobile ? "" : "text-right"}>
               Título
             </Label>
             <input
               id="title"
-              className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${isMobile ? "col-span-1" : "col-span-3"} flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
               value={editedWidget.title || ""}
               onChange={(e) => handleChange("title", e.target.value)}
               placeholder={dataSource?.name || "Título del gráfico"}
             />
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">
+          <div className={`grid ${isMobile ? "grid-cols-1 gap-2" : "grid-cols-4"} items-center gap-4`}>
+            <Label htmlFor="description" className={isMobile ? "" : "text-right"}>
               Descripción
             </Label>
             <input
               id="description"
-              className="col-span-3 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              className={`${isMobile ? "col-span-1" : "col-span-3"} flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50`}
               value={editedWidget.description || ""}
               onChange={(e) => handleChange("description", e.target.value)}
               placeholder={dataSource?.description || "Descripción del gráfico"}
             />
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="dataSource" className="text-right">
+          <div className={`grid ${isMobile ? "grid-cols-1 gap-2" : "grid-cols-4"} items-center gap-4`}>
+            <Label htmlFor="dataSource" className={isMobile ? "" : "text-right"}>
               Fuente de datos
             </Label>
             <Select value={editedWidget.dataSource} onValueChange={(value) => handleChange("dataSource", value)}>
-              <SelectTrigger id="dataSource" className="col-span-3">
+              <SelectTrigger id="dataSource" className={isMobile ? "col-span-1" : "col-span-3"}>
                 <SelectValue placeholder="Seleccionar datos" />
               </SelectTrigger>
               <SelectContent>
@@ -538,12 +560,12 @@ const EditWidgetDialog = ({
             </Select>
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="chartType" className="text-right">
+          <div className={`grid ${isMobile ? "grid-cols-1 gap-2" : "grid-cols-4"} items-center gap-4`}>
+            <Label htmlFor="chartType" className={isMobile ? "" : "text-right"}>
               Tipo de gráfico
             </Label>
             <Select value={editedWidget.chartType} onValueChange={(value) => handleChange("chartType", value)}>
-              <SelectTrigger id="chartType" className="col-span-3">
+              <SelectTrigger id="chartType" className={isMobile ? "col-span-1" : "col-span-3"}>
                 <SelectValue placeholder="Seleccionar tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -561,12 +583,12 @@ const EditWidgetDialog = ({
             </Select>
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="period" className="text-right">
+          <div className={`grid ${isMobile ? "grid-cols-1 gap-2" : "grid-cols-4"} items-center gap-4`}>
+            <Label htmlFor="period" className={isMobile ? "" : "text-right"}>
               Período
             </Label>
             <Select value={editedWidget.period} onValueChange={(value) => handleChange("period", value)}>
-              <SelectTrigger id="period" className="col-span-3">
+              <SelectTrigger id="period" className={isMobile ? "col-span-1" : "col-span-3"}>
                 <SelectValue placeholder="Seleccionar período" />
               </SelectTrigger>
               <SelectContent>
@@ -580,9 +602,11 @@ const EditWidgetDialog = ({
             </Select>
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Tamaño</Label>
-            <div className="col-span-3 flex items-center space-x-4">
+          <div className={`grid ${isMobile ? "grid-cols-1 gap-2" : "grid-cols-4"} items-center gap-4`}>
+            <Label className={isMobile ? "" : "text-right"}>Tamaño</Label>
+            <div
+              className={`${isMobile ? "col-span-1" : "col-span-3"} flex ${isMobile ? "flex-col" : "items-center"} space-x-4`}
+            >
               <div className="flex-1">
                 <Label htmlFor="width" className="text-xs">
                   Ancho
@@ -624,9 +648,9 @@ const EditWidgetDialog = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label className="text-right">Opciones</Label>
-            <div className="col-span-3 space-y-2">
+          <div className={`grid ${isMobile ? "grid-cols-1 gap-2" : "grid-cols-4"} items-center gap-4`}>
+            <Label className={isMobile ? "" : "text-right"}>Opciones</Label>
+            <div className={`${isMobile ? "col-span-1" : "col-span-3"} space-y-2`}>
               <div className="flex items-center space-x-2">
                 <Switch
                   id="showLegend"
@@ -650,24 +674,17 @@ const EditWidgetDialog = ({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <DialogFooter className={isMobile ? "flex-col space-y-2" : ""}>
+          <Button variant="outline" onClick={onClose} className={isMobile ? "w-full" : ""}>
             Cancelar
           </Button>
-          <Button onClick={handleSave}>Guardar cambios</Button>
+          <Button onClick={handleSave} className={isMobile ? "w-full" : ""}>
+            Guardar cambios
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   )
-}
-
-// Implementación simplificada de GridLayout sin depender de react-grid-layout
-interface LayoutItem {
-  i: string
-  x: number
-  y: number
-  w: number
-  h: number
 }
 
 // Componente principal de estadísticas
@@ -682,6 +699,8 @@ const Estadisticas = () => {
   const [currentLayout, setCurrentLayout] = useState<string>("default")
   const [newLayoutName, setNewLayoutName] = useState<string>("")
   const [isFullscreenWidget, setIsFullscreenWidget] = useState<string | null>(null)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const isMobile = useMobile()
 
   // Cargar configuración guardada al iniciar
   useEffect(() => {
@@ -726,7 +745,7 @@ const Estadisticas = () => {
       id: "widget-1",
       dataSource: "ventas",
       chartType: "area",
-      w: 6,
+      w: isMobile ? 12 : 6,
       h: 2,
       x: 0,
       y: 0,
@@ -738,10 +757,10 @@ const Estadisticas = () => {
       id: "widget-2",
       dataSource: "proyectos",
       chartType: "pie",
-      w: 3,
+      w: isMobile ? 12 : 3,
       h: 2,
-      x: 6,
-      y: 0,
+      x: isMobile ? 0 : 6,
+      y: isMobile ? 2 : 0,
       showLegend: true,
       stacked: false,
       period: "all",
@@ -750,10 +769,10 @@ const Estadisticas = () => {
       id: "widget-3",
       dataSource: "propiedades",
       chartType: "bar",
-      w: 3,
+      w: isMobile ? 12 : 3,
       h: 2,
-      x: 9,
-      y: 0,
+      x: isMobile ? 0 : 9,
+      y: isMobile ? 4 : 0,
       showLegend: true,
       stacked: false,
       period: "month",
@@ -762,10 +781,10 @@ const Estadisticas = () => {
       id: "widget-4",
       dataSource: "leads",
       chartType: "line",
-      w: 4,
+      w: isMobile ? 12 : 4,
       h: 2,
       x: 0,
-      y: 2,
+      y: isMobile ? 6 : 2,
       showLegend: true,
       stacked: false,
       period: "month",
@@ -774,10 +793,10 @@ const Estadisticas = () => {
       id: "widget-5",
       dataSource: "conversion",
       chartType: "line",
-      w: 4,
+      w: isMobile ? 12 : 4,
       h: 2,
-      x: 4,
-      y: 2,
+      x: isMobile ? 0 : 4,
+      y: isMobile ? 8 : 2,
       showLegend: true,
       stacked: false,
       period: "month",
@@ -786,10 +805,10 @@ const Estadisticas = () => {
       id: "widget-6",
       dataSource: "marketing",
       chartType: "pie",
-      w: 4,
+      w: isMobile ? 12 : 4,
       h: 2,
-      x: 8,
-      y: 2,
+      x: isMobile ? 0 : 8,
+      y: isMobile ? 10 : 2,
       showLegend: true,
       stacked: false,
       period: "all",
@@ -806,31 +825,13 @@ const Estadisticas = () => {
     localStorage.setItem("currentDashboardLayout", "default")
   }
 
-  // Manejar cambios en el layout (versión simplificada)
-  const handleLayoutChange = (layout: LayoutItem[]) => {
-    const updatedWidgets = widgets.map((widget) => {
-      const layoutItem = layout.find((item) => item.i === widget.id)
-      if (layoutItem) {
-        return {
-          ...widget,
-          x: layoutItem.x,
-          y: layoutItem.y,
-          w: layoutItem.w,
-          h: layoutItem.h,
-        }
-      }
-      return widget
-    })
-    setWidgets(updatedWidgets)
-  }
-
   // Añadir un nuevo widget
   const handleAddWidget = () => {
     const newWidget: ChartWidget = {
       id: `widget-${Date.now()}`,
       dataSource: "ventas",
       chartType: "bar",
-      w: 4,
+      w: isMobile ? 12 : 4,
       h: 2,
       x: 0,
       y: 0,
@@ -910,97 +911,168 @@ const Estadisticas = () => {
     setIsFullscreenWidget(isFullscreen ? id : null)
   }
 
-  return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard de Estadísticas</h1>
+  // Componente de controles para móvil
+  const MobileControls = () => (
+    <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+      <SheetTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Menu className="h-4 w-4" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-[300px] sm:w-[400px]">
+        <SheetHeader>
+          <SheetTitle>Controles del Dashboard</SheetTitle>
+        </SheetHeader>
+        <div className="mt-6 space-y-4">
+          <div>
+            <Label className="text-sm font-medium">Layout Actual</Label>
+            <Select value={currentLayout} onValueChange={handleChangeLayout}>
+              <SelectTrigger className="w-full mt-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.keys(layouts).map((layoutName) => (
+                  <SelectItem key={layoutName} value={layoutName}>
+                    <div className="flex justify-between items-center w-full">
+                      {layoutName}
+                      {layoutName === currentLayout && (
+                        <Badge variant="outline" className="ml-2">
+                          Actual
+                        </Badge>
+                      )}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-        <div className="flex items-center space-x-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <span className="mr-2">Layout: {currentLayout}</span>
+          <div>
+            <Label className="text-sm font-medium">Guardar Layout</Label>
+            <div className="flex space-x-2 mt-2">
+              <input
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                placeholder="Nombre del layout"
+                value={newLayoutName}
+                onChange={(e) => setNewLayoutName(e.target.value)}
+              />
+              <Button onClick={handleSaveNewLayout} size="sm">
+                <Save className="h-4 w-4" />
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Cambiar Layout</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {Object.keys(layouts).map((layoutName) => (
-                <DropdownMenuItem
-                  key={layoutName}
-                  onClick={() => handleChangeLayout(layoutName)}
-                  className="flex justify-between items-center"
-                >
-                  {layoutName}
-                  {layoutName === currentLayout && (
-                    <Badge variant="outline" className="ml-2">
-                      Actual
-                    </Badge>
-                  )}
-                  {layoutName !== "default" && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 ml-2"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteLayout(layoutName)
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  )}
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </div>
+          </div>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm">
-                <Save className="h-4 w-4 mr-2" />
-                Guardar
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-4">
-                <h4 className="font-medium">Guardar layout actual</h4>
-                <div className="flex space-x-2">
-                  <input
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    placeholder="Nombre del layout"
-                    value={newLayoutName}
-                    onChange={(e) => setNewLayoutName(e.target.value)}
-                  />
-                  <Button onClick={handleSaveNewLayout}>Guardar</Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-
-          <Button variant="outline" size="sm" onClick={resetToDefault}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Restablecer
-          </Button>
-
-          <Button onClick={handleAddWidget}>
-            <Plus className="h-4 w-4 mr-2" />
-            Añadir Gráfico
-          </Button>
+          <div className="space-y-2">
+            <Button onClick={handleAddWidget} className="w-full">
+              <Plus className="h-4 w-4 mr-2" />
+              Añadir Gráfico
+            </Button>
+            <Button onClick={resetToDefault} variant="outline" className="w-full bg-transparent">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Restablecer
+            </Button>
+          </div>
         </div>
+      </SheetContent>
+    </Sheet>
+  )
+
+  return (
+    <div className="container mx-auto p-2 sm:p-4">
+      <div className={`flex ${isMobile ? "flex-col space-y-4" : "justify-between items-center"} mb-6`}>
+        <h1 className={`${isMobile ? "text-xl" : "text-2xl"} font-bold`}>Dashboard de Estadísticas</h1>
+
+        {isMobile ? (
+          <div className="flex justify-between items-center">
+            <Badge variant="outline">Layout: {currentLayout}</Badge>
+            <MobileControls />
+          </div>
+        ) : (
+          <div className="flex items-center space-x-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <span className="mr-2">Layout: {currentLayout}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Cambiar Layout</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {Object.keys(layouts).map((layoutName) => (
+                  <DropdownMenuItem
+                    key={layoutName}
+                    onClick={() => handleChangeLayout(layoutName)}
+                    className="flex justify-between items-center"
+                  >
+                    {layoutName}
+                    {layoutName === currentLayout && (
+                      <Badge variant="outline" className="ml-2">
+                        Actual
+                      </Badge>
+                    )}
+                    {layoutName !== "default" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-4 w-4 ml-2"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDeleteLayout(layoutName)
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80">
+                <div className="space-y-4">
+                  <h4 className="font-medium">Guardar layout actual</h4>
+                  <div className="flex space-x-2">
+                    <input
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Nombre del layout"
+                      value={newLayoutName}
+                      onChange={(e) => setNewLayoutName(e.target.value)}
+                    />
+                    <Button onClick={handleSaveNewLayout}>Guardar</Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            <Button variant="outline" size="sm" onClick={resetToDefault}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Restablecer
+            </Button>
+
+            <Button onClick={handleAddWidget}>
+              <Plus className="h-4 w-4 mr-2" />
+              Añadir Gráfico
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className={isFullscreenWidget ? "hidden" : ""}>
-        {/* Implementación simplificada sin react-grid-layout */}
-        <div className="grid grid-cols-12 gap-4">
+        {/* Grid responsive mejorado */}
+        <div className={`grid ${isMobile ? "grid-cols-1" : "grid-cols-12"} gap-2 sm:gap-4`}>
           {widgets.map((widget) => (
             <div
               key={widget.id}
-              className={`col-span-${widget.w} row-span-${widget.h}`}
+              className={`${isMobile ? "col-span-1" : `col-span-${Math.min(widget.w, 12)}`}`}
               style={{
-                gridColumn: `span ${widget.w}`,
-                gridRow: `span ${widget.h}`,
-                minHeight: `${widget.h * 150}px`,
+                minHeight: `${widget.h * (isMobile ? 200 : 150)}px`,
               }}
             >
               <ChartRenderer
@@ -1015,7 +1087,7 @@ const Estadisticas = () => {
       </div>
 
       {isFullscreenWidget && (
-        <div className="fixed inset-0 z-50 bg-background p-6">
+        <div className="fixed inset-0 z-50 bg-background p-2 sm:p-6">
           <ChartRenderer
             widget={widgets.find((w) => w.id === isFullscreenWidget)!}
             onEdit={handleEditWidget}
@@ -1039,4 +1111,3 @@ const Estadisticas = () => {
 }
 
 export default Estadisticas
-
