@@ -192,7 +192,7 @@ function UserDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.avatarUrl || "/placeholder.svg"} alt={user?.name || "Usuario"} />
+            <AvatarImage src={user?.avatarUrl} alt={user?.name || "Usuario"} />
             <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white text-xs font-semibold">
               {getUserInitials(user?.name || "Usuario")}
             </AvatarFallback>
@@ -284,9 +284,8 @@ function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   }
 
   const navigationItems = [
-    { title: "Dashboard", href: "/", icon: LayoutDashboard, badge: null },
-    { title: "Estadísticas", href: "/estadisticas", icon: BarChart3, badge: null },
     { title: "Proyectos", href: "/proyectos", icon: Building2, badge: null },
+    { title: "Estadísticas", href: "/estadisticas", icon: BarChart3, badge: null },
     { title: "Clientes", href: "/clientes", icon: Users, badge: null },
     { title: "Calendario", href: "/calendario", icon: Calendar, badge: 3 },
     { title: "Obras", href: "/obras", icon: HardHat, badge: null },
@@ -324,7 +323,7 @@ function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user?.avatarUrl || "/placeholder.svg"} alt={user?.name || "Usuario"} />
+            <AvatarImage src={user?.avatarUrl} alt={user?.name || "Usuario"} />
             <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold">
               {getUserInitials(user?.name || "Usuario")}
             </AvatarFallback>
@@ -432,7 +431,7 @@ function DesktopNavigation() {
     >
       {/* Header del sidebar */}
       <div className="flex h-14 items-center border-b border-gray-800 px-4 flex-shrink-0">
-        {!isCollapsed && <span className="text-lg font-semibold truncate">ADN Desarrollos</span>}
+        {!isCollapsed && <span className="text-lg font-semibold truncate">ADN Developers</span>}
         <Button
           variant="ghost"
           size="icon"
