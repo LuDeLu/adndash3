@@ -85,9 +85,9 @@ export function ApartProjectModal({
 
   // Configuración específica del edificio Apart
   const buildingConfig = {
-    viewBox: "0 0 1000 2400",
-    transform: "scale(1.9, 0.85)",
-    floor_width: 300,
+    viewBox: "-10 125 1250 1300",
+    transform: "scale(1, 1.7)",
+    floor_width: 505,
     show_empty_floors: true,
     floor_label_offset_x: 28,
     floor_label_offset_y: 30,
@@ -245,7 +245,7 @@ export function ApartProjectModal({
               {/* Imagen del edificio con overlay de pisos */}
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
-                  src={projectData.image || "/placeholder.svg?width=800&height=1200&query=modern+building+facade"}
+                  src={projectData.image || "(/placeholder.svg?width=800&height=1200&query=modern+building+facade)"}
                   alt={projectData.name}
                   fill
                   style={{ objectFit: "cover" }}

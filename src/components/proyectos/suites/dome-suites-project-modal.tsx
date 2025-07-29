@@ -56,7 +56,7 @@ export function DomeSuitesProjectModal({
   const projectData = {
     name: "DOME Suites & Residences",
     location: "Paraguay & Humboldt",
-    image: "/images/logo/suitelogo.png",
+    image: "/images/edificio/suitesedi.png",
     description: "Exclusivo desarrollo de suites y residencias en el corazón de Palermo con amenities de primer nivel.",
     totalUnits: 45,
     availableUnits: 12,
@@ -94,7 +94,6 @@ export function DomeSuitesProjectModal({
   }
 
   const handleFloorClick = (floorNumber: number) => {
-    console.log("Suites floor clicked:", floorNumber)
     onViewPlanes(floorNumber)
   }
 
@@ -130,17 +129,17 @@ export function DomeSuitesProjectModal({
 
                 {/* SVG Overlay para pisos */}
                 <svg
-                  viewBox="0 0 1000 800"
+                  viewBox="-190 105 1500 800"
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
-                  <g transform="scale(1.2, 1.0) translate(-200, 50)">
+                  <g transform="scale(1.2, 1.2) translate(-200, 10)">
                     <AnimatePresence>
                       {floors.map((floor) => {
                         const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
                         if (totalUnits === 0) return null
 
-                        const floorWidth = 300
+                        const floorWidth = 555
                         const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
                         const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
                         const availableWidth = floorWidth - soldWidth - reservedWidth
@@ -148,11 +147,7 @@ export function DomeSuitesProjectModal({
                         return (
                           <g
                             key={floor.number}
-                            onClick={(e) => {
-                              e.preventDefault()
-                              e.stopPropagation()
-                              handleFloorClick(floor.number)
-                            }}
+                            onClick={() => handleFloorClick(floor.number)}
                             style={{ cursor: "pointer" }}
                           >
                             <motion.rect
@@ -251,7 +246,7 @@ export function DomeSuitesProjectModal({
                   <DialogHeader className="space-y-2 pb-4">
                     <div className="flex items-center space-x-3">
                       <Image
-                        src={projectData.image || "/placeholder.svg"}
+                        src={"/images/logo/suitelogo.png"}
                         alt="DOME Logo"
                         width={50}
                         height={50}
@@ -367,7 +362,7 @@ export function DomeSuitesProjectModal({
                                 key={floor.number}
                                 variant="outline"
                                 className="flex flex-col items-center justify-center p-2 w-full h-full text-xs sm:text-sm bg-transparent"
-                                onClick={() => handleFloorClick(floor.number)}
+                                onClick={() => onViewPlanes(floor.number)}
                               >
                                 <span className="font-medium">Piso {floor.number}</span>
                                 <span className="text-[10px] sm:text-xs font-semibold mt-1">
@@ -489,7 +484,7 @@ export function DomeSuitesProjectModal({
 
                 {/* Botones de acción */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 sm:p-4 bg-background border-t">
-                  <Button onClick={() => handleFloorClick(1)} className="w-full py-3 sm:py-6 text-xs sm:text-base">
+                  <Button onClick={() => onViewPlanes()} className="w-full py-3 sm:py-6 text-xs sm:text-base">
                     Ver planos
                   </Button>
                   <Button onClick={handleBrochureClick} className="w-full py-3 sm:py-6 text-xs sm:text-base">

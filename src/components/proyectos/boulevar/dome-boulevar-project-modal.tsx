@@ -115,7 +115,7 @@ export function DomeBoulevardProjectModal({
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
                   src="/placeholder.svg?height=800&width=600&text=DOME+Boulevar+Edificio"
-                  alt="DOME Boulevar"
+                  alt="DOME Boulevard"
                   fill
                   style={{ objectFit: "cover" }}
                   className="rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none"
@@ -243,7 +243,7 @@ export function DomeBoulevardProjectModal({
                         className="object-contain"
                       />
                       <div>
-                        <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">DOME Boulevar</DialogTitle>
+                        <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">DOME Boulevard</DialogTitle>
                         <p className="text-sm sm:text-base text-muted-foreground">Cerviño 3941, Palermo</p>
                       </div>
                     </div>
