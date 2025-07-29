@@ -1,5 +1,4 @@
 "use client"
-
 import { useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
@@ -21,12 +20,13 @@ import {
   Car,
   Waves,
 } from "lucide-react"
+import { apartProjectInfo } from "@/lib/dome-apart-data"
 
-interface DomeSuitesGalleryProps {
+interface DomeApartGalleryProps {
   onReturnToProject: () => void
 }
 
-export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps) {
+export function DomeApartGallery({ onReturnToProject }: DomeApartGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -35,15 +35,24 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
   const galleryItems = [
     {
       id: 1,
-      src: "/placeholder.svg?height=400&width=600&text=Fachada+Principal+Suites",
-      alt: "Fachada principal DOME Suites & Residences",
+      src: apartProjectInfo.image,
+      alt: "Fachada principal DOME Palermo Apartament",
       category: "exterior",
       type: "image",
       title: "Fachada Principal",
-      description: "Vista frontal del edificio desde Paraguay y Humboldt",
+      description: "Vista frontal del edificio desde Cabello y Lafinur",
     },
     {
       id: 2,
+      src: apartProjectInfo.logo,
+      alt: "Logo DOME Palermo Apartament",
+      category: "branding",
+      type: "image",
+      title: "Identidad del Proyecto",
+      description: "Logo y branding oficial del proyecto",
+    },
+    {
+      id: 3,
       src: "/placeholder.svg?height=400&width=600&text=Render+Exterior+Nocturno",
       alt: "Render exterior nocturno",
       category: "exterior",
@@ -52,7 +61,7 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
       description: "Render del edificio con iluminación nocturna",
     },
     {
-      id: 3,
+      id: 4,
       src: "/placeholder.svg?height=400&width=600&text=Hall+de+Acceso",
       alt: "Hall de acceso",
       category: "interior",
@@ -61,67 +70,76 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
       description: "Elegante hall de acceso con diseño moderno",
     },
     {
-      id: 4,
+      id: 5,
       src: "/placeholder.svg?height=400&width=600&text=Piscina+Rooftop",
       alt: "Piscina en rooftop",
       category: "amenities",
       type: "image",
       title: "Piscina Rooftop",
-      description: "Pileta con solárium en terraza",
+      description: "Pileta con solárium en el nivel 10º",
     },
     {
-      id: 5,
+      id: 6,
       src: "/placeholder.svg?height=400&width=600&text=Gimnasio",
       alt: "Gimnasio",
       category: "amenities",
       type: "image",
       title: "Gimnasio",
-      description: "Gimnasio completamente equipado",
-    },
-    {
-      id: 6,
-      src: "/placeholder.svg?height=400&width=600&text=Suite+Tipo",
-      alt: "Suite tipo",
-      category: "interior",
-      type: "image",
-      title: "Suite Tipo",
-      description: "Interior de suite con acabados premium",
+      description: "Gimnasio completamente equipado en el 10º nivel",
     },
     {
       id: 7,
-      src: "/placeholder.svg?height=400&width=600&text=Residencia+Tipo",
-      alt: "Residencia tipo",
+      src: "/placeholder.svg?height=400&width=600&text=Departamento+1+Dorm",
+      alt: "Departamento 1 dormitorio",
       category: "interior",
       type: "image",
-      title: "Residencia Tipo",
-      description: "Living comedor con vista panorámica",
+      title: "Departamento 1 Dormitorio",
+      description: "Interior de departamento de 1 dormitorio con parrilla",
     },
     {
       id: 8,
+      src: "/placeholder.svg?height=400&width=600&text=Departamento+2+Dorm",
+      alt: "Departamento 2 dormitorios",
+      category: "interior",
+      type: "image",
+      title: "Departamento 2 Dormitorios",
+      description: "Living comedor con vista panorámica",
+    },
+    {
+      id: 9,
       src: "/placeholder.svg?height=400&width=600&text=Cocheras+Cubiertas",
       alt: "Cocheras cubiertas",
       category: "parking",
       type: "image",
       title: "Cocheras Cubiertas",
-      description: "Estacionamiento cubierto en subsuelos",
-    },
-    {
-      id: 9,
-      src: "/placeholder.svg?height=400&width=600&text=Rooftop+Amenities",
-      alt: "Rooftop con amenities",
-      category: "amenities",
-      type: "image",
-      title: "Rooftop Amenities",
-      description: "Terraza con amenities en último piso",
+      description: "3 niveles de cocheras en subsuelos",
     },
     {
       id: 10,
+      src: "/placeholder.svg?height=400&width=600&text=Rooftop+Parrilla",
+      alt: "Rooftop con parrilla",
+      category: "amenities",
+      type: "image",
+      title: "Rooftop con Parrilla",
+      description: "Rooftop con parrilla en terraza verde del 10º nivel",
+    },
+    {
+      id: 11,
       src: "/placeholder.svg?height=400&width=600&text=Video+Tour",
       alt: "Video tour virtual",
       category: "video",
       type: "video",
       title: "Tour Virtual",
       description: "Recorrido virtual completo por el proyecto",
+    },
+    {
+      id: 12,
+      src: "/placeholder.svg?height=400&width=600&text=Salón+Gourmet",
+      alt: "Salón gourmet",
+      category: "amenities",
+      type: "image",
+      title: "Salón Gourmet",
+      description: "Salón gourmet en el 10º nivel",
     },
   ]
 
@@ -153,7 +171,7 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
   const handleDownload = (src: string, title: string) => {
     const link = document.createElement("a")
     link.href = src
-    link.download = `dome-suites-${title.toLowerCase().replace(/\s+/g, "-")}.jpg`
+    link.download = `dome-apart-${title.toLowerCase().replace(/\s+/g, "-")}.jpg`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -168,7 +186,7 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
             <ChevronLeft className="mr-2 h-4 w-4" />
             Volver al proyecto
           </Button>
-          <h1 className="text-2xl font-bold">Galería - DOME Suites & Residences</h1>
+          <h1 className="text-2xl font-bold">Galería - DOME Palermo Apartament</h1>
           <div></div>
         </div>
 
@@ -358,4 +376,4 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
   )
 }
 
-export default DomeSuitesGallery
+export default DomeApartGallery

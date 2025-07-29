@@ -120,6 +120,7 @@ export function DomeProjectModal({
   }
 
   const handleFloorClick = (floorNumber: number) => {
+    console.log("Lagos floor clicked:", floorNumber)
     onViewPlanes(floorNumber)
   }
 
@@ -167,7 +168,11 @@ export function DomeProjectModal({
                         return (
                           <g
                             key={floor.number}
-                            onClick={() => handleFloorClick(floor.number)}
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleFloorClick(floor.number)
+                            }}
                             style={{ cursor: "pointer" }}
                           >
                             <motion.rect
@@ -380,7 +385,7 @@ export function DomeProjectModal({
                                 key={floor.number}
                                 variant="outline"
                                 className="flex flex-col items-center justify-center p-4 w-full h-full text-xs sm:text-sm bg-transparent"
-                                onClick={() => onViewPlanes(floor.number)}
+                                onClick={() => handleFloorClick(floor.number)}
                               >
                                 <span className="font-medium">
                                   {floor.number === 0
@@ -512,7 +517,7 @@ export function DomeProjectModal({
 
                 {/* Botones de acción */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 sm:p-4 bg-background border-t">
-                  <Button onClick={() => onViewPlanes()} className="w-full py-3 sm:py-6 text-xs sm:text-base">
+                  <Button onClick={() => handleFloorClick(1)} className="w-full py-3 sm:py-6 text-xs sm:text-base">
                     Ver planos
                   </Button>
                   <Button onClick={handleBrochureClick} className="w-full py-3 sm:py-6 text-xs sm:text-base">

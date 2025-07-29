@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useCallback, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
@@ -10,17 +9,17 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { domePalermoData } from "@/lib/dome-palermo-data"
+import { apartProjectInfo, getApartProjectStats, apartUnits } from "@/lib/dome-apart-data"
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { cn } from "@/lib/utils"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
-
-interface DomePalermoProjectModalProps {
+interface ApartProjectModalProps {
   isOpen: boolean
   onClose: () => void
-  onOpenFloorPlan: (floorNumber?: number) => void
+  onViewProject: () => void
+  onViewGallery: () => void
+  onViewPlanes: (floorNumber?: number) => void
 }
 
 type Floor = {
@@ -30,13 +29,14 @@ type Floor = {
   availableUnits: number
   reservedUnits: number
   soldUnits: number
+  blockedUnits: number
   path: string
   x: number
   y: number
   total_apartments?: number
 }
 
-const getStatusColor = (status: "sold" | "available" | "reserved") => {
+const getStatusColor = (status: "sold" | "available" | "reserved" | "blocked") => {
   switch (status) {
     case "sold":
       return "#fa4343"
@@ -44,6 +44,8 @@ const getStatusColor = (status: "sold" | "available" | "reserved") => {
       return "#47fc47"
     case "reserved":
       return "#fafa4b"
+    case "blocked":
+      return "#3b82f6"
     default:
       return "#CCCCCC"
   }
@@ -65,21 +67,27 @@ const Tooltip = React.forwardRef<
 ))
 Tooltip.displayName = TooltipPrimitive.Content.displayName
 
-export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: DomePalermoProjectModalProps) {
+export function ApartProjectModal({
+  isOpen,
+  onClose,
+  onViewProject,
+  onViewGallery,
+  onViewPlanes,
+}: ApartProjectModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "units" | "features" | "financial" | "location">("overview")
   const [refreshing, setRefreshing] = useState(false)
-  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
+  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold" | "blocked">("all")
   const [floors, setFloors] = useState<Floor[]>([])
   const [loadingProjectData, setLoadingProjectData] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const projectData = domePalermoData.projectInfo
+  const projectData = apartProjectInfo
 
-  // Configuración específica del edificio Palermo
+  // Configuración específica del edificio Apart
   const buildingConfig = {
     viewBox: "0 0 1000 2400",
-    transform: "scale(2.4, 2.4) translate(-515, 135)",
-    floor_width: 613,
+    transform: "scale(1.9, 0.85)",
+    floor_width: 300,
     show_empty_floors: true,
     floor_label_offset_x: 28,
     floor_label_offset_y: 30,
@@ -87,34 +95,46 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
     floor_label_fontsize: "14",
   }
 
-  // Crear datos de pisos con configuración específica para Palermo
+  // Crear datos de pisos con configuración específica para Apart
   const initializeFloors = useCallback(() => {
     const floorsData: Floor[] = Array.from({ length: 9 }, (_, index) => {
       const floorNumber = index + 1
+      const floorUnits = apartUnits.filter((unit) => unit.floor === floorNumber)
+      const floorStats = floorUnits.reduce(
+        (acc, unit) => {
+          if (unit.status === "DISPONIBLE") acc.available++
+          else if (unit.status === "RESERVADO") acc.reserved++
+          else if (unit.status === "VENDIDO") acc.sold++
+          else if (unit.status === "BLOQUEADO") acc.blocked++
+          return acc
+        },
+        { available: 0, reserved: 0, sold: 0, blocked: 0 },
+      )
+
       return {
         id: floorNumber,
         number: floorNumber,
         floor_number: floorNumber,
-        availableUnits: Math.floor(Math.random() * 4) + 1,
-        reservedUnits: Math.floor(Math.random() * 2),
-        soldUnits: Math.floor(Math.random() * 2),
-        path: "", // Path específico del SVG si se necesita
-        x: 448, // Coordenada X específica para Palermo
-        y: floorNumber <= 7 ? 680 - (floorNumber - 1) * 80 : floorNumber === 8 ? 125 : 55, // Coordenadas Y específicas
-        total_apartments: 0,
+        availableUnits: floorStats.available,
+        reservedUnits: floorStats.reserved,
+        soldUnits: floorStats.sold,
+        blockedUnits: floorStats.blocked,
+        path: "",
+        x: 448,
+        y: 680 - (floorNumber - 1) * 50,
+        total_apartments: floorUnits.length,
       }
     })
     setFloors(floorsData)
   }, [])
 
-  // Función para obtener datos del proyecto (simulada para Palermo)
+  // Función para obtener datos del proyecto
   const fetchProjectDetails = useCallback(
     async (forceRefresh = false) => {
       setLoadingProjectData(true)
       setError(null)
 
       try {
-        // Simular carga de datos
         await new Promise((resolve) => setTimeout(resolve, 500))
         initializeFloors()
       } catch (err) {
@@ -145,15 +165,12 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
   }, [fetchProjectDetails])
 
   const handleBrochureClick = () => {
-    console.log("Downloading brochure...")
+    if (projectData.brochure) {
+      window.open(projectData.brochure, "_blank")
+    }
   }
 
-  const handleFloorClick = (floorNumber: number) => {
-    console.log("Palermo floor clicked:", floorNumber)
-    onOpenFloorPlan(floorNumber)
-  }
-
-  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold") => {
+  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold" | "blocked") => {
     setCurrentFilter(filter)
   }, [])
 
@@ -166,18 +183,20 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
           return floor.reservedUnits
         case "sold":
           return floor.soldUnits
+        case "blocked":
+          return floor.blockedUnits
         default:
-          return floor.availableUnits + floor.reservedUnits + floor.soldUnits
+          return floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
       }
     },
     [currentFilter],
   )
 
-  const stats = {
-    totalUnits: projectData.totalUnits,
-    availableUnits: projectData.availableUnits,
-    reservedUnits: projectData.reservedUnits,
-    soldUnits: projectData.soldUnits,
+  const stats = getApartProjectStats()
+
+  const handleFloorClick = (floorNumber: number) => {
+    console.log("Floor clicked:", floorNumber)
+    onViewPlanes(floorNumber)
   }
 
   if (!isOpen) return null
@@ -210,7 +229,8 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
     )
   }
 
-  const totalUnits = stats.totalUnits || stats.availableUnits + stats.reservedUnits + stats.soldUnits || 1
+  const totalUnits =
+    stats.totalUnits || stats.availableUnits + stats.reservedUnits + stats.soldUnits + stats.blockedUnits || 1
 
   return (
     <AnimatePresence>
@@ -225,7 +245,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
               {/* Imagen del edificio con overlay de pisos */}
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
-                  src={projectData.edificio || "/placeholder.svg?width=800&height=1200&query=modern+building+facade"}
+                  src={projectData.image || "/placeholder.svg?width=800&height=1200&query=modern+building+facade"}
                   alt={projectData.name}
                   fill
                   style={{ objectFit: "cover" }}
@@ -243,33 +263,29 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                   <g transform={buildingConfig.transform}>
                     <AnimatePresence>
                       {floors.map((floor) => {
-                        const floorTotalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
+                        const floorTotalUnits =
+                          floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
                         if (floorTotalUnits === 0 && !buildingConfig.show_empty_floors) return null
 
                         const floorWidth = buildingConfig.floor_width
                         const soldWidth = floorTotalUnits > 0 ? (floor.soldUnits / floorTotalUnits) * floorWidth : 0
                         const reservedWidth =
                           floorTotalUnits > 0 ? (floor.reservedUnits / floorTotalUnits) * floorWidth : 0
-                        const availableWidth = Math.max(0, floorWidth - soldWidth - reservedWidth)
+                        const blockedWidth =
+                          floorTotalUnits > 0 ? (floor.blockedUnits / floorTotalUnits) * floorWidth : 0
+                        const availableWidth = Math.max(0, floorWidth - soldWidth - reservedWidth - blockedWidth)
 
                         return (
                           <TooltipPrimitive.Provider key={floor.number}>
                             <TooltipPrimitive.Root delayDuration={0}>
                               <TooltipPrimitive.Trigger asChild>
-                                <g
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    handleFloorClick(floor.number)
-                                  }}
-                                  style={{ cursor: "pointer" }}
-                                >
+                                <g onClick={() => handleFloorClick(floor.number)} style={{ cursor: "pointer" }}>
                                   {/* Rectángulo vendido */}
                                   <motion.rect
                                     x={floor.x}
                                     y={floor.y}
                                     width={soldWidth}
-                                    height="46"
+                                    height="30"
                                     fill={getStatusColor("sold")}
                                     stroke="white"
                                     strokeWidth="1"
@@ -284,8 +300,23 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                                     x={floor.x + soldWidth}
                                     y={floor.y}
                                     width={reservedWidth}
-                                    height="46"
+                                    height="30"
                                     fill={getStatusColor("reserved")}
+                                    stroke="white"
+                                    strokeWidth="1"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 0.8 }}
+                                    exit={{ opacity: 0 }}
+                                    whileHover={{ opacity: 1 }}
+                                    transition={{ duration: 0.2 }}
+                                  />
+                                  {/* Rectángulo bloqueado */}
+                                  <motion.rect
+                                    x={floor.x + soldWidth + reservedWidth}
+                                    y={floor.y}
+                                    width={blockedWidth}
+                                    height="30"
+                                    fill={getStatusColor("blocked")}
                                     stroke="white"
                                     strokeWidth="1"
                                     initial={{ opacity: 0 }}
@@ -296,10 +327,10 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                                   />
                                   {/* Rectángulo disponible */}
                                   <motion.rect
-                                    x={floor.x + soldWidth + reservedWidth}
+                                    x={floor.x + soldWidth + reservedWidth + blockedWidth}
                                     y={floor.y}
                                     width={availableWidth}
-                                    height="46"
+                                    height="30"
                                     fill={getStatusColor("available")}
                                     stroke="white"
                                     strokeWidth="1"
@@ -323,7 +354,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                                 </g>
                               </TooltipPrimitive.Trigger>
                               <Tooltip>
-                                {`Piso ${floor.number}: ${floor.availableUnits} disp, ${floor.reservedUnits} res, ${floor.soldUnits} vend`}
+                                {`Piso ${floor.number}: ${floor.availableUnits} disp, ${floor.reservedUnits} res, ${floor.soldUnits} vend, ${floor.blockedUnits} bloq`}
                               </Tooltip>
                             </TooltipPrimitive.Root>
                           </TooltipPrimitive.Provider>
@@ -342,6 +373,10 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("reserved") }} />
                     <span className="ml-2 text-white text-xs sm:text-sm">Reservado</span>
+                  </div>
+                  <div className="flex items-center mb-1">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("blocked") }} />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Bloqueado</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("available") }} />
@@ -370,7 +405,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                   <DialogHeader className="space-y-2 pb-4">
                     <div className="flex items-center space-x-3">
                       <Image
-                        src={projectData.image || "/placeholder.svg"}
+                        src={projectData.logo || "/placeholder.svg"}
                         alt="DOME Logo"
                         width={50}
                         height={50}
@@ -420,10 +455,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                     <TabsContent value="overview" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <div className="bg-card p-4 rounded-lg border">
-                          <p className="text-sm text-muted-foreground mb-4">
-                            Moderno edificio residencial en el corazón de Palermo con amenities premium y acabados de
-                            lujo.
-                          </p>
+                          <p className="text-sm text-muted-foreground mb-4">{projectData.description}</p>
                         </div>
 
                         <div className="space-y-2">
@@ -459,10 +491,20 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                           />
                         </div>
 
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm sm:text-base">
+                            Unidades bloqueadas: {stats.blockedUnits}
+                          </h4>
+                          <Progress
+                            value={totalUnits > 0 ? (stats.blockedUnits / totalUnits) * 100 : 0}
+                            className="w-full"
+                          />
+                        </div>
+
                         <div className="mt-6 bg-card p-4 rounded-lg border">
                           <h4 className="font-medium mb-4 text-base sm:text-lg">Unidades por piso:</h4>
                           <div className="mb-4 flex flex-wrap gap-1 sm:gap-2">
-                            {["all", "available", "reserved", "sold"].map((filterType) => (
+                            {["all", "available", "reserved", "sold", "blocked"].map((filterType) => (
                               <Button
                                 key={filterType}
                                 variant={currentFilter === filterType ? "default" : "outline"}
@@ -475,29 +517,33 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                                     ? "Disponibles"
                                     : filterType === "reserved"
                                       ? "Reservadas"
-                                      : "Vendidas"}
+                                      : filterType === "sold"
+                                        ? "Vendidas"
+                                        : "Bloqueadas"}
                               </Button>
                             ))}
                           </div>
                           {floors.length > 0 ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 sm:gap-2">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-6 gap-1 sm:gap-2">
                               {floors.map((floor) => (
                                 <Button
                                   key={floor.number}
                                   variant="outline"
-                                  className="flex flex-col items-center justify-center p-2 sm:p-4 w-full h-full text-xs sm:text-sm bg-transparent"
+                                  className="flex flex-col items-center justify-center p-2 w-full h-full text-xs sm:text-sm bg-transparent"
                                   onClick={() => handleFloorClick(floor.number)}
                                 >
                                   <span className="font-medium">Piso {floor.number}</span>
-                                  <span className="text-[10px] sm:text-xs font-semibold mt-1 sm:mt-2">
+                                  <span className="text-[10px] sm:text-xs font-semibold mt-1">
                                     {getFilteredUnits(floor)}{" "}
                                     {currentFilter === "all"
                                       ? "Total"
                                       : currentFilter === "available"
                                         ? "Libre"
                                         : currentFilter === "reserved"
-                                          ? "Reserv."
-                                          : "Vend."}
+                                          ? "Reservadas"
+                                          : currentFilter === "sold"
+                                            ? "Vendidas"
+                                            : "Bloqueadas"}
                                   </span>
                                 </Button>
                               ))}
@@ -512,7 +558,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                     <TabsContent value="units" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Tipos de Unidades</h4>
-                        {domePalermoData.unitTypes.map((unit, index) => (
+                        {projectData.unitTypes.map((unit, index) => (
                           <div key={index} className="bg-muted p-4 rounded-lg">
                             <h5 className="font-medium">{unit.type}</h5>
                             <p className="text-sm text-muted-foreground">Tamaño: {unit.size}</p>
@@ -527,7 +573,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Amenities del Complejo</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {domePalermoData.amenities.map((amenity, index) => (
+                          {projectData.amenities.map((amenity, index) => (
                             <div key={index} className="bg-muted p-4 rounded-lg">
                               <h5 className="font-medium">{amenity.name}</h5>
                               <p className="text-sm text-muted-foreground">{amenity.description}</p>
@@ -540,22 +586,16 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                     <TabsContent value="financial" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Opciones de Financiamiento</h4>
-                        <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Financiamiento Directo</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Planes de financiamiento directo con la desarrolladora
-                          </p>
-                        </div>
-                        <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Crédito Hipotecario</h5>
-                          <p className="text-sm text-muted-foreground">Asistencia para obtener créditos hipotecarios</p>
-                        </div>
+                        {projectData.financialOptions.map((option, index) => (
+                          <div key={index} className="bg-muted p-4 rounded-lg">
+                            <h5 className="font-medium">{option.name}</h5>
+                            <p className="text-sm text-muted-foreground">{option.description}</p>
+                          </div>
+                        ))}
 
                         <div className="bg-muted p-4 rounded-lg mt-4">
                           <h5 className="font-medium">Promociones Especiales</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Consulte por promociones vigentes y descuentos por pago contado
-                          </p>
+                          <p className="text-sm text-muted-foreground">{projectData.generalPromotions}</p>
                         </div>
                       </div>
                     </TabsContent>
@@ -566,7 +606,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
 
                         <div className="bg-muted rounded-lg overflow-hidden shadow-md aspect-video">
                           <iframe
-                            src={domePalermoData.mapConfig.googleMapsEmbed}
+                            src={projectData.mapConfig.embedUrl}
                             width="100%"
                             height="100%"
                             style={{ border: 0 }}
@@ -581,13 +621,28 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                             <h5 className="font-medium text-lg mb-3">Detalles de Ubicación</h5>
                             <ul className="space-y-2 text-sm text-muted-foreground">
                               <li>
-                                <span className="font-semibold text-foreground">Dirección:</span> {projectData.location}
+                                <span className="font-semibold text-foreground">Dirección:</span>{" "}
+                                {projectData.mapConfig.address}
                               </li>
                               <li>
-                                <span className="font-semibold text-foreground">Barrio:</span> Palermo
+                                <span className="font-semibold text-foreground">Código postal:</span>{" "}
+                                {projectData.mapConfig.postalCode}
                               </li>
-                              <li>
-                                <span className="font-semibold text-foreground">Ciudad:</span> Buenos Aires
+                              <li className="flex items-center space-x-2">
+                                <span className="font-semibold text-foreground">Link de ubicación:</span>
+                                <input
+                                  type="text"
+                                  value={projectData.mapConfig.detailsLink}
+                                  readOnly
+                                  className="flex-grow bg-background px-2 py-1 rounded text-xs border"
+                                />
+                                <Button
+                                  onClick={() => navigator.clipboard.writeText(projectData.mapConfig.detailsLink)}
+                                  size="sm"
+                                  variant="outline"
+                                >
+                                  Copiar
+                                </Button>
                               </li>
                             </ul>
                           </div>
@@ -595,8 +650,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                           <div className="bg-muted p-6 rounded-lg shadow-md">
                             <h5 className="font-medium text-lg mb-3">Comodidades del Área</h5>
                             <p className="text-sm text-muted-foreground">
-                              Ubicado en el corazón de Palermo, con acceso a restaurantes, cafés, parques y transporte
-                              público.
+                              {projectData.mapConfig.amenitiesDescription}
                             </p>
                           </div>
                         </div>
@@ -615,7 +669,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                     <span className="hidden sm:inline">Descargar </span>
                     <span>brochure</span>
                   </Button>
-                  <Button onClick={() => {}} className="w-full py-3 sm:py-6 text-xs sm:text-base">
+                  <Button onClick={onViewGallery} className="w-full py-3 sm:py-6 text-xs sm:text-base">
                     <ImageIcon className="mr-1 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="hidden sm:inline">Ver </span>
                     <span>multimedia</span>

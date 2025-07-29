@@ -10,13 +10,22 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  berutiProjectInfo,
+  getBerutiProjectStats,
+  berutiFloorsData,
+  getBerutiStatusColor,
+  berutiAmenities,
+  berutiUnitTypes,
+  berutiFinancialOptions,
+  berutiMapConfig,
+} from "@/lib/dome-beruti-data"
 
-interface DomeSuitesProjectModalProps {
+interface DomeBerutiProjectModalProps {
   isOpen: boolean
   onClose: () => void
-  onViewProject: () => void
-  onViewGallery: () => void
-  onViewPlanes: (floorNumber?: number) => void
+  onOpenFloorPlan: (floorNumber?: number) => void
+  onOpenGallery: () => void
 }
 
 type Floor = {
@@ -24,11 +33,12 @@ type Floor = {
   availableUnits: number
   reservedUnits: number
   soldUnits: number
+  blockedUnits: number
   x: number
   y: number
 }
 
-const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved" | "sold") => {
+const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved" | "sold" | "blocked") => {
   switch (filter) {
     case "available":
       return floor.availableUnits
@@ -36,51 +46,49 @@ const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved"
       return floor.reservedUnits
     case "sold":
       return floor.soldUnits
+    case "blocked":
+      return floor.blockedUnits
     default:
-      return floor.availableUnits + floor.reservedUnits + floor.soldUnits
+      return floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
   }
 }
 
-export function DomeSuitesProjectModal({
+export function DomeBerutiProjectModal({
   isOpen,
   onClose,
-  onViewProject,
-  onViewGallery,
-  onViewPlanes,
-}: DomeSuitesProjectModalProps) {
+  onOpenFloorPlan,
+  onOpenGallery,
+}: DomeBerutiProjectModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "units" | "features" | "financial" | "location">("overview")
   const [refreshing, setRefreshing] = useState(false)
-  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
+  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold" | "blocked">("all")
 
-  // Datos simulados del proyecto
-  const projectData = {
-    name: "DOME Suites & Residences",
-    location: "Paraguay & Humboldt",
-    image: "/images/logo/suitelogo.png",
-    description: "Exclusivo desarrollo de suites y residencias en el corazón de Palermo con amenities de primer nivel.",
-    totalUnits: 45,
-    availableUnits: 12,
-    reservedUnits: 8,
-    soldUnits: 25,
-  }
+  const stats = getBerutiProjectStats()
 
   // Crear datos de pisos para la visualización
   const floors: Floor[] = useMemo(() => {
-    const floorData = []
+    return berutiFloorsData.map((floor, index) => {
+      const floorStats = floor.apartments.reduce(
+        (acc, apt) => {
+          if (apt.status === "DISPONIBLE") acc.available++
+          else if (apt.status === "RESERVADO") acc.reserved++
+          else if (apt.status === "VENDIDO") acc.sold++
+          else if (apt.status === "BLOQUEADO") acc.blocked++
+          return acc
+        },
+        { available: 0, reserved: 0, sold: 0, blocked: 0 },
+      )
 
-    // Pisos 1-8
-    for (let i = 1; i <= 8; i++) {
-      floorData.push({
-        number: i,
-        availableUnits: Math.floor(Math.random() * 3) + 1,
-        reservedUnits: Math.floor(Math.random() * 2),
-        soldUnits: Math.floor(Math.random() * 3) + 1,
+      return {
+        number: floor.level,
+        availableUnits: floorStats.available,
+        reservedUnits: floorStats.reserved,
+        soldUnits: floorStats.sold,
+        blockedUnits: floorStats.blocked,
         x: 448,
-        y: 680 - (i - 1) * 70,
-      })
-    }
-
-    return floorData
+        y: 680 - index * 45,
+      }
+    })
   }, [])
 
   const refreshData = useCallback(async () => {
@@ -90,37 +98,37 @@ export function DomeSuitesProjectModal({
   }, [])
 
   const handleBrochureClick = () => {
-    console.log("Downloading brochure...")
+    if (berutiProjectInfo.brochure) {
+      window.open(berutiProjectInfo.brochure, "_blank")
+    }
   }
 
   const handleFloorClick = (floorNumber: number) => {
-    console.log("Suites floor clicked:", floorNumber)
-    onViewPlanes(floorNumber)
+    console.log("Beruti floor clicked:", floorNumber)
+    onOpenFloorPlan(floorNumber)
   }
 
-  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold") => {
+  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold" | "blocked") => {
     setCurrentFilter(filter)
   }, [])
 
   if (!isOpen) return null
-
-  const totalUnits = projectData.totalUnits || 1
 
   return (
     <AnimatePresence>
       {isOpen && (
         <Dialog open={isOpen} onOpenChange={onClose}>
           <DialogContent className="w-full h-[100dvh] p-0 overflow-hidden flex flex-col sm:max-w-[90vw] sm:h-[90vh]">
-            <DialogTitle className="sr-only">{projectData.name}</DialogTitle>
+            <DialogTitle className="sr-only">{berutiProjectInfo.name}</DialogTitle>
             <DialogDescription className="sr-only">
-              Detalles del proyecto {projectData.name} ubicado en {projectData.location}
+              Detalles del proyecto {berutiProjectInfo.name} ubicado en {berutiProjectInfo.location}
             </DialogDescription>
             <motion.div className="flex flex-col h-full lg:flex-row">
               {/* Imagen del edificio con overlay de pisos */}
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
-                  src={projectData.image || "/placeholder.svg?width=800&height=1200&query=modern+building+facade"}
-                  alt={projectData.name}
+                  src={berutiProjectInfo.image || "/placeholder.svg?width=800&height=1200&query=modern+building+facade"}
+                  alt={berutiProjectInfo.name}
                   fill
                   style={{ objectFit: "cover" }}
                   className="rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none"
@@ -137,13 +145,15 @@ export function DomeSuitesProjectModal({
                   <g transform="scale(1.2, 1.0) translate(-200, 50)">
                     <AnimatePresence>
                       {floors.map((floor) => {
-                        const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
+                        const totalUnits =
+                          floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
                         if (totalUnits === 0) return null
 
                         const floorWidth = 300
                         const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
                         const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
-                        const availableWidth = floorWidth - soldWidth - reservedWidth
+                        const blockedWidth = totalUnits > 0 ? (floor.blockedUnits / totalUnits) * floorWidth : 0
+                        const availableWidth = floorWidth - soldWidth - reservedWidth - blockedWidth
 
                         return (
                           <g
@@ -155,12 +165,13 @@ export function DomeSuitesProjectModal({
                             }}
                             style={{ cursor: "pointer" }}
                           >
+                            {/* Rectángulo vendido */}
                             <motion.rect
                               x={floor.x}
                               y={floor.y}
                               width={soldWidth}
                               height="25"
-                              fill="#f57f7f"
+                              fill={getBerutiStatusColor("VENDIDO")}
                               stroke="white"
                               strokeWidth="1"
                               initial={{ opacity: 0 }}
@@ -169,12 +180,13 @@ export function DomeSuitesProjectModal({
                               whileHover={{ opacity: 1 }}
                               transition={{ duration: 0.2 }}
                             />
+                            {/* Rectángulo reservado */}
                             <motion.rect
                               x={floor.x + soldWidth}
                               y={floor.y}
                               width={reservedWidth}
                               height="25"
-                              fill="#edcf53"
+                              fill={getBerutiStatusColor("RESERVADO")}
                               stroke="white"
                               strokeWidth="1"
                               initial={{ opacity: 0 }}
@@ -183,12 +195,13 @@ export function DomeSuitesProjectModal({
                               whileHover={{ opacity: 1 }}
                               transition={{ duration: 0.2 }}
                             />
+                            {/* Rectángulo bloqueado */}
                             <motion.rect
                               x={floor.x + soldWidth + reservedWidth}
                               y={floor.y}
-                              width={availableWidth}
+                              width={blockedWidth}
                               height="25"
-                              fill="#87f5af"
+                              fill={getBerutiStatusColor("BLOQUEADO")}
                               stroke="white"
                               strokeWidth="1"
                               initial={{ opacity: 0 }}
@@ -197,6 +210,22 @@ export function DomeSuitesProjectModal({
                               whileHover={{ opacity: 1 }}
                               transition={{ duration: 0.2 }}
                             />
+                            {/* Rectángulo disponible */}
+                            <motion.rect
+                              x={floor.x + soldWidth + reservedWidth + blockedWidth}
+                              y={floor.y}
+                              width={availableWidth}
+                              height="25"
+                              fill={getBerutiStatusColor("DISPONIBLE")}
+                              stroke="white"
+                              strokeWidth="1"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 0.8 }}
+                              exit={{ opacity: 0 }}
+                              whileHover={{ opacity: 1 }}
+                              transition={{ duration: 0.2 }}
+                            />
+                            {/* Etiqueta del piso */}
                             <text
                               x={floor.x - 30}
                               y={floor.y + 17}
@@ -217,16 +246,32 @@ export function DomeSuitesProjectModal({
                 {/* Leyenda de estados */}
                 <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 p-2 rounded">
                   <div className="flex items-center mb-1">
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 mr-2"></div>
-                    <span className="text-white text-xs sm:text-sm">Vendido</span>
+                    <div
+                      className="w-3 h-3 sm:w-4 sm:h-4"
+                      style={{ backgroundColor: getBerutiStatusColor("VENDIDO") }}
+                    />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Vendido</span>
                   </div>
                   <div className="flex items-center mb-1">
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 mr-2"></div>
-                    <span className="text-white text-xs sm:text-sm">Reservado</span>
+                    <div
+                      className="w-3 h-3 sm:w-4 sm:h-4"
+                      style={{ backgroundColor: getBerutiStatusColor("RESERVADO") }}
+                    />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Reservado</span>
+                  </div>
+                  <div className="flex items-center mb-1">
+                    <div
+                      className="w-3 h-3 sm:w-4 sm:h-4"
+                      style={{ backgroundColor: getBerutiStatusColor("BLOQUEADO") }}
+                    />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Bloqueado</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 mr-2"></div>
-                    <span className="text-white text-xs sm:text-sm">Disponible</span>
+                    <div
+                      className="w-3 h-3 sm:w-4 sm:h-4"
+                      style={{ backgroundColor: getBerutiStatusColor("DISPONIBLE") }}
+                    />
+                    <span className="ml-2 text-white text-xs sm:text-sm">Disponible</span>
                   </div>
                 </div>
 
@@ -251,7 +296,7 @@ export function DomeSuitesProjectModal({
                   <DialogHeader className="space-y-2 pb-4">
                     <div className="flex items-center space-x-3">
                       <Image
-                        src={projectData.image || "/placeholder.svg"}
+                        src={berutiProjectInfo.logo || "/placeholder.svg"}
                         alt="DOME Logo"
                         width={50}
                         height={50}
@@ -259,9 +304,9 @@ export function DomeSuitesProjectModal({
                       />
                       <div>
                         <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">
-                          {projectData.name}
+                          {berutiProjectInfo.name}
                         </DialogTitle>
-                        <p className="text-sm sm:text-base text-muted-foreground">{projectData.location}</p>
+                        <p className="text-sm sm:text-base text-muted-foreground">{berutiProjectInfo.location}</p>
                       </div>
                     </div>
                   </DialogHeader>
@@ -301,42 +346,48 @@ export function DomeSuitesProjectModal({
                     <TabsContent value="overview" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <div className="bg-card p-4 rounded-lg border">
-                          <p className="text-sm text-muted-foreground mb-4">{projectData.description}</p>
+                          <p className="text-sm text-muted-foreground mb-4">{berutiProjectInfo.description}</p>
                         </div>
 
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm sm:text-base">
-                            Total de unidades: {projectData.totalUnits}
-                          </h4>
+                          <h4 className="font-medium text-sm sm:text-base">Total de unidades: {stats.totalUnits}</h4>
                           <Progress value={100} className="w-full" />
                         </div>
 
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades disponibles: {projectData.availableUnits}
+                            Unidades disponibles: {stats.availableUnits}
                           </h4>
                           <Progress
-                            value={totalUnits > 0 ? (projectData.availableUnits / totalUnits) * 100 : 0}
+                            value={stats.totalUnits > 0 ? (stats.availableUnits / stats.totalUnits) * 100 : 0}
                             className="w-full"
                           />
                         </div>
 
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades reservadas: {projectData.reservedUnits}
+                            Unidades reservadas: {stats.reservedUnits}
                           </h4>
                           <Progress
-                            value={totalUnits > 0 ? (projectData.reservedUnits / totalUnits) * 100 : 0}
+                            value={stats.totalUnits > 0 ? (stats.reservedUnits / stats.totalUnits) * 100 : 0}
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm sm:text-base">Unidades vendidas: {stats.soldUnits}</h4>
+                          <Progress
+                            value={stats.totalUnits > 0 ? (stats.soldUnits / stats.totalUnits) * 100 : 0}
                             className="w-full"
                           />
                         </div>
 
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades vendidas: {projectData.soldUnits}
+                            Unidades bloqueadas: {stats.blockedUnits}
                           </h4>
                           <Progress
-                            value={totalUnits > 0 ? (projectData.soldUnits / totalUnits) * 100 : 0}
+                            value={stats.totalUnits > 0 ? (stats.blockedUnits / stats.totalUnits) * 100 : 0}
                             className="w-full"
                           />
                         </div>
@@ -344,7 +395,7 @@ export function DomeSuitesProjectModal({
                         <div className="mt-6 bg-card p-4 rounded-lg border">
                           <h4 className="font-medium mb-4 text-base sm:text-lg">Unidades por piso:</h4>
                           <div className="mb-4 flex flex-wrap gap-1 sm:gap-2">
-                            {["all", "available", "reserved", "sold"].map((filterType) => (
+                            {["all", "available", "reserved", "sold", "blocked"].map((filterType) => (
                               <Button
                                 key={filterType}
                                 variant={currentFilter === filterType ? "default" : "outline"}
@@ -357,11 +408,13 @@ export function DomeSuitesProjectModal({
                                     ? "Disponibles"
                                     : filterType === "reserved"
                                       ? "Reservadas"
-                                      : "Vendidas"}
+                                      : filterType === "sold"
+                                        ? "Vendidas"
+                                        : "Bloqueadas"}
                               </Button>
                             ))}
                           </div>
-                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 gap-1 sm:gap-2">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 gap-1 sm:gap-2">
                             {floors.map((floor) => (
                               <Button
                                 key={floor.number}
@@ -378,7 +431,9 @@ export function DomeSuitesProjectModal({
                                       ? "Libre"
                                       : currentFilter === "reserved"
                                         ? "Reserv."
-                                        : "Vend."}
+                                        : currentFilter === "sold"
+                                          ? "Vend."
+                                          : "Bloq."}
                                 </span>
                               </Button>
                             ))}
@@ -390,18 +445,14 @@ export function DomeSuitesProjectModal({
                     <TabsContent value="units" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Tipos de Unidades</h4>
-                        <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Suites</h5>
-                          <p className="text-sm text-muted-foreground">Superficie: 45-65 m²</p>
-                          <p className="text-sm text-muted-foreground">Rango de precios: USD 180.000 - 260.000</p>
-                          <p className="text-sm text-muted-foreground">Estado: Disponible</p>
-                        </div>
-                        <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Residencias</h5>
-                          <p className="text-sm text-muted-foreground">Superficie: 85-120 m²</p>
-                          <p className="text-sm text-muted-foreground">Rango de precios: USD 340.000 - 480.000</p>
-                          <p className="text-sm text-muted-foreground">Estado: Disponible</p>
-                        </div>
+                        {berutiUnitTypes.map((unit, index) => (
+                          <div key={index} className="bg-muted p-4 rounded-lg">
+                            <h5 className="font-medium">{unit.type}</h5>
+                            <p className="text-sm text-muted-foreground">Tamaño: {unit.size}</p>
+                            <p className="text-sm text-muted-foreground">Rango de precios: {unit.priceRange}</p>
+                            <p className="text-sm text-muted-foreground">Estado: {unit.status}</p>
+                          </div>
+                        ))}
                       </div>
                     </TabsContent>
 
@@ -409,17 +460,10 @@ export function DomeSuitesProjectModal({
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Amenities del Complejo</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {[
-                            "Piscina en rooftop",
-                            "Gimnasio equipado",
-                            "Sala de reuniones",
-                            "Terraza panorámica",
-                            "Cocheras cubiertas",
-                            "Seguridad 24hs",
-                          ].map((amenity, index) => (
+                          {berutiAmenities.map((amenity, index) => (
                             <div key={index} className="bg-muted p-4 rounded-lg">
-                              <h5 className="font-medium">{amenity}</h5>
-                              <p className="text-sm text-muted-foreground">Amenity de primer nivel</p>
+                              <h5 className="font-medium">{amenity.name}</h5>
+                              <p className="text-sm text-muted-foreground">{amenity.description}</p>
                             </div>
                           ))}
                         </div>
@@ -429,16 +473,12 @@ export function DomeSuitesProjectModal({
                     <TabsContent value="financial" className="mt-2">
                       <div className="space-y-4 mt-4">
                         <h4 className="font-medium text-base sm:text-lg">Opciones de Financiamiento</h4>
-                        <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Financiamiento Directo</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Planes de financiamiento directo con la desarrolladora
-                          </p>
-                        </div>
-                        <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Crédito Hipotecario</h5>
-                          <p className="text-sm text-muted-foreground">Asistencia para obtener créditos hipotecarios</p>
-                        </div>
+                        {berutiFinancialOptions.map((option, index) => (
+                          <div key={index} className="bg-muted p-4 rounded-lg">
+                            <h5 className="font-medium">{option.name}</h5>
+                            <p className="text-sm text-muted-foreground">{option.description}</p>
+                          </div>
+                        ))}
                       </div>
                     </TabsContent>
 
@@ -448,7 +488,7 @@ export function DomeSuitesProjectModal({
 
                         <div className="bg-muted rounded-lg overflow-hidden shadow-md aspect-video">
                           <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3284.016!2d-58.4200!3d-34.5875!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzTCsDM1JzE1LjAiUyA1OMKwMjUnMTIuMCJX!5e0!3m2!1sen!2sar!4v1234567890"
+                            src={berutiMapConfig.googleMapsEmbed}
                             width="100%"
                             height="100%"
                             style={{ border: 0 }}
@@ -463,23 +503,22 @@ export function DomeSuitesProjectModal({
                             <h5 className="font-medium text-lg mb-3">Detalles de Ubicación</h5>
                             <ul className="space-y-2 text-sm text-muted-foreground">
                               <li>
-                                <span className="font-semibold text-foreground">Dirección:</span> {projectData.location}
+                                <span className="font-semibold text-foreground">Dirección:</span>{" "}
+                                {berutiMapConfig.address}
+                              </li>
+                              <li>
+                                <span className="font-semibold text-foreground">Código postal:</span>{" "}
+                                {berutiMapConfig.postalCode}
                               </li>
                               <li>
                                 <span className="font-semibold text-foreground">Barrio:</span> Palermo
-                              </li>
-                              <li>
-                                <span className="font-semibold text-foreground">Ciudad:</span> Buenos Aires
                               </li>
                             </ul>
                           </div>
 
                           <div className="bg-muted p-6 rounded-lg shadow-md">
                             <h5 className="font-medium text-lg mb-3">Comodidades del Área</h5>
-                            <p className="text-sm text-muted-foreground">
-                              Ubicado en el corazón de Palermo, con acceso a restaurantes, cafés, parques y transporte
-                              público.
-                            </p>
+                            <p className="text-sm text-muted-foreground">{berutiMapConfig.amenitiesDescription}</p>
                           </div>
                         </div>
                       </div>
@@ -497,7 +536,7 @@ export function DomeSuitesProjectModal({
                     <span className="hidden sm:inline">Descargar </span>
                     <span>brochure</span>
                   </Button>
-                  <Button onClick={onViewGallery} className="w-full py-3 sm:py-6 text-xs sm:text-base">
+                  <Button onClick={onOpenGallery} className="w-full py-3 sm:py-6 text-xs sm:text-base">
                     <ImageIcon className="mr-1 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="hidden sm:inline">Ver </span>
                     <span>multimedia</span>
@@ -511,5 +550,3 @@ export function DomeSuitesProjectModal({
     </AnimatePresence>
   )
 }
-
-export default DomeSuitesProjectModal

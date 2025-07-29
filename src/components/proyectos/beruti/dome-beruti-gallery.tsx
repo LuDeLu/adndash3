@@ -21,12 +21,13 @@ import {
   Car,
   Waves,
 } from "lucide-react"
+import { berutiProjectInfo } from "@/lib/dome-beruti-data"
 
-interface DomeSuitesGalleryProps {
+interface DomeBerutiGalleryProps {
   onReturnToProject: () => void
 }
 
-export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps) {
+export function DomeBerutiGallery({ onReturnToProject }: DomeBerutiGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -35,12 +36,12 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
   const galleryItems = [
     {
       id: 1,
-      src: "/placeholder.svg?height=400&width=600&text=Fachada+Principal+Suites",
-      alt: "Fachada principal DOME Suites & Residences",
+      src: berutiProjectInfo.image,
+      alt: "Fachada principal DOME Torre Beruti",
       category: "exterior",
       type: "image",
       title: "Fachada Principal",
-      description: "Vista frontal del edificio desde Paraguay y Humboldt",
+      description: "Vista frontal del edificio desde Beruti 4540",
     },
     {
       id: 2,
@@ -58,16 +59,16 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
       category: "interior",
       type: "image",
       title: "Hall de Acceso",
-      description: "Elegante hall de acceso con diseño moderno",
+      description: "Imponente hall ubicado en planta baja",
     },
     {
       id: 4,
-      src: "/placeholder.svg?height=400&width=600&text=Piscina+Rooftop",
-      alt: "Piscina en rooftop",
+      src: "/placeholder.svg?height=400&width=600&text=Piscina+In+Out",
+      alt: "Piscina in/out",
       category: "amenities",
       type: "image",
-      title: "Piscina Rooftop",
-      description: "Pileta con solárium en terraza",
+      title: "Piscina In/Out",
+      description: "Pileta in/out con solárium en PB",
     },
     {
       id: 5,
@@ -76,52 +77,88 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
       category: "amenities",
       type: "image",
       title: "Gimnasio",
-      description: "Gimnasio completamente equipado",
+      description: "Gimnasio en PB con sala exclusiva de relax",
     },
     {
       id: 6,
-      src: "/placeholder.svg?height=400&width=600&text=Suite+Tipo",
-      alt: "Suite tipo",
-      category: "interior",
+      src: "/placeholder.svg?height=400&width=600&text=Salon+Usos+Multiples",
+      alt: "Salón de usos múltiples",
+      category: "amenities",
       type: "image",
-      title: "Suite Tipo",
-      description: "Interior de suite con acabados premium",
+      title: "Salón de Usos Múltiples",
+      description: "Salón completamente equipado con expansión descubierta",
     },
     {
       id: 7,
-      src: "/placeholder.svg?height=400&width=600&text=Residencia+Tipo",
-      alt: "Residencia tipo",
-      category: "interior",
+      src: "/placeholder.svg?height=400&width=600&text=Gameroom",
+      alt: "Gameroom",
+      category: "amenities",
       type: "image",
-      title: "Residencia Tipo",
-      description: "Living comedor con vista panorámica",
+      title: "Gameroom",
+      description: "Espacio de esparcimiento situado en la PB",
     },
     {
       id: 8,
+      src: "/placeholder.svg?height=400&width=600&text=Departamento+3+Dorm",
+      alt: "Departamento 3 dormitorios",
+      category: "interior",
+      type: "image",
+      title: "3 Dormitorios con Dependencia",
+      description: "Interior de departamento con acabados premium",
+    },
+    {
+      id: 9,
+      src: "/placeholder.svg?height=400&width=600&text=Town+House",
+      alt: "Town House",
+      category: "interior",
+      type: "image",
+      title: "Town House",
+      description: "Town House con terraza privada",
+    },
+    {
+      id: 10,
+      src: "/placeholder.svg?height=400&width=600&text=Penthouse",
+      alt: "Penthouse",
+      category: "interior",
+      type: "image",
+      title: "Penthouse",
+      description: "Penthouse con terraza panorámica",
+    },
+    {
+      id: 11,
       src: "/placeholder.svg?height=400&width=600&text=Cocheras+Cubiertas",
       alt: "Cocheras cubiertas",
       category: "parking",
       type: "image",
       title: "Cocheras Cubiertas",
-      description: "Estacionamiento cubierto en subsuelos",
+      description: "3 niveles de subsuelos de cocheras",
     },
     {
-      id: 9,
-      src: "/placeholder.svg?height=400&width=600&text=Rooftop+Amenities",
-      alt: "Rooftop con amenities",
+      id: 12,
+      src: "/placeholder.svg?height=400&width=600&text=Juegos+Infantiles",
+      alt: "Juegos infantiles",
       category: "amenities",
       type: "image",
-      title: "Rooftop Amenities",
-      description: "Terraza con amenities en último piso",
+      title: "Juegos Infantiles",
+      description: "Espacio de juegos para niños en sector descubierto",
     },
     {
-      id: 10,
+      id: 13,
       src: "/placeholder.svg?height=400&width=600&text=Video+Tour",
       alt: "Video tour virtual",
       category: "video",
       type: "video",
       title: "Tour Virtual",
       description: "Recorrido virtual completo por el proyecto",
+    },
+    {
+      id: 14,
+      src: "/placeholder.svg?height=400&width=600&text=Spa+y+Sauna",
+      alt: "Área de spa y sauna",
+      category: "amenities",
+      type: "image",
+      title: "Spa y Sauna",
+      description: "Área de sauna y sala de spa",
     },
   ]
 
@@ -153,7 +190,7 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
   const handleDownload = (src: string, title: string) => {
     const link = document.createElement("a")
     link.href = src
-    link.download = `dome-suites-${title.toLowerCase().replace(/\s+/g, "-")}.jpg`
+    link.download = `dome-beruti-${title.toLowerCase().replace(/\s+/g, "-")}.jpg`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -168,7 +205,7 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
             <ChevronLeft className="mr-2 h-4 w-4" />
             Volver al proyecto
           </Button>
-          <h1 className="text-2xl font-bold">Galería - DOME Suites & Residences</h1>
+          <h1 className="text-2xl font-bold">Galería - {berutiProjectInfo.name}</h1>
           <div></div>
         </div>
 
@@ -358,4 +395,4 @@ export function DomeSuitesGallery({ onReturnToProject }: DomeSuitesGalleryProps)
   )
 }
 
-export default DomeSuitesGallery
+export default DomeBerutiGallery

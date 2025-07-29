@@ -5,7 +5,6 @@ import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   ChevronLeft,
   ChevronRight,
@@ -25,11 +24,10 @@ import {
 import { domePalermoData } from "@/lib/dome-palermo-data"
 
 interface DomePalermoGalleryProps {
-  isOpen: boolean
-  onClose: () => void
+  onReturnToProject: () => void
 }
 
-export function DomePalermoGallery({ isOpen, onClose }: DomePalermoGalleryProps) {
+export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
@@ -181,14 +179,17 @@ export function DomePalermoGallery({ isOpen, onClose }: DomePalermoGalleryProps)
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl max-h-[95vh] overflow-y-auto bg-zinc-900 text-white border-zinc-800">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold flex items-center">
-            <Camera className="w-6 h-6 mr-2" />
-            Galería - DOME Palermo Residence
-          </DialogTitle>
-        </DialogHeader>
+    <div className="min-h-screen bg-black text-white">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <Button onClick={onReturnToProject} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Volver al proyecto
+          </Button>
+          <h1 className="text-2xl font-bold">Galería - DOME Palermo Residence</h1>
+          <div></div>
+        </div>
 
         <div className="space-y-6">
           {/* Category Filter */}
@@ -371,7 +372,9 @@ export function DomePalermoGallery({ isOpen, onClose }: DomePalermoGalleryProps)
             </motion.div>
           )}
         </AnimatePresence>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   )
 }
+
+export default DomePalermoGallery
