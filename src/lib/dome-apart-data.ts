@@ -607,15 +607,15 @@ export const getApartUnitsByFloor = (floor: number): ApartUnit[] => {
 // Función para obtener imagen del plano por piso
 export const getApartFloorImage = (floor: number): string => {
   const floorImages: { [key: number]: string } = {
-    1: "/images/apart/piso1.png",
-    2: "/images/apart/piso2.png",
-    3: "/images/apart/piso3.png",
-    4: "/images/apart/piso4-7.png",
-    5: "/images/apart/piso4-7.png",
-    6: "/images/apart/piso4-7.png",
-    7: "/images/apart/piso4-7.png",
-    8: "/images/apart/piso8.png",
-    9: "/images/apart/piso9.png",
+    1: "/planos/apart/piso1.png",
+    2: "/planos/apart/piso2.png",
+    3: "/planos/apart/piso3.png",
+    4: "/planos/apart/piso4-7.png",
+    5: "/planos/apart/piso4-7.png",
+    6: "/planos/apart/piso4-7.png",
+    7: "/planos/apart/piso4-7.png",
+    8: "/planos/apart/piso8.png",
+    9: "/planos/apart/piso9.png",
   }
   return floorImages[floor] || "/placeholder.svg?height=600&width=800"
 }

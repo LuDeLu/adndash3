@@ -908,14 +908,14 @@ export const getBoulevardUnitById = (id: string) => {
 }
 
 export const getBoulevardFloorImage = (floor: number) => {
-  if (floor === 1) return "/images/boulevar/piso1.png"
-  if (floor === 2) return "/images/boulevar/piso2.png"
-  if (floor >= 3 && floor <= 8) return "/images/boulevar/piso3-8.png"
-  if (floor === 9) return "/images/boulevar/piso9.png"
-  if (floor === 10) return "/images/boulevar/piso10.png"
-  if (floor === 11) return "/images/boulevar/piso11.png"
-  if (floor === 12) return "/images/boulevar/piso12.png"
-  return "/images/boulevar/piso1.png"
+  if (floor === 1) return "/planos/boulevard/piso1.png"
+  if (floor === 2) return "/planos/boulevard/piso2.png"
+  if (floor >= 3 && floor <= 8) return "/planos/boulevard/piso3-8.png"
+  if (floor === 9) return "/planos/boulevard/piso9.png"
+  if (floor === 10) return "/planos/boulevard/piso10.png"
+  if (floor === 11) return "/planos/boulevard/piso11.png"
+  if (floor === 12) return "/planos/boulevard/piso12.png"
+  return "/planos/boulevard/piso1.png"
 }
 
 export const boulevardAmenities = [
@@ -934,26 +934,26 @@ export const boulevardAmenities = [
 ]
 
 export const boulevardGalleryImages = {
-  exterior: ["/images/boulevar/exterior-1.jpg", "/images/boulevar/exterior-2.jpg", "/images/boulevar/fachada.jpg"],
+  exterior: ["/planos/boulevard/exterior-1.jpg", "/planos/boulevard/exterior-2.jpg", "/planos/boulevard/fachada.jpg"],
   interior: [
-    "/images/boulevar/living-1.jpg",
-    "/images/boulevar/dormitorio-1.jpg",
-    "/images/boulevar/cocina-1.jpg",
-    "/images/boulevar/baño-1.jpg",
+    "/planos/boulevard/living-1.jpg",
+    "/planos/boulevard/dormitorio-1.jpg",
+    "/planos/boulevard/cocina-1.jpg",
+    "/planos/boulevard/baño-1.jpg",
   ],
   amenities: [
-    "/images/boulevar/piscina.jpg",
-    "/images/boulevar/gimnasio.jpg",
-    "/images/boulevar/terraza.jpg",
-    "/images/boulevar/coworking.jpg",
+    "/planos/boulevard/piscina.jpg",
+    "/planos/boulevard/gimnasio.jpg",
+    "/planos/boulevard/terraza.jpg",
+    "/planos/boulevard/coworking.jpg",
   ],
   planos: [
-    "/images/boulevar/piso1.png",
-    "/images/boulevar/piso2.png",
-    "/images/boulevar/piso3-8.png",
-    "/images/boulevar/piso9.png",
-    "/images/boulevar/piso10.png",
-    "/images/boulevar/piso11.png",
-    "/images/boulevar/piso12.png",
+    "/planos/boulevard/piso1.png",
+    "/planos/boulevard/piso2.png",
+    "/planos/boulevard/piso3-8.png",
+    "/planos/boulevard/piso9.png",
+    "/planos/boulevard/piso10.png",
+    "/planos/boulevard/piso11.png",
+    "/planos/boulevard/piso12.png",
   ],
 }

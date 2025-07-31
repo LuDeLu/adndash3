@@ -225,7 +225,38 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   }
 
   const handleDownloadAdditionalInfo = useCallback((type: string) => {
-    console.log(`Downloading ${type}...`)
+    let filePath = ""
+
+    switch (type) {
+      case "Presupuestos":
+        filePath = "/general/precios/Lista_DOME-Palermo-Apartaments.pdf"
+        break
+      case "Plano del edificio":
+        filePath = "/general/planosgenerales/Planos_DOME-Palermo-Apartaments.pdf"
+        break
+      case "Plano de la cochera":
+        filePath = "/general/cocheras/Cochera_DOME-Palermo-Apartaments.pdf"
+        break
+      case "Brochure":
+        filePath = "/general/brochures/Brochure_DOME-Palermo-Apartaments.pdf"
+        break
+      case "Ficha técnica":
+        filePath = "/general/especificaciones/Especificaciones_DOME-Palermo-Apartaments.pdf"
+        break
+      default:
+        if (notyf) notyf.error("Archivo no encontrado")
+        return
+    }
+
+    // Create download link
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = filePath.split("/").pop() || "documento.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     if (notyf) notyf.success(`Descargando ${type}...`)
   }, [])
 

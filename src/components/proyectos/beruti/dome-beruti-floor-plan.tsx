@@ -1,10 +1,22 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
-import { ChevronLeft, ChevronRight, Download, FileText, Building, Car, RefreshCw, MapPin, Home } from "lucide-react"
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  FileText,
+  Building,
+  Car,
+  RefreshCw,
+  MapPin,
+  Home,
+  FileSpreadsheet,
+  FileBarChart,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -158,8 +170,53 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   const handleDownloadFloorPlan = () => {
     if (!selectedApartment) return
 
+    const filePath = "/general/planosgenerales/Planos_DOME-Torre-Beruti.pdf"
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = "Plano_Torre_Beruti.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     if (notyf) notyf.success("Descargando plano...")
   }
+
+  // Add this function for additional downloads
+  const handleDownloadAdditionalInfo = useCallback((type: string) => {
+    let filePath = ""
+
+    switch (type) {
+      case "Presupuestos":
+        filePath = "/general/precios/Lista_DOME-Torre-Beruti.pdf"
+        break
+      case "Plano del edificio":
+        filePath = "/general/planosgenerales/Planos_DOME-Torre-Beruti.pdf"
+        break
+      case "Plano de la cochera":
+        filePath = "/general/cocheras/Cochera_DOME-Torre-Beruti.pdf"
+        break
+      case "Brochure":
+        filePath = "/general/brochures/Brochure_DOME-Torre-Beruti.pdf"
+        break
+      case "Ficha técnica":
+        filePath = "/general/especificaciones/Especificaciones_DOME-Torre-Beruti.pdf"
+        break
+      default:
+        if (notyf) notyf.error("Archivo no encontrado")
+        return
+    }
+
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = filePath.split("/").pop() || "documento.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
+    if (notyf) notyf.success(`Descargando ${type}...`)
+  }, [])
 
   const getUnitStats = () => {
     if (!currentFloorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
@@ -173,6 +230,47 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   }
 
   const stats = getUnitStats()
+
+  // Add the additional information section before the project info card
+  const additionalInfoSection = (
+    <div className="max-w-4xl mx-auto mb-8">
+      <div className="bg-zinc-900 p-4 rounded-lg">
+        <h4 className="font-semibold mb-4">Información adicional</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <Button
+            onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
+            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
+          >
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
+          </Button>
+          <Button
+            onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
+            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
+          >
+            <Building className="mr-2 h-4 w-4" /> Plano del edificio
+          </Button>
+          <Button
+            onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
+            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
+          >
+            <Car className="mr-2 h-4 w-4" /> Plano de la cochera
+          </Button>
+          <Button
+            onClick={() => handleDownloadAdditionalInfo("Brochure")}
+            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
+          >
+            <FileText className="mr-2 h-4 w-4" /> Brochure
+          </Button>
+          <Button
+            onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
+            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
+          >
+            <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -598,6 +696,8 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {additionalInfoSection}
 
         {/* Project Info */}
         <div className="max-w-4xl mx-auto mt-8">

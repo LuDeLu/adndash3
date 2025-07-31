@@ -58,8 +58,8 @@ const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 // Planos de cocheras para Dome Puertos
 const garageLevels = [1, 2]
 const garagePlans = {
-  1: "/images/lagos/cochera1.svg",
-  2: "/images/lagos/cochera2.svg",
+  1: "/planos/lagos/cochera1.svg",
+  2: "/planos/lagos/cochera2.svg",
 }
 
 // Paths de cocheras para Dome Puertos
@@ -255,11 +255,51 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
 
   const handleDownloadFloorPlan = () => {
     if (!selectedApartment) return
+
+    const filePath = "/general/planosgenerales/Planos_DOME-Puertos-Lagos.pdf"
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = "Plano_Puertos_Lagos.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     if (notyf) notyf.success("Descargando plano...")
   }
 
   const handleDownloadAdditionalInfo = useCallback((type: string) => {
-    console.log(`Downloading ${type}...`)
+    let filePath = ""
+
+    switch (type) {
+      case "Presupuestos":
+        filePath = "/general/precios/Lista_DOME-Puertos-Lagos.pdf"
+        break
+      case "Plano del edificio":
+        filePath = "/general/planosgenerales/Planos_DOME-Puertos-Lagos.pdf"
+        break
+      case "Plano de la cochera":
+        filePath = "/general/cocheras/Cochera_DOME-Puertos-Lagos.pdf"
+        break
+      case "Brochure":
+        filePath = "/general/brochures/Brochure_DOME-Puertos-Lagos.pdf"
+        break
+      case "Ficha técnica":
+        filePath = "/general/especificaciones/Especificaciones_DOME-Puertos-Lagos.pdf"
+        break
+      default:
+        if (notyf) notyf.error("Archivo no encontrado")
+        return
+    }
+
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = filePath.split("/").pop() || "documento.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     if (notyf) notyf.success(`Descargando ${type}...`)
   }, [])
 
@@ -273,7 +313,7 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
   // Obtener la imagen del plano para el piso actual
   const getFloorPlanImage = () => {
     const floorPlan = domeFloorPlans[currentFloor as keyof typeof domeFloorPlans]
-    return floorPlan?.complete || "/images/lagos/lagospb.jpg"
+    return floorPlan?.complete || "/planos/lagos/lagospb.jpg"
   }
 
   if (!currentFloorData) {

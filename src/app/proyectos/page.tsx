@@ -3,27 +3,27 @@
 import { useState, useCallback, memo } from "react"
 import { Card } from "@/components/ui/card"
 import { AnimatePresence, motion } from "framer-motion"
-import { DomeBoulevardFloorPlan } from "@/components/proyectos/boulevar/dome-boulevar-floor-plan"
+import { DomeBoulevardFloorPlan } from "@/components/proyectos/boulevard/dome-boulevar-floor-plan"
 import { DomeApartFloorPlan } from "@/components/proyectos/apart/dome-apart-floor-plan"
 import { DomeBerutiFloorPlan } from "@/components/proyectos/beruti/dome-beruti-floor-plan"
 import DomeFloorPlan from "@/components/proyectos/lagos/dome-floor-plan"
 import DomeSuitesFloorPlan from "@/components/proyectos/suites/dome-suites-floor-plan"
-import { DomePalermoFloorPlan } from "@/components/proyectos/palermo/dome-palermo-floor-plan"
+import { DomePalermoFloorPlan } from "@/components/proyectos/resi/dome-resi-floor-plan"
 import Image from "next/image"
 
 // Importar todos los modales (usando named exports)
 import { DomeProjectModal } from "@/components/proyectos/lagos/dome-project-modal"
 import { DomeSuitesProjectModal } from "@/components/proyectos/suites/dome-suites-project-modal"
-import { DomePalermoProjectModal } from "@/components/proyectos/palermo/dome-palermo-project-modal"
-import { DomeBoulevardProjectModal } from "@/components/proyectos/boulevar/dome-boulevar-project-modal"
+import { DomePalermoProjectModal } from "@/components/proyectos/resi/dome-resi-project-modal"
+import { DomeBoulevardProjectModal } from "@/components/proyectos/boulevard/dome-boulevar-project-modal"
 import { ApartProjectModal } from "@/components/proyectos/apart/dome-apart-project-modal"
 import { DomeBerutiProjectModal } from "@/components/proyectos/beruti/dome-beruti-project-modal"
 
 // Importar galerías (usando named exports)
 import { DomeGallery } from "@/components/proyectos/lagos/dome-gallery"
 import { DomeSuitesGallery } from "@/components/proyectos/suites/dome-suites-gallery"
-import { DomePalermoGallery } from "@/components/proyectos/palermo/dome-palermo-gallery"
-import { DomeBoulevardGallery } from "@/components/proyectos/boulevar/dome-boulevar-gallery"
+import { DomePalermoGallery } from "@/components/proyectos/resi/dome-resi-gallery"
+import { DomeBoulevardGallery } from "@/components/proyectos/boulevard/dome-boulevar-gallery"
 import { DomeApartGallery } from "@/components/proyectos/apart/dome-apart-gallery"
 import { DomeBerutiGallery } from "@/components/proyectos/beruti/dome-beruti-gallery"
 

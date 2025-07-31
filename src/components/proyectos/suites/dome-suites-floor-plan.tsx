@@ -57,8 +57,8 @@ const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 // Planos de cocheras para Dome Suites
 const garageLevels = [1, 2]
 const garagePlans = {
-  1: "/images/suites/cochera1.svg",
-  2: "/images/suites/cochera2.svg",
+  1: "/planos/suites/cochera1.svg",
+  2: "/planos/suites/cochera2.svg",
 }
 
 export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }: SuitesFloorPlanProps) {
@@ -230,11 +230,51 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
 
   const handleDownloadFloorPlan = () => {
     if (!selectedApartment) return
+
+    const filePath = "/general/planosgenerales/Planos_DOME-Suites-Residences.pdf"
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = "Plano_Suites_Residences.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     if (notyf) notyf.success("Descargando plano...")
   }
 
   const handleDownloadAdditionalInfo = useCallback((type: string) => {
-    console.log(`Downloading ${type}...`)
+    let filePath = ""
+
+    switch (type) {
+      case "Presupuestos":
+        filePath = "/general/precios/Lista_DOME-Suites-Residences.pdf"
+        break
+      case "Plano del edificio":
+        filePath = "/general/planosgenerales/Planos_DOME-Suites-Residences.pdf"
+        break
+      case "Plano de la cochera":
+        filePath = "/general/cocheras/Cochera_DOME-Suites-Residence.pdf"
+        break
+      case "Brochure":
+        filePath = "/general/brochures/Brochure_DOME-Suites-Residences.pdf"
+        break
+      case "Ficha técnica":
+        filePath = "/general/especificaciones/Especificaciones_DOME-Suites-Residences.pdf"
+        break
+      default:
+        if (notyf) notyf.error("Archivo no encontrado")
+        return
+    }
+
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = filePath.split("/").pop() || "documento.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     if (notyf) notyf.success(`Descargando ${type}...`)
   }, [])
 

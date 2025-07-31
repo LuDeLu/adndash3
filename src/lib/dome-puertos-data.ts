@@ -2307,8 +2307,8 @@ export const domeProjectInfo = {
   totalUnits: 95,
   floors: 5, // 5 niveles principales
   nucleos: 3, // A, B, C
-  image: "/images/lagos/lagosedi.jpg",
-  logo: "/images/lagos/lagoslogo.png",
+  image: "/planos/lagos/lagosedi.jpg",
+  logo: "/planos/lagos/lagoslogo.png",
   brochure: "https://adndevelopers.com.ar/wp-content/uploads/2025/07/DPL-Digital-v10.pdf",
 
   amenities: [
@@ -2430,34 +2430,34 @@ export const domeProjectInfo = {
 // Configuración de planos por piso
 export const domeFloorPlans = {
   1: {
-    complete: "/images/lagos/lagopiso1.jpg",
-    sectionA: "/images/lagos/lagopiso1-a.jpg",
-    sectionB: "/images/lagos/lagopiso1-b.jpg",
-    sectionC: "/images/lagos/lagopiso1-c.jpg",
+    complete: "/planos/lagos/lagopiso1.jpg",
+    sectionA: "/planos/lagos/lagopiso1-a.jpg",
+    sectionB: "/planos/lagos/lagopiso1-b.jpg",
+    sectionC: "/planos/lagos/lagopiso1-c.jpg",
   },
   2: {
-    complete: "/images/lagos/lagopiso2-4.jpg",
-    sectionA: "/images/lagos/lagopiso2-4-a.jpg",
-    sectionB: "/images/lagos/lagopiso2-4-b.jpg",
-    sectionC: "/images/lagos/lagopiso2-4-c.jpg",
+    complete: "/planos/lagos/lagopiso2-4.jpg",
+    sectionA: "/planos/lagos/lagopiso2-4-a.jpg",
+    sectionB: "/planos/lagos/lagopiso2-4-b.jpg",
+    sectionC: "/planos/lagos/lagopiso2-4-c.jpg",
   },
   3: {
-    complete: "/images/lagos/lagopiso2-4.jpg",
-    sectionA: "/images/lagos/lagopiso2-4-a.jpg",
-    sectionB: "/images/lagos/lagopiso2-4-b.jpg",
-    sectionC: "/images/lagos/lagopiso2-4-c.jpg",
+    complete: "/planos/lagos/lagopiso2-4.jpg",
+    sectionA: "/planos/lagos/lagopiso2-4-a.jpg",
+    sectionB: "/planos/lagos/lagopiso2-4-b.jpg",
+    sectionC: "/planos/lagos/lagopiso2-4-c.jpg",
   },
   4: {
-    complete: "/images/lagos/lagopiso2-4.jpg",
-    sectionA: "/images/lagos/lagopiso2-4-a.jpg",
-    sectionB: "/images/lagos/lagopiso2-4-b.jpg",
-    sectionC: "/images/lagos/lagopiso2-4-c.jpg",
+    complete: "/planos/lagos/lagopiso2-4.jpg",
+    sectionA: "/planos/lagos/lagopiso2-4-a.jpg",
+    sectionB: "/planos/lagos/lagopiso2-4-b.jpg",
+    sectionC: "/planos/lagos/lagopiso2-4-c.jpg",
   },
   5: {
-    complete: "/images/lagos/lagopiso5.jpg",
-    sectionA: "/images/lagos/lagopiso5-a.jpg",
-    sectionB: "/images/lagos/lagopiso5-b.jpg",
-    sectionC: "/images/lagos/lagopiso5-c.jpg",
+    complete: "/planos/lagos/lagopiso5.jpg",
+    sectionA: "/planos/lagos/lagopiso5-a.jpg",
+    sectionB: "/planos/lagos/lagopiso5-b.jpg",
+    sectionC: "/planos/lagos/lagopiso5-c.jpg",
   },
 }
 

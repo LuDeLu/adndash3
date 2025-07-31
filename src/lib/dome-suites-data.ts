@@ -1625,7 +1625,7 @@ export const suitesProjectInfo = {
   totalUnits: 361,
   floors: 12,
   image: "/images/edificio/suitesedi.png",
-  logo: "/images/suites/suitelogo.png",
+  logo: "/planos/suites/suitelogo.png",
   brochure: "#",
 
   amenities: [
@@ -1740,40 +1740,40 @@ export const suitesProjectInfo = {
 // Configuración de planos por piso
 export const suitesFloorPlans = {
   1: {
-    complete: "/images/suites/suitepiso1.jpg",
+    complete: "/planos/suites/suitepiso1.jpg",
   },
   2: {
-    complete: "/images/suites/suitepiso2-6.jpg",
+    complete: "/planos/suites/suitepiso2-6.jpg",
   },
   3: {
-    complete: "/images/suites/suitepiso2-6.jpg",
+    complete: "/planos/suites/suitepiso2-6.jpg",
   },
   4: {
-    complete: "/images/suites/suitepiso2-6.jpg",
+    complete: "/planos/suites/suitepiso2-6.jpg",
   },
   5: {
-    complete: "/images/suites/suitepiso2-6.jpg",
+    complete: "/planos/suites/suitepiso2-6.jpg",
   },
   6: {
-    complete: "/images/suites/suitepiso2-6.jpg",
+    complete: "/planos/suites/suitepiso2-6.jpg",
   },
   7: {
-    complete: "/images/suites/suitepiso7-9.jpg",
+    complete: "/planos/suites/suitepiso7-9.jpg",
   },
   8: {
-    complete: "/images/suites/suitepiso7-9.jpg",
+    complete: "/planos/suites/suitepiso7-9.jpg",
   },
   9: {
-    complete: "/images/suites/suitepiso7-9.jpg",
+    complete: "/planos/suites/suitepiso7-9.jpg",
   },
   10: {
-    complete: "/images/suites/suitepiso10.jpg",
+    complete: "/planos/suites/suitepiso10.jpg",
   },
   11: {
-    complete: "/images/suites/suitepiso11.jpg",
+    complete: "/planos/suites/suitepiso11.jpg",
   },
   12: {
-    complete: "/images/suites/suitepiso12.jpg",
+    complete: "/planos/suites/suitepiso12.jpg",
   },
 }
 
