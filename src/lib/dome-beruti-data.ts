@@ -52,7 +52,7 @@ export const berutiProjectInfo = {
   totalUnits: 43,
   floors: 14,
   garageSublevels: 3,
-  image: "/planos/beruti/edificio.jpg",
+  image: "/planos/beruti/pisos/edificio.jpg",
   logo: "/images/logo/berutilogo.png",
   brochure: "/documents/beruti-brochure.pdf",
 
@@ -849,20 +849,20 @@ export const berutiFloorsData: BerutiFloor[] = [
 
 // Configuración de planos por piso
 export const berutiFloorPlans = {
-  1: "/planos/beruti/piso1.png",
-  2: "/planos/beruti/piso2.png",
-  3: "/planos/beruti/piso3.png",
-  4: "/planos/beruti/piso4-6.png",
-  5: "/planos/beruti/piso4-6.png",
-  6: "/planos/beruti/piso4-6.png",
-  7: "/planos/beruti/piso7.png",
-  8: "/planos/beruti/piso8-9.png",
-  9: "/planos/beruti/piso8-9.png",
-  10: "/planos/beruti/piso10.png",
-  11: "/planos/beruti/piso11.png",
-  12: "/planos/beruti/piso12.png",
-  13: "/planos/beruti/piso13.png",
-  14: "/planos/beruti/piso14.png",
+  1: "/planos/beruti/pisos/piso1.png",
+  2: "/planos/beruti/pisos/piso2.png",
+  3: "/planos/beruti/pisos/piso3.png",
+  4: "/planos/beruti/pisos/piso4-6.png",
+  5: "/planos/beruti/pisos/piso4-6.png",
+  6: "/planos/beruti/pisos/piso4-6.png",
+  7: "/planos/beruti/pisos/piso7.png",
+  8: "/planos/beruti/pisos/piso8-9.png",
+  9: "/planos/beruti/pisos/piso8-9.png",
+  10: "/planos/beruti/pisos/piso10.png",
+  11: "/planos/beruti/pisos/piso11.png",
+  12: "/planos/beruti/pisos/piso12.png",
+  13: "/planos/beruti/pisos/piso13.png",
+  14: "/planos/beruti/pisos/piso14.png",
 }
 
 // Cocheras

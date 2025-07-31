@@ -537,15 +537,15 @@ export const domePalermoData = {
 
   // Planos de pisos
   floorPlans: {
-    1: "/planos/resi/plano_piso_1.svg",
-    2: "/planos/resi/plano_piso_2-6.svg",
-    3: "/planos/resi/plano_piso_2-6.svg",
-    4: "/planos/resi/plano_piso_2-6.svg",
-    5: "/planos/resi/plano_piso_2-6.svg",
-    6: "/planos/resi/plano_piso_2-6.svg",
-    7: "/planos/resi/plano_piso_2-6.svg",
-    8: "/planos/resi/plano_piso_8.svg",
-    9: "/planos/resi/plano_piso_9.svg",
+    1: "/planos/resi/pisos/plano_piso_1.svg",
+    2: "/planos/resi/pisos/plano_piso_2-6.svg",
+    3: "/planos/resi/pisos/plano_piso_2-6.svg",
+    4: "/planos/resi/pisos/plano_piso_2-6.svg",
+    5: "/planos/resi/pisos/plano_piso_2-6.svg",
+    6: "/planos/resi/pisos/plano_piso_2-6.svg",
+    7: "/planos/resi/pisos/plano_piso_2-6.svg",
+    8: "/planos/resi/pisos/plano_piso_8.svg",
+    9: "/planos/resi/pisos/plano_piso_9.svg",
   } as Record<FloorNumber, string>,
 
   // Planos de cocheras

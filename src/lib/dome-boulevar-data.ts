@@ -908,14 +908,14 @@ export const getBoulevardUnitById = (id: string) => {
 }
 
 export const getBoulevardFloorImage = (floor: number) => {
-  if (floor === 1) return "/planos/boulevard/piso1.png"
-  if (floor === 2) return "/planos/boulevard/piso2.png"
-  if (floor >= 3 && floor <= 8) return "/planos/boulevard/piso3-8.png"
-  if (floor === 9) return "/planos/boulevard/piso9.png"
-  if (floor === 10) return "/planos/boulevard/piso10.png"
-  if (floor === 11) return "/planos/boulevard/piso11.png"
-  if (floor === 12) return "/planos/boulevard/piso12.png"
-  return "/planos/boulevard/piso1.png"
+  if (floor === 1) return "/planos/boulevard/pisos/piso1.png"
+  if (floor === 2) return "/planos/boulevard/pisos/piso2.png"
+  if (floor >= 3 && floor <= 8) return "/planos/boulevard/pisos/piso3-8.png"
+  if (floor === 9) return "/planos/boulevard/pisos/piso9.png"
+  if (floor === 10) return "/planos/boulevard/pisos/piso10.png"
+  if (floor === 11) return "/planos/boulevard/pisos/piso11.png"
+  if (floor === 12) return "/planos/boulevard/pisos/piso12.png"
+  return "/planos/boulevard/pisos/piso1.png"
 }
 
 export const boulevardAmenities = [
