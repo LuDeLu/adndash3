@@ -50,6 +50,13 @@ type DomeBerutiFloorPlanProps = {
 const floors = Array.from({ length: 14 }, (_, i) => i + 1)
 const garageLevels = [1, 2, 3]
 
+// Garage plan images for Dome Beruti
+const garagePlans = {
+  1: "/planos/beruti/cochera/nivel1.png",
+  2: "/planos/beruti/cochera/nivel2.png",
+  3: "/planos/beruti/cochera/nivel3.png",
+}
+
 export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedUnit, setSelectedUnit] = useState<BerutiApartment | null>(null)
@@ -480,39 +487,25 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                 </div>
 
                 <div className="relative aspect-video">
-                  <div className="flex items-center justify-center h-full bg-zinc-800 rounded">
-                    <div className="text-center">
-                      <p className="text-xl text-zinc-400 mb-4">Cocheras Nivel {currentGarageLevel}</p>
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <p className="font-semibold">
-                            Tipo {currentGarageLevel === 1 ? "A" : currentGarageLevel === 2 ? "B" : "C"}
-                          </p>
-                          <p className="text-zinc-400">
-                            {formatBerutiPrice(
-                              currentGarageLevel === 1 ? 60000 : currentGarageLevel === 2 ? 50000 : 45000,
-                            )}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-semibold">Disponibles</p>
-                          <p className="text-green-400">
-                            {
-                              berutiParkingSpots.filter(
-                                (spot) => spot.level === currentGarageLevel && spot.status === "DISPONIBLE",
-                              ).length
-                            }
-                          </p>
-                        </div>
-                        <div>
-                          <p className="font-semibold">Total</p>
-                          <p className="text-zinc-400">
-                            {berutiParkingSpots.filter((spot) => spot.level === currentGarageLevel).length}
-                          </p>
-                        </div>
-                      </div>
+                  <Image
+                    src={
+                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
+                      "/placeholder.svg?height=600&width=800"
+                    }
+                    alt={`Cocheras Nivel ${currentGarageLevel}`}
+                    fill
+                    className="object-contain"
+                  />
+                </div>
+
+                {/* Parking Info */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {berutiParkingSpots.map((parking) => (
+                    <div key={parking.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                      <h4 className="font-semibold text-white">{parking.level}</h4>
+                      <p className="text-green-400 font-bold">{formatBerutiPrice(parking.price)}</p>
                     </div>
-                  </div>
+                  ))}
                 </div>
               </div>
             </div>

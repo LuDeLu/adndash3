@@ -55,20 +55,11 @@ type DomeFloorPlanProps = {
 const floors = [0, 1, 2, 3, 4, 5]
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
-// Planos de cocheras para Dome Puertos
-const garageLevels = [1, 2]
+// Garage plan images for Dome Lagos (Puertos)
+const garageLevels = [1]
 const garagePlans = {
-  1: "/planos/lagos/cochera1.svg",
-  2: "/planos/lagos/cochera2.svg",
+  1: "/planos/lagos/cochera/nivel1.png",
 }
-
-// Paths de cocheras para Dome Puertos
-const defaultParkingPaths = [
-  "M100,200 L200,200 L200,300 L100,300 Z",
-  "M250,200 L350,200 L350,300 L250,300 Z",
-  "M400,200 L500,200 L500,300 L400,300 Z",
-  // Agregar más paths según sea necesario
-]
 
 export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
@@ -478,9 +469,15 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
                   ))}
                 </div>
                 <div className="relative aspect-video">
-                  <div className="flex items-center justify-center h-full bg-zinc-800">
-                    <p className="text-xl text-zinc-400">Cocheras en desarrollo</p>
-                  </div>
+                  <Image
+                    src={
+                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
+                      "/placeholder.svg?height=600&width=800"
+                    }
+                    alt={`Cocheras Nivel ${currentGarageLevel}`}
+                    fill
+                    className="object-contain"
+                  />
                 </div>
               </div>
             </div>

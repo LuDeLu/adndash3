@@ -49,9 +49,14 @@ type DomeBoulevardFloorPlanProps = {
 }
 
 const floors = Array.from({ length: 12 }, (_, i) => i + 1)
-
-// Planos de cocheras para Dome Boulevard
 const garageLevels = [1, 2, 3]
+
+// Garage plan images for Dome Boulevard
+const garagePlans = {
+  1: "/planos/boulevard/cochera/nivel1.png",
+  2: "/planos/boulevard/cochera/nivel2.png",
+  3: "/planos/boulevard/cochera/nivel3.png",
+}
 
 export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: DomeBoulevardFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
@@ -438,9 +443,15 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   ))}
                 </div>
                 <div className="relative aspect-video">
-                  <div className="flex items-center justify-center h-full bg-zinc-800">
-                    <p className="text-xl text-zinc-400">Cocheras en desarrollo</p>
-                  </div>
+                  <Image
+                    src={
+                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
+                      "/placeholder.svg?height=600&width=800"
+                    }
+                    alt={`Cocheras Nivel ${currentGarageLevel}`}
+                    fill
+                    className="object-contain"
+                  />
                 </div>
               </div>
             </div>

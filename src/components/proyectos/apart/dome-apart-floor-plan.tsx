@@ -51,6 +51,13 @@ type DomeApartFloorPlanProps = {
 const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 const garageLevels = [1, 2, 3]
 
+// Garage plan images for Dome Apart
+const garagePlans = {
+  1: "/planos/apart/cochera/nivel1.png",
+  2: "/planos/apart/cochera/nivel2.png",
+  3: "/planos/apart/cochera/nivel3.png",
+}
+
 export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: DomeApartFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedUnit, setSelectedUnit] = useState<ApartUnit | null>(null)
@@ -483,9 +490,15 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                 </div>
 
                 <div className="relative aspect-video">
-                  <div className="flex items-center justify-center h-full bg-zinc-800 rounded">
-                    <p className="text-xl text-zinc-400">Cocheras en desarrollo</p>
-                  </div>
+                  <Image
+                    src={
+                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
+                      "/placeholder.svg?height=600&width=800"
+                    }
+                    alt={`Cocheras Nivel ${currentGarageLevel}`}
+                    fill
+                    className="object-contain"
+                  />
                 </div>
 
                 {/* Parking Info */}

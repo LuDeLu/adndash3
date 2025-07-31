@@ -54,11 +54,13 @@ type SuitesFloorPlanProps = {
 const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
-// Planos de cocheras para Dome Suites
-const garageLevels = [1, 2]
-const garagePlans = {
-  1: "/planos/suites/cochera1.svg",
-  2: "/planos/suites/cochera2.svg",
+// Garage plan images for Dome Suites
+const garageLevels = [1, 2, 3] as const // Use 'as const' to infer literal types for array elements
+const garagePlans: Record<(typeof garageLevels)[number], string> = {
+  // Explicitly define type for indexing
+  1: "/planos/suites/cochera/nivel1.png",
+  2: "/planos/suites/cochera/nivel2.png",
+  3: "/planos/suites/cochera/nivel3.png",
 }
 
 export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }: SuitesFloorPlanProps) {
@@ -84,7 +86,8 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedParking, setSelectedParking] = useState<string | null>(null)
-  const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
+  // Fix: Explicitly type currentGarageLevel to be one of the literal numbers from garageLevels
+  const [currentGarageLevel, setCurrentGarageLevel] = useState<(typeof garageLevels)[number]>(1)
   const [parkingSpots, setParkingSpots] = useState<any[]>([])
   const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
   const [showParkingAssignment, setShowParkingAssignment] = useState(false)
@@ -473,9 +476,13 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
                   ))}
                 </div>
                 <div className="relative aspect-video">
-                  <div className="flex items-center justify-center h-full bg-zinc-800">
-                    <p className="text-xl text-zinc-400">Cocheras en desarrollo</p>
-                  </div>
+                  <Image
+                    src={garagePlans[currentGarageLevel] || "/placeholder.svg"} // This line is now correctly typed
+                    alt={`Plano de la cochera nivel ${currentGarageLevel}`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    style={{ objectFit: "contain" }}
+                  />
                 </div>
               </div>
             </div>

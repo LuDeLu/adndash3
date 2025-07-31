@@ -68,6 +68,16 @@ interface ParkingSpot {
   path: string
 }
 
+const floors = Array.from({ length: 9 }, (_, i) => i + 1)
+const garageLevels = [1, 2, 3]
+
+// Garage plan images for Dome Resi (Palermo Residence)
+const garagePlans = {
+  1: "/planos/resi/cochera/nivel1.png",
+  2: "/planos/resi/cochera/nivel2.png",
+  3: "/planos/resi/cochera/nivel3.png",
+}
+
 export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(1)
   const [selectedApartment, setSelectedApartment] = useState<string | null>(null)
@@ -111,9 +121,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     sold: "#f57f7f",
     blocked: "#7f7fff",
   }
-
-  const floors = Array.from({ length: 9 }, (_, i) => i + 1)
-  const garageLevels = [1, 2, 3]
 
   const handleFloorClick = (floor: number) => {
     setCurrentFloor(floor)
@@ -479,49 +486,44 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                 </div>
 
                 <div className="relative aspect-video">
-                  {currentGarageLevel === 1 ? (
-                    <>
-                      <Image
-                        src={
-                          domePalermoData.getGaragePlan(currentGarageLevel) || "/placeholder.svg?height=600&width=800"
-                        }
-                        alt={`Cocheras Nivel ${currentGarageLevel}`}
-                        fill
-                        className="object-contain"
-                      />
-                      <svg viewBox="90 450 4400 2600" className="absolute top-0 left-0 w-full h-full">
-                        {parkingSpots
-                          .filter((spot) => spot.level === currentGarageLevel)
-                          .map((spot) => (
-                            <g key={spot.id} style={{ cursor: "pointer" }}>
-                              <path
-                                d={spot.path}
-                                fill={
-                                  spot.status === "available" ? "rgba(135, 245, 175, 0.3)" : "rgba(245, 127, 127, 0.3)"
-                                }
-                                stroke={spot.status === "available" ? "#22c55e" : "#ef4444"}
-                                strokeWidth="3"
-                              />
-                              <text
-                                x="50%"
-                                y="50%"
-                                textAnchor="middle"
-                                fill="white"
-                                fontSize="40"
-                                dominantBaseline="middle"
-                                stroke="black"
-                                strokeWidth="1"
-                              >
-                                {spot.id}
-                              </text>
-                            </g>
-                          ))}
-                      </svg>
-                    </>
-                  ) : (
-                    <div className="flex items-center justify-center h-full bg-zinc-800 rounded">
-                      <p className="text-xl text-zinc-400">Nivel en desarrollo</p>
-                    </div>
+                  <Image
+                    src={
+                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
+                      "/placeholder.svg?height=600&width=800"
+                    }
+                    alt={`Cocheras Nivel ${currentGarageLevel}`}
+                    fill
+                    className="object-contain"
+                  />
+                  {currentGarageLevel === 1 && (
+                    <svg viewBox="90 450 4400 2600" className="absolute top-0 left-0 w-full h-full">
+                      {parkingSpots
+                        .filter((spot) => spot.level === currentGarageLevel)
+                        .map((spot) => (
+                          <g key={spot.id} style={{ cursor: "pointer" }}>
+                            <path
+                              d={spot.path}
+                              fill={
+                                spot.status === "available" ? "rgba(135, 245, 175, 0.3)" : "rgba(245, 127, 127, 0.3)"
+                              }
+                              stroke={spot.status === "available" ? "#22c55e" : "#ef4444"}
+                              strokeWidth="3"
+                            />
+                            <text
+                              x="50%"
+                              y="50%"
+                              textAnchor="middle"
+                              fill="white"
+                              fontSize="40"
+                              dominantBaseline="middle"
+                              stroke="black"
+                              strokeWidth="1"
+                            >
+                              {spot.id}
+                            </text>
+                          </g>
+                        ))}
+                    </svg>
                   )}
                 </div>
               </div>
