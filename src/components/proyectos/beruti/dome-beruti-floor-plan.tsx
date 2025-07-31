@@ -1,7 +1,6 @@
 "use client"
-
+import { useState, useCallback, useEffect, useRef } from "react"
 import type React from "react"
-import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import {
@@ -11,11 +10,10 @@ import {
   FileText,
   Building,
   Car,
-  RefreshCw,
-  MapPin,
-  Home,
   FileSpreadsheet,
   FileBarChart,
+  MapPin,
+  Home,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,7 +22,6 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/app/auth/auth-context"
 import {
   berutiProjectInfo,
@@ -40,30 +37,43 @@ import {
 } from "@/lib/dome-beruti-data"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 let notyf: Notyf | null = null
 
-interface DomeBerutiFloorPlanProps {
-  floorNumber?: number
+type DomeBerutiFloorPlanProps = {
+  floorNumber?: number | null
   onBack: () => void
 }
 
+const floors = Array.from({ length: 14 }, (_, i) => i + 1)
+const garageLevels = [1, 2, 3]
+
 export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
-  const [selectedApartment, setSelectedApartment] = useState<BerutiApartment | null>(null)
+  const [selectedUnit, setSelectedUnit] = useState<BerutiApartment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
-  const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
-  const [action, setAction] = useState<string | null>(null)
+  const [activityLog, setActivityLog] = useState<string[]>([])
+  const { user } = useAuth()
+  const [action, setAction] = useState<
+    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | null
+  >(null)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
     email: "",
+    reservationOrder: null as File | null,
     price: "",
     note: "",
   })
-  const [loading, setLoading] = useState(false)
-  const { user } = useAuth()
+  const [confirmReservation, setConfirmReservation] = useState(false)
+  const [confirmCancelReservation, setConfirmCancelReservation] = useState(false)
+  const [confirmRelease, setConfirmRelease] = useState(false)
+  const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Initialize Notyf
   useEffect(() => {
@@ -75,114 +85,136 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     }
   }, [])
 
+  // Obtener datos del piso seleccionado
   const currentFloorData = getBerutiFloorData(currentFloor)
-  const floors = Array.from({ length: 14 }, (_, i) => i + 1)
-  const garageLevels = [1, 2, 3]
 
-  const handleFloorClick = (floor: number) => {
-    setCurrentFloor(floor)
-    setSelectedApartment(null)
-    setIsModalOpen(false)
-  }
-
-  const handleApartmentClick = (apartment: BerutiApartment) => {
-    setSelectedApartment(apartment)
+  const handleUnitClick = useCallback((unit: BerutiApartment) => {
+    setSelectedUnit(unit)
     setIsModalOpen(true)
     setAction(null)
     setFormData({
       name: "",
       phone: "",
       email: "",
+      reservationOrder: null,
       price: "",
       note: "",
     })
+    setConfirmReservation(false)
+    setConfirmCancelReservation(false)
+    setConfirmRelease(false)
+  }, [])
+
+  const handleFloorClick = (floor: number) => {
+    setCurrentFloor(floor)
+    setSelectedUnit(null)
+    setIsModalOpen(false)
   }
 
-  const handleActionClick = (actionType: string) => {
+  const handleActionClick = (
+    actionType: "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release",
+  ) => {
     setAction(actionType)
+    setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
+    setConfirmCancelReservation(actionType === "cancelReservation")
+    setConfirmRelease(actionType === "release")
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedApartment || !user) return
+    if (!selectedUnit || !user) return
 
-    setLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      let newStatus: BerutiApartment["status"] = selectedApartment.status
+      let newStatus: BerutiApartment["status"] = selectedUnit.status
 
       switch (action) {
         case "block":
           newStatus = "BLOQUEADO"
           break
         case "reserve":
+        case "directReserve":
           newStatus = "RESERVADO"
           break
         case "sell":
           newStatus = "VENDIDO"
           break
         case "unblock":
+        case "cancelReservation":
         case "release":
           newStatus = "DISPONIBLE"
           break
       }
 
-      const success = updateBerutiApartmentStatus(selectedApartment.id, newStatus)
+      const success = updateBerutiApartmentStatus(selectedUnit.id, newStatus)
 
-      if (success && notyf) {
-        switch (action) {
-          case "block":
-            notyf.success("Unidad bloqueada con éxito")
-            break
-          case "reserve":
-            notyf.success("Unidad reservada con éxito")
-            break
-          case "sell":
-            notyf.success("Unidad vendida con éxito")
-            break
-          case "unblock":
-          case "release":
-            notyf.success("Unidad liberada con éxito")
-            break
-          default:
-            notyf.success("Acción completada con éxito")
+      if (success) {
+        if (notyf) {
+          switch (action) {
+            case "block":
+              notyf.success("Unidad bloqueada con éxito")
+              break
+            case "reserve":
+            case "directReserve":
+              notyf.success("Unidad reservada con éxito")
+              break
+            case "sell":
+              notyf.success("Unidad vendida con éxito")
+              break
+            case "unblock":
+              notyf.success("Bloqueo liberado con éxito")
+              break
+            case "cancelReservation":
+              notyf.success("Reserva cancelada con éxito")
+              break
+            case "release":
+              notyf.success("Unidad liberada con éxito")
+              break
+          }
         }
-      }
 
-      setIsModalOpen(false)
-      setAction(null)
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        price: "",
-        note: "",
-      })
-    } catch (error) {
-      if (notyf) notyf.error("Error al procesar la acción")
-    } finally {
-      setLoading(false)
+        // Actualizar el registro de actividades
+        const timestamp = new Date().toLocaleString()
+        const description = `${user.name} ${
+          action === "block"
+            ? "bloqueó"
+            : action === "reserve" || action === "directReserve"
+              ? "reservó"
+              : action === "sell"
+                ? "vendió"
+                : "liberó"
+        } la unidad ${selectedUnit.unitNumber}`
+        setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
+        setIsModalOpen(false)
+        setAction(null)
+        setFormData({
+          name: "",
+          phone: "",
+          email: "",
+          reservationOrder: null,
+          price: "",
+          note: "",
+        })
+      } else {
+        if (notyf) notyf.error("Error al actualizar la unidad")
+      }
+    } catch (err) {
+      console.error("Error updating unit:", err)
+      if (notyf) notyf.error("Error al actualizar la unidad")
+    }
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setFormData((prev) => ({ ...prev, reservationOrder: event.target.files![0] }))
     }
   }
 
   const handleDownloadFloorPlan = () => {
-    if (!selectedApartment) return
-
-    const filePath = "/general/planosgenerales/Planos_DOME-Torre-Beruti.pdf"
-    const link = document.createElement("a")
-    link.href = filePath
-    link.download = "Plano_Torre_Beruti.pdf"
-    link.target = "_blank"
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-
+    if (!selectedUnit) return
     if (notyf) notyf.success("Descargando plano...")
   }
 
-  // Add this function for additional downloads
   const handleDownloadAdditionalInfo = useCallback((type: string) => {
     let filePath = ""
 
@@ -191,7 +223,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
         filePath = "/general/precios/Lista_DOME-Torre-Beruti.pdf"
         break
       case "Plano del edificio":
-        filePath = "/general/planosgenerales/Planos_DOME-Torre-Beruti.pdf"
+        filePath = "/general/planogenerales/Planos_DOME-Torre-Beruti.pdf"
         break
       case "Plano de la cochera":
         filePath = "/general/cocheras/Cochera_DOME-Torre-Beruti.pdf"
@@ -207,6 +239,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
         return
     }
 
+    // Create download link
     const link = document.createElement("a")
     link.href = filePath
     link.download = filePath.split("/").pop() || "documento.pdf"
@@ -217,6 +250,13 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
 
     if (notyf) notyf.success(`Descargando ${type}...`)
   }, [])
+
+  const refreshData = async () => {
+    setRefreshing(true)
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    setRefreshing(false)
+    if (notyf) notyf.success("Datos actualizados")
+  }
 
   const getUnitStats = () => {
     if (!currentFloorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
@@ -231,50 +271,10 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
 
   const stats = getUnitStats()
 
-  // Add the additional information section before the project info card
-  const additionalInfoSection = (
-    <div className="max-w-4xl mx-auto mb-8">
-      <div className="bg-zinc-900 p-4 rounded-lg">
-        <h4 className="font-semibold mb-4">Información adicional</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <Building className="mr-2 h-4 w-4" /> Plano del edificio
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <Car className="mr-2 h-4 w-4" /> Plano de la cochera
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Brochure")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <FileText className="mr-2 h-4 w-4" /> Brochure
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <Button onClick={onBack} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
             <ChevronLeft className="mr-2 h-4 w-4" />
@@ -300,6 +300,10 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
               <div className="text-sm text-zinc-400">Vendidas</div>
               <div className="text-lg font-bold text-red-400">{stats.sold}</div>
             </div>
+            <div className="text-right">
+              <div className="text-sm text-zinc-400">Bloqueadas</div>
+              <div className="text-lg font-bold text-blue-400">{stats.blocked}</div>
+            </div>
           </div>
         </div>
 
@@ -320,8 +324,10 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
           </TabsList>
 
           <TabsContent value="apartments">
+            {/* Floor Selection */}
             <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
               <div className="p-4 md:p-6">
+                <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6">
                   <div className="flex items-center mb-4 md:mb-0">
                     <button
@@ -340,7 +346,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       <ChevronRight />
                     </button>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="flex flex-wrap justify-center gap-2 max-h-32 overflow-y-auto">
                     {floors.map((floor) => (
                       <motion.button
                         key={floor}
@@ -358,6 +364,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                 </div>
               </div>
 
+              {/* Floor Plan with Image Map */}
               <div className="relative aspect-video">
                 <Image
                   src={getBerutiFloorPlan(currentFloor) || "/placeholder.svg?height=600&width=800"}
@@ -385,7 +392,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                             stroke="white"
                             strokeWidth="2"
                             opacity="0.7"
-                            onClick={() => handleApartmentClick(apartment)}
+                            onClick={() => handleUnitClick(apartment)}
                             style={{ cursor: "pointer" }}
                             className="hover:opacity-100 transition-opacity"
                           />
@@ -429,6 +436,26 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       style={{ backgroundColor: getBerutiStatusColor("BLOQUEADO") }}
                     ></div>
                     <span className="text-sm">Bloqueado</span>
+                  </div>
+                </div>
+
+                {/* Floor Stats */}
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Disponibles</div>
+                    <div className="text-xl font-bold text-green-400">{stats.available}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Reservadas</div>
+                    <div className="text-xl font-bold text-yellow-400">{stats.reserved}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Vendidas</div>
+                    <div className="text-xl font-bold text-red-400">{stats.sold}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Bloqueadas</div>
+                    <div className="text-xl font-bold text-blue-400">{stats.blocked}</div>
                   </div>
                 </div>
               </div>
@@ -492,14 +519,14 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
           </TabsContent>
         </Tabs>
 
-        {/* Apartment Modal */}
+        {/* Unit Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Unidad {selectedApartment?.unitNumber}</DialogTitle>
+              <DialogTitle>Unidad {selectedUnit?.unitNumber}</DialogTitle>
             </DialogHeader>
 
-            {selectedApartment && (
+            {selectedUnit && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -507,32 +534,24 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getBerutiStatusColor(selectedApartment.status) }}
+                        style={{ backgroundColor: getBerutiStatusColor(selectedUnit.status) }}
                       />
                       <Badge variant="outline" className="capitalize">
-                        {getBerutiStatusLabel(selectedApartment.status)}
+                        {getBerutiStatusLabel(selectedUnit.status)}
                       </Badge>
                     </div>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Superficie Total</Label>
-                    <p className="font-semibold">{formatBerutiArea(selectedApartment.totalArea)}</p>
+                    <p className="font-semibold">{formatBerutiArea(selectedUnit.totalArea)}</p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">{formatBerutiPrice(selectedApartment.saleValue)}</p>
+                    <p className="font-semibold text-green-400">{formatBerutiPrice(selectedUnit.saleValue)}</p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio por m²</Label>
-                    <p className="font-semibold">{formatBerutiPrice(selectedApartment.pricePerM2)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Superficie Cubierta</Label>
-                    <p className="font-semibold">{formatBerutiArea(selectedApartment.coveredArea)}</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Balcón</Label>
-                    <p className="font-semibold">{formatBerutiArea(selectedApartment.balconArea)}</p>
+                    <p className="font-semibold">{formatBerutiPrice(selectedUnit.pricePerM2)}</p>
                   </div>
                 </div>
 
@@ -541,19 +560,27 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                   <div className="grid grid-cols-1 gap-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Descripción:</span>
-                      <span>{selectedApartment.description}</span>
+                      <span>{selectedUnit.description}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Orientación:</span>
-                      <span>{selectedApartment.orientation}</span>
+                      <span>{selectedUnit.orientation}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Superficie Cubierta:</span>
+                      <span>{formatBerutiArea(selectedUnit.coveredArea)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Balcón:</span>
+                      <span>{formatBerutiArea(selectedUnit.balconArea)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Terraza:</span>
-                      <span>{formatBerutiArea(selectedApartment.terraceArea)}</span>
+                      <span>{formatBerutiArea(selectedUnit.terraceArea)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Con Amenities:</span>
-                      <span>{formatBerutiArea(selectedApartment.totalWithAmenities)}</span>
+                      <span>{formatBerutiArea(selectedUnit.totalWithAmenities)}</span>
                     </div>
                   </div>
                 </div>
@@ -563,19 +590,19 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                   <div className="grid grid-cols-1 gap-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Reserva (10%):</span>
-                      <span className="text-green-400">{formatBerutiPrice(selectedApartment.reserveAmount)}</span>
+                      <span className="text-green-400">{formatBerutiPrice(selectedUnit.reserveAmount)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Anticipo (30%):</span>
-                      <span className="text-blue-400">{formatBerutiPrice(selectedApartment.downPayment)}</span>
+                      <span className="text-blue-400">{formatBerutiPrice(selectedUnit.downPayment)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Saldo (60%):</span>
-                      <span className="text-yellow-400">{formatBerutiPrice(selectedApartment.balance)}</span>
+                      <span className="text-yellow-400">{formatBerutiPrice(selectedUnit.balance)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Cuota mensual:</span>
-                      <span className="text-purple-400">{formatBerutiPrice(selectedApartment.monthlyPayment)}</span>
+                      <span className="text-purple-400">{formatBerutiPrice(selectedUnit.monthlyPayment)}</span>
                     </div>
                   </div>
                 </div>
@@ -587,7 +614,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       Descargar plano
                     </Button>
 
-                    {selectedApartment.status === "DISPONIBLE" && (
+                    {selectedUnit.status === "DISPONIBLE" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
@@ -596,7 +623,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                           Bloquear
                         </Button>
                         <Button
-                          onClick={() => handleActionClick("reserve")}
+                          onClick={() => handleActionClick("directReserve")}
                           className="w-full bg-yellow-600 hover:bg-yellow-700"
                         >
                           Reservar
@@ -604,168 +631,260 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       </>
                     )}
 
-                    {selectedApartment.status === "RESERVADO" && (
-                      <Button
-                        onClick={() => handleActionClick("sell")}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        Vender
-                      </Button>
+                    {selectedUnit.status === "BLOQUEADO" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("reserve")}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          Reservar
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("unblock")}
+                          className="w-full bg-red-600 hover:bg-red-700"
+                        >
+                          Liberar Bloqueo
+                        </Button>
+                      </>
                     )}
 
-                    {(selectedApartment.status === "BLOQUEADO" || selectedApartment.status === "VENDIDO") && (
-                      <Button
-                        onClick={() => handleActionClick("release")}
-                        className="w-full bg-red-600 hover:bg-red-700"
-                      >
-                        Liberar
-                      </Button>
+                    {selectedUnit.status === "RESERVADO" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("sell")}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          Vender
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("cancelReservation")}
+                          className="w-full bg-red-600 hover:bg-red-700"
+                        >
+                          Cancelar Reserva
+                        </Button>
+                      </>
+                    )}
+
+                    {selectedUnit.status === "VENDIDO" && (
+                      <>
+                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                          Descargar contrato
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("release")}
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          Liberar unidad
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}
 
-                {action && (
+                {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
+                    {action !== "sell" && (
+                      <>
+                        <div>
+                          <Label htmlFor="name" className="text-white">
+                            Nombre
+                          </Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone" className="text-white">
+                            Teléfono
+                          </Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email" className="text-white">
+                            Email
+                          </Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                      </>
+                    )}
                     <div>
-                      <Label htmlFor="name">Nombre del Cliente</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                        className="bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone">Teléfono</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="price">Precio</Label>
+                      <Label htmlFor="price" className="text-white">
+                        Precio
+                      </Label>
                       <Input
                         id="price"
-                        value={formData.price || formatBerutiPrice(selectedApartment.saleValue)}
+                        type="text"
+                        value={formData.price || formatBerutiPrice(selectedUnit.saleValue)}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
+                        className="text-white bg-zinc-800 border-zinc-700"
                       />
                     </div>
+                    {action === "sell" && (
+                      <div>
+                        <Label htmlFor="reservationOrder" className="text-white">
+                          Contrato de Venta
+                        </Label>
+                        <Input
+                          id="reservationOrder"
+                          type="file"
+                          onChange={handleFileChange}
+                          required
+                          className="text-white bg-zinc-800 border-zinc-700"
+                          ref={fileInputRef}
+                        />
+                      </div>
+                    )}
                     <div>
-                      <Label htmlFor="note">Notas</Label>
+                      <Label htmlFor="note" className="text-white">
+                        Notas
+                      </Label>
                       <Textarea
                         id="note"
                         value={formData.note}
                         onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
+                        className="text-white bg-zinc-800 border-zinc-700"
                       />
                     </div>
-                    <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
-                      {loading ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Procesando...
-                        </>
-                      ) : (
-                        `Confirmar ${action === "block" ? "Bloqueo" : action === "reserve" ? "Reserva" : action === "sell" ? "Venta" : "Liberación"}`
-                      )}
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700 w-full">
+                      {action === "block"
+                        ? "Confirmar Bloqueo"
+                        : action === "reserve" || action === "directReserve"
+                          ? "Confirmar Reserva"
+                          : "Confirmar Venta"}
                     </Button>
                   </form>
                 )}
+
+                {(action === "unblock" || action === "cancelReservation" || action === "release") && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="note" className="text-white">
+                        Nota (Obligatoria)
+                      </Label>
+                      <Textarea
+                        id="note"
+                        value={formData.note}
+                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                        required
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    <Button type="submit" className="bg-red-600 hover:bg-red-700 w-full">
+                      {action === "unblock"
+                        ? "Confirmar Liberación"
+                        : action === "cancelReservation"
+                          ? "Confirmar Cancelación"
+                          : "Confirmar Liberación"}
+                    </Button>
+                  </form>
+                )}
+
+                {(confirmReservation || confirmCancelReservation || confirmRelease) && (
+                  <div className="space-y-4">
+                    <p className="text-yellow-400">
+                      {confirmReservation
+                        ? "¿Confirmar reserva de la unidad?"
+                        : confirmCancelReservation
+                          ? "¿Confirmar cancelación de la reserva?"
+                          : "¿Confirmar liberación de la unidad?"}
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
+                        Confirmar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setConfirmReservation(false)
+                          setConfirmCancelReservation(false)
+                          setConfirmRelease(false)
+                          setAction(null)
+                        }}
+                        className="bg-red-600 hover:bg-red-700 flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
-
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {additionalInfoSection}
+        {/* Additional Information */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-4">Información adicional</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <Building className="mr-2 h-4 w-4" /> Plano del edificio
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <Car className="mr-2 h-4 w-4" /> Plano de la cochera
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Brochure")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileText className="mr-2 h-4 w-4" /> Brochure
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
+              </Button>
+            </div>
+          </div>
+        </div>
 
-        {/* Project Info */}
-        <div className="max-w-4xl mx-auto mt-8">
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Building className="w-5 h-5 mr-2" />
-                Información del Proyecto
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Estadísticas</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Total unidades:</span>
-                      <span>{berutiProjectInfo.totalUnits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Disponibles:</span>
-                      <span className="text-green-400">{berutiProjectInfo.availableUnits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Reservadas:</span>
-                      <span className="text-yellow-400">{berutiProjectInfo.reservedUnits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Vendidas:</span>
-                      <span className="text-red-400">{berutiProjectInfo.soldUnits}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Detalles</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Pisos:</span>
-                      <span>{berutiProjectInfo.floors}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Cocheras:</span>
-                      <span>{berutiParkingSpots.length}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Subsuelos:</span>
-                      <span>{berutiProjectInfo.garageSublevels}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Acciones</h4>
-                  <div className="space-y-2">
-                    <Button variant="outline" className="w-full border-zinc-700 bg-transparent">
-                      <Download className="w-4 h-4 mr-2" />
-                      Descargar brochure
-                    </Button>
-                    <Button variant="outline" className="w-full border-zinc-700 bg-transparent">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Ver documentación
-                    </Button>
-                  </div>
-                </div>
+        {/* Activity Log */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-4">Registro de Actividades</h4>
+            <ScrollArea className="h-60">
+              <div className="space-y-2">
+                {activityLog.map((activity, index) => (
+                  <p key={index} className="text-sm text-zinc-300">
+                    {activity}
+                  </p>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            </ScrollArea>
+          </div>
         </div>
       </div>
     </div>

@@ -1,8 +1,6 @@
 "use client"
-
+import { useState, useCallback, useEffect, useRef } from "react"
 import type React from "react"
-
-import { useState, useEffect, useCallback } from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
 import {
@@ -12,15 +10,14 @@ import {
   FileText,
   Building,
   Car,
-  RefreshCw,
+  FileSpreadsheet,
+  FileBarChart,
+  MapPin,
+  Home,
   Phone,
   Mail,
   User,
   Calendar,
-  MapPin,
-  Home,
-  FileSpreadsheet,
-  FileBarChart,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -34,6 +31,8 @@ import { useAuth } from "@/app/auth/auth-context"
 import { domePalermoData } from "@/lib/dome-palermo-data"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
+import { cn } from "@/lib/utils"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 let notyf: Notyf | null = null
 
@@ -82,8 +81,14 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     email: "",
     price: "",
     note: "",
+    reservationOrder: null as File | null,
   })
   const [loading, setLoading] = useState(false)
+  const [activityLog, setActivityLog] = useState<string[]>([])
+  const [confirmReservation, setConfirmReservation] = useState(false)
+  const [confirmCancelReservation, setConfirmCancelReservation] = useState(false)
+  const [confirmRelease, setConfirmRelease] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
 
   // Initialize Notyf
@@ -126,11 +131,26 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       email: "",
       price: "",
       note: "",
+      reservationOrder: null,
     })
+    setConfirmReservation(false)
+    setConfirmCancelReservation(false)
+    setConfirmRelease(false)
   }
 
   const handleActionClick = (actionType: string) => {
     setAction(actionType)
+    if (
+      actionType === "reserve" &&
+      selectedApartment &&
+      floorData?.apartments[selectedApartment]?.status === "blocked"
+    ) {
+      setConfirmReservation(true)
+    } else if (actionType === "cancelReservation") {
+      setConfirmCancelReservation(true)
+    } else if (actionType === "release") {
+      setConfirmRelease(true)
+    }
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -148,15 +168,38 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             notyf.success("Departamento bloqueado con éxito")
             break
           case "reserve":
+          case "directReserve":
             notyf.success("Departamento reservado con éxito")
             break
           case "sell":
             notyf.success("Departamento vendido con éxito")
             break
+          case "unblock":
+            notyf.success("Bloqueo liberado con éxito")
+            break
+          case "cancelReservation":
+            notyf.success("Reserva cancelada con éxito")
+            break
+          case "release":
+            notyf.success("Departamento liberado con éxito")
+            break
           default:
             notyf.success("Acción completada con éxito")
         }
       }
+
+      // Actualizar el registro de actividades
+      const timestamp = new Date().toLocaleString()
+      const description = `${user.name} ${
+        action === "block"
+          ? "bloqueó"
+          : action === "reserve" || action === "directReserve"
+            ? "reservó"
+            : action === "sell"
+              ? "vendió"
+              : "liberó"
+      } el departamento ${selectedApartment}`
+      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
 
       setIsModalOpen(false)
       setAction(null)
@@ -166,7 +209,11 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
         email: "",
         price: "",
         note: "",
+        reservationOrder: null,
       })
+      setConfirmReservation(false)
+      setConfirmCancelReservation(false)
+      setConfirmRelease(false)
     } catch (error) {
       if (notyf) notyf.error("Error al procesar la acción")
     } finally {
@@ -174,10 +221,16 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     }
   }
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setFormData((prev) => ({ ...prev, reservationOrder: event.target.files![0] }))
+    }
+  }
+
   const handleDownloadFloorPlan = () => {
     if (!selectedApartment) return
 
-    const filePath = "/general/planosgenerales/Planos_DOME-Palermo-Residence.pdf"
+    const filePath = "/general/planogenerales/Planos_DOME-Palermo-Residence.pdf"
     const link = document.createElement("a")
     link.href = filePath
     link.download = "Plano_Palermo_Residence.pdf"
@@ -189,7 +242,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     if (notyf) notyf.success("Descargando plano...")
   }
 
-  // Add this function for additional downloads
   const handleDownloadAdditionalInfo = useCallback((type: string) => {
     let filePath = ""
 
@@ -198,7 +250,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
         filePath = "/general/precios/Lista_DOME-Palermo-Residence.pdf"
         break
       case "Plano del edificio":
-        filePath = "/general/planosgenerales/Planos_DOME-Palermo-Residence.pdf"
+        filePath = "/general/planogenerales/Planos_DOME-Palermo-Residence.pdf"
         break
       case "Plano de la cochera":
         filePath = "/general/cocheras/Cochera_DOME-Palermo-Residence.pdf"
@@ -232,55 +284,16 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       available: apartments.filter((apt) => apt.status === "available").length,
       reserved: apartments.filter((apt) => apt.status === "reserved").length,
       sold: apartments.filter((apt) => apt.status === "sold").length,
+      blocked: apartments.filter((apt) => apt.status === "blocked").length,
     }
   }
 
   const stats = getUnitStats()
 
-  // Add the additional information section before the project info card
-  const additionalInfoSection = (
-    <div className="max-w-4xl mx-auto mb-8">
-      <div className="bg-zinc-900 p-4 rounded-lg">
-        <h4 className="font-semibold mb-4">Información adicional</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <Building className="mr-2 h-4 w-4" /> Plano del edificio
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <Car className="mr-2 h-4 w-4" /> Plano de la cochera
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Brochure")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <FileText className="mr-2 h-4 w-4" /> Brochure
-          </Button>
-          <Button
-            onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
-            className="bg-slate-700 hover:bg-zinc-700 transition-colors duration-200"
-          >
-            <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <Button onClick={onBack} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
             <ChevronLeft className="mr-2 h-4 w-4" />
@@ -306,6 +319,10 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
               <div className="text-sm text-zinc-400">Vendidas</div>
               <div className="text-lg font-bold text-red-400">{stats.sold}</div>
             </div>
+            <div className="text-right">
+              <div className="text-sm text-zinc-400">Bloqueadas</div>
+              <div className="text-lg font-bold text-blue-400">{stats.blocked}</div>
+            </div>
           </div>
         </div>
 
@@ -326,8 +343,10 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
           </TabsList>
 
           <TabsContent value="apartments">
+            {/* Floor Selection */}
             <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
               <div className="p-4 md:p-6">
+                <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
                 <div className="flex flex-col md:flex-row justify-between items-center mb-6">
                   <div className="flex items-center mb-4 md:mb-0">
                     <button
@@ -364,6 +383,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                 </div>
               </div>
 
+              {/* Floor Plan with Image Map */}
               <div className="relative aspect-video">
                 <Image
                   src={domePalermoData.getFloorPlan(currentFloor) || "/placeholder.svg?height=600&width=800"}
@@ -385,6 +405,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                             opacity="0.7"
                             onClick={() => handleApartmentClick(aptId)}
                             style={{ cursor: "pointer" }}
+                            className="hover:opacity-100 transition-opacity"
                           />
                         ))}
                       </g>
@@ -414,6 +435,26 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   <div className="flex items-center">
                     <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: statusColors.blocked }}></div>
                     <span className="text-sm">Bloqueado</span>
+                  </div>
+                </div>
+
+                {/* Floor Stats */}
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Disponibles</div>
+                    <div className="text-xl font-bold text-green-400">{stats.available}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Reservadas</div>
+                    <div className="text-xl font-bold text-yellow-400">{stats.reserved}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Vendidas</div>
+                    <div className="text-xl font-bold text-red-400">{stats.sold}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Bloqueadas</div>
+                    <div className="text-xl font-bold text-blue-400">{stats.blocked}</div>
                   </div>
                 </div>
               </div>
@@ -580,7 +621,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                           Bloquear
                         </Button>
                         <Button
-                          onClick={() => handleActionClick("reserve")}
+                          onClick={() => handleActionClick("directReserve")}
                           className="w-full bg-yellow-600 hover:bg-yellow-700"
                         >
                           Reservar
@@ -588,91 +629,257 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       </>
                     )}
 
+                    {floorData.apartments[selectedApartment]?.status === "blocked" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("reserve")}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          Reservar
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("unblock")}
+                          className="w-full bg-red-600 hover:bg-red-700"
+                        >
+                          Liberar Bloqueo
+                        </Button>
+                      </>
+                    )}
+
                     {floorData.apartments[selectedApartment]?.status === "reserved" && (
-                      <Button
-                        onClick={() => handleActionClick("sell")}
-                        className="w-full bg-green-600 hover:bg-green-700"
-                      >
-                        Vender
-                      </Button>
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("sell")}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          Vender
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("cancelReservation")}
+                          className="w-full bg-red-600 hover:bg-red-700"
+                        >
+                          Cancelar Reserva
+                        </Button>
+                      </>
+                    )}
+
+                    {floorData.apartments[selectedApartment]?.status === "sold" && (
+                      <>
+                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                          Descargar contrato
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("release")}
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          Liberar departamento
+                        </Button>
+                      </>
                     )}
                   </div>
                 )}
 
-                {action && (
+                {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
+                    {action !== "sell" && (
+                      <>
+                        <div>
+                          <Label htmlFor="name" className="text-white">
+                            Nombre
+                          </Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone" className="text-white">
+                            Teléfono
+                          </Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="email" className="text-white">
+                            Email
+                          </Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                      </>
+                    )}
                     <div>
-                      <Label htmlFor="name">Nombre del Cliente</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                        className="bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone">Teléfono</Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="price">Precio</Label>
+                      <Label htmlFor="price" className="text-white">
+                        Precio
+                      </Label>
                       <Input
                         id="price"
                         value={formData.price || floorData.apartments[selectedApartment]?.price || ""}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
+                        className="text-white bg-zinc-800 border-zinc-700"
                       />
                     </div>
+                    {action === "sell" && (
+                      <div>
+                        <Label htmlFor="reservationOrder" className="text-white">
+                          Contrato de Venta
+                        </Label>
+                        <Input
+                          id="reservationOrder"
+                          type="file"
+                          onChange={handleFileChange}
+                          required
+                          className="text-white bg-zinc-800 border-zinc-700"
+                          ref={fileInputRef}
+                        />
+                      </div>
+                    )}
                     <div>
-                      <Label htmlFor="note">Notas</Label>
+                      <Label htmlFor="note" className="text-white">
+                        Notas
+                      </Label>
                       <Textarea
                         id="note"
                         value={formData.note}
                         onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        className="bg-zinc-800 border-zinc-700"
+                        className="text-white bg-zinc-800 border-zinc-700"
                       />
                     </div>
                     <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
-                      {loading ? (
-                        <>
-                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                          Procesando...
-                        </>
-                      ) : (
-                        `Confirmar ${action === "block" ? "Bloqueo" : action === "reserve" ? "Reserva" : "Venta"}`
-                      )}
+                      {loading
+                        ? "Procesando..."
+                        : `Confirmar ${action === "block" ? "Bloqueo" : action === "reserve" || action === "directReserve" ? "Reserva" : "Venta"}`}
                     </Button>
                   </form>
+                )}
+
+                {(action === "unblock" || action === "cancelReservation" || action === "release") && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="note" className="text-white">
+                        Nota (Obligatoria)
+                      </Label>
+                      <Textarea
+                        id="note"
+                        value={formData.note}
+                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                        required
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    <Button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700">
+                      {loading
+                        ? "Procesando..."
+                        : `Confirmar ${action === "unblock" ? "Liberación" : action === "cancelReservation" ? "Cancelación" : "Liberación"}`}
+                    </Button>
+                  </form>
+                )}
+
+                {(confirmReservation || confirmCancelReservation || confirmRelease) && (
+                  <div className="space-y-4">
+                    <p className="text-yellow-400">
+                      {confirmReservation
+                        ? "¿Confirmar reserva del departamento?"
+                        : confirmCancelReservation
+                          ? "¿Confirmar cancelación de la reserva?"
+                          : "¿Confirmar liberación del departamento?"}
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
+                        Confirmar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setConfirmReservation(false)
+                          setConfirmCancelReservation(false)
+                          setConfirmRelease(false)
+                          setAction(null)
+                        }}
+                        className="bg-red-600 hover:bg-red-700 flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
                 )}
               </div>
             )}
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsModalOpen(false)} className="border-zinc-700">
+              <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {additionalInfoSection}
+        {/* Additional Information */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-4">Información adicional</h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Presupuestos")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Presupuestos
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Plano del edificio")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <Building className="mr-2 h-4 w-4" /> Plano del edificio
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Plano de la cochera")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <Car className="mr-2 h-4 w-4" /> Plano de la cochera
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Brochure")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileText className="mr-2 h-4 w-4" /> Brochure
+              </Button>
+              <Button
+                onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
+                className={cn("bg-slate-700 hover:bg-zinc-700", "transition-colors duration-200")}
+              >
+                <FileBarChart className="mr-2 h-4 w-4" /> Ficha técnica
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Activity Log */}
+        <div className="max-w-4xl mx-auto mb-8">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h4 className="font-semibold mb-4">Registro de Actividades</h4>
+            <ScrollArea className="h-60">
+              <div className="space-y-2">
+                {activityLog.map((activity, index) => (
+                  <p key={index} className="text-sm text-zinc-300">
+                    {activity}
+                  </p>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
 
         {/* Project Info */}
         <div className="max-w-4xl mx-auto mt-8">
