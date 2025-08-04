@@ -1615,6 +1615,742 @@ export const suitesFloorsData: SuitesFloor[] = [
   piso12Data,
 ]
 
+// Datos de cocheras para Dome Suites
+export interface SuitesGarageSpot {
+  id: string
+  spotNumber: string
+  level: number
+  status: "DISPONIBLE" | "VENDIDO" | "RESERVADO" | "BLOQUEADO"
+  coordinates: string
+  assignedTo?: string // ID del apartamento asignado
+  price: number
+  area: number
+}
+
+// Cocheras Nivel 1 (14 cocheras)
+const nivel1Cocheras: SuitesGarageSpot[] = [
+  {
+    id: "C1",
+    spotNumber: "C1",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "1010,606,1053,717",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C2",
+    spotNumber: "C2",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "939,606,984,717",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C3",
+    spotNumber: "C3",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "877,606,919,715",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C4",
+    spotNumber: "C4",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "813,606,856,715",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C5",
+    spotNumber: "C5",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "743,606,787,716",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C6",
+    spotNumber: "C6",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "681,606,723,717",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C7",
+    spotNumber: "C7",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "616,607,662,716",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C8",
+    spotNumber: "C8",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "546,607,590,717",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C9",
+    spotNumber: "C9",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "484,606,526,718",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C10",
+    spotNumber: "C10",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "420,606,463,716",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C11",
+    spotNumber: "C11",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "275,548,386,589",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C12",
+    spotNumber: "C12",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "275,485,386,527",
+    price: 25000,
+    area: 12.5,
+  },
+  {
+    id: "C13",
+    spotNumber: "C13",
+    level: 1,
+    status: "VENDIDO",
+    coordinates: "275,424,388,467",
+    price: 25000,
+    area: 12.5,
+    assignedTo: "101",
+  },
+  {
+    id: "C14",
+    spotNumber: "C14",
+    level: 1,
+    status: "DISPONIBLE",
+    coordinates: "274,354,386,398",
+    price: 25000,
+    area: 12.5,
+  },
+]
+
+// Cocheras Nivel 2 (28 cocheras)
+const nivel2Cocheras: SuitesGarageSpot[] = [
+  {
+    id: "C15",
+    spotNumber: "C15",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1104,47,1212,86",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C16",
+    spotNumber: "C16",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1104,108,1216,147",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C17",
+    spotNumber: "C17",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1104,169,1214,208",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C18",
+    spotNumber: "C18",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1103,237,1213,279",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C19",
+    spotNumber: "C19",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1104,299,1214,341",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C20",
+    spotNumber: "C20",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1104,362,1212,403",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C21",
+    spotNumber: "C21",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1103,430,1214,470",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C22",
+    spotNumber: "C22",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1104,489,1214,533",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C23",
+    spotNumber: "C23",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1104,552,1215,594",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C24",
+    spotNumber: "C24",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "1038,611,1079,720",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C25",
+    spotNumber: "C25",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "968,612,1010,720",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C26",
+    spotNumber: "C26",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "907,612,948,721",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C27",
+    spotNumber: "C27",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "847,613,887,721",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C28",
+    spotNumber: "C28",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "776,612,818,722",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C29",
+    spotNumber: "C29",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "713,613,758,721",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C30",
+    spotNumber: "C30",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "653,614,695,720",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C31",
+    spotNumber: "C31",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "585,614,628,720",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C32",
+    spotNumber: "C32",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "525,613,563,722",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C33",
+    spotNumber: "C33",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "461,611,502,724",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C34",
+    spotNumber: "C34",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "319,554,429,595",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C35",
+    spotNumber: "C35",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "320,490,428,533",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C36",
+    spotNumber: "C36",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "320,429,429,470",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C37",
+    spotNumber: "C37",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "320,362,428,400",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C38",
+    spotNumber: "C38",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "319,301,430,340",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C39",
+    spotNumber: "C39",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "321,237,429,278",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C40",
+    spotNumber: "C40",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "320,167,429,208",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C41",
+    spotNumber: "C41",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "317,100,430,143",
+    price: 23000,
+    area: 12.5,
+  },
+  {
+    id: "C42",
+    spotNumber: "C42",
+    level: 2,
+    status: "DISPONIBLE",
+    coordinates: "321,37,429,82",
+    price: 23000,
+    area: 12.5,
+  },
+]
+
+// Cocheras Nivel 3 (18 cocheras)
+const nivel3Cocheras: SuitesGarageSpot[] = [
+  {
+    id: "C43",
+    spotNumber: "C43",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1063,49,1170,86",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C44",
+    spotNumber: "C44",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1062,109,1171,151",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C45",
+    spotNumber: "C45",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1062,172,1169,209",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C46",
+    spotNumber: "C46",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1062,240,1169,279",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C47",
+    spotNumber: "C47",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1062,301,1171,340",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C48",
+    spotNumber: "C48",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1063,363,1171,401",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C49",
+    spotNumber: "C49",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1062,429,1170,469",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C50",
+    spotNumber: "C50",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1062,492,1172,533",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C51",
+    spotNumber: "C51",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "1063,553,1170,593",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C52",
+    spotNumber: "C52",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "996,613,1037,720",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C53",
+    spotNumber: "C53",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "926,612,967,720",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C54",
+    spotNumber: "C54",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "864,612,907,720",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C55",
+    spotNumber: "C55",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "804,611,847,723",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C56",
+    spotNumber: "C56",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "737,610,777,720",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C57",
+    spotNumber: "C57",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "674,612,715,721",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C58",
+    spotNumber: "C58",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "818,294,926,335",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C59",
+    spotNumber: "C59",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "818,357,927,397",
+    price: 21000,
+    area: 12.5,
+  },
+  {
+    id: "C60",
+    spotNumber: "C60",
+    level: 3,
+    status: "DISPONIBLE",
+    coordinates: "819,417,926,457",
+    price: 21000,
+    area: 12.5,
+  },
+]
+
+// Combinar todas las cocheras
+export const suitesGarageSpots: SuitesGarageSpot[] = [...nivel1Cocheras, ...nivel2Cocheras, ...nivel3Cocheras]
+
+// Función para obtener cocheras por nivel
+export const getSuitesGarageSpotsByLevel = (level: number): SuitesGarageSpot[] => {
+  return suitesGarageSpots.filter((spot) => spot.level === level)
+}
+
+// Función para obtener cochera por ID
+export const getSuitesGarageSpotById = (id: string): SuitesGarageSpot | null => {
+  return suitesGarageSpots.find((spot) => spot.id === id) || null
+}
+
+// Función para actualizar estado de cochera
+export const updateSuitesGarageSpotStatus = (
+  id: string,
+  newStatus: SuitesGarageSpot["status"],
+  assignedTo?: string,
+): boolean => {
+  const spot = suitesGarageSpots.find((s) => s.id === id)
+  if (spot) {
+    spot.status = newStatus
+    if (assignedTo !== undefined) {
+      spot.assignedTo = assignedTo
+    }
+    return true
+  }
+  return false
+}
+
+// Función para obtener color de estado de cochera
+export const getSuitesGarageStatusColor = (status: SuitesGarageSpot["status"]): string => {
+  switch (status) {
+    case "DISPONIBLE":
+      return "#10B981" // Verde
+    case "VENDIDO":
+      return "#EF4444" // Rojo
+    case "RESERVADO":
+      return "#F59E0B" // Amarillo
+    case "BLOQUEADO":
+      return "#3B82F6" // Azul
+    default:
+      return "#6B7280" // Gris
+  }
+}
+
+// Funciones helper
+export const getSuitesStatusColor = (status: SuitesApartment["status"]): string => {
+  switch (status) {
+    case "DISPONIBLE":
+      return "#10B981" // Verde
+    case "VENDIDO":
+      return "#EF4444" // Rojo
+    case "RESERVADO":
+      return "#F59E0B" // Amarillo
+    case "BLOQUEADO":
+      return "#3B82F6" // Azul
+    default:
+      return "#6B7280" // Gris
+  }
+}
+
+export const getSuitesStatusLabel = (status: SuitesApartment["status"]): string => {
+  switch (status) {
+    case "DISPONIBLE":
+      return "Disponible"
+    case "VENDIDO":
+      return "Vendido"
+    case "RESERVADO":
+      return "Reservado"
+    case "BLOQUEADO":
+      return "Bloqueado"
+    default:
+      return status
+  }
+}
+
+export const formatSuitesPrice = (price: number): string => {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price)
+}
+
+export const formatSuitesArea = (area: number): string => {
+  return `${area.toFixed(1)} m²`
+}
+
+// Función para obtener estadísticas del proyecto
+export const getSuitesProjectStats = () => {
+  const allApartments = suitesFloorsData.flatMap((floor) => floor.apartments)
+
+  const totalUnits = allApartments.length
+  const availableUnits = allApartments.filter((apt) => apt.status === "DISPONIBLE").length
+  const soldUnits = allApartments.filter((apt) => apt.status === "VENDIDO").length
+  const reservedUnits = allApartments.filter((apt) => apt.status === "RESERVADO").length
+  const blockedUnits = allApartments.filter((apt) => apt.status === "BLOQUEADO").length
+
+  return {
+    totalUnits,
+    availableUnits,
+    soldUnits,
+    reservedUnits,
+    blockedUnits,
+    occupancyRate: Math.round(((soldUnits + reservedUnits) / totalUnits) * 100),
+  }
+}
+
+// Función para obtener apartamento por ID
+export const getSuitesApartmentById = (id: string): SuitesApartment | null => {
+  for (const floor of suitesFloorsData) {
+    const apartment = floor.apartments.find((apt) => apt.id === id)
+    if (apartment) return apartment
+  }
+  return null
+}
+
+// Función para actualizar estado de apartamento
+export const updateSuitesApartmentStatus = (id: string, newStatus: SuitesApartment["status"]): boolean => {
+  for (const floor of suitesFloorsData) {
+    const aptIndex = floor.apartments.findIndex((apt) => apt.id === id)
+    if (aptIndex !== -1) {
+      floor.apartments[aptIndex].status = newStatus
+      return true
+    }
+  }
+  return false
+}
+
+// Configuración de planos por piso
+export const suitesFloorPlans = {
+  1: {
+    complete: "/planos/suites/pisos/suitepiso1.jpg",
+  },
+  2: {
+    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
+  },
+  3: {
+    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
+  },
+  4: {
+    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
+  },
+  5: {
+    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
+  },
+  6: {
+    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
+  },
+  7: {
+    complete: "/planos/suites/pisos/suitepiso7-9.jpg",
+  },
+  8: {
+    complete: "/planos/suites/pisos/suitepiso7-9.jpg",
+  },
+  9: {
+    complete: "/planos/suites/pisos/suitepiso7-9.jpg",
+  },
+  10: {
+    complete: "/planos/suites/pisos/suitepiso10.jpg",
+  },
+  11: {
+    complete: "/planos/suites/pisos/suitepiso11.jpg",
+  },
+  12: {
+    complete: "/planos/suites/pisos/suitepiso12.jpg",
+  },
+}
+
 // Información del proyecto
 export const suitesProjectInfo = {
   id: "suites-residence",
@@ -1735,129 +2471,4 @@ export const suitesProjectInfo = {
 
   generalPromotions:
     "Financiación directa con la desarrolladora. Entrega programada. Unidades con terminaciones premium.",
-}
-
-// Configuración de planos por piso
-export const suitesFloorPlans = {
-  1: {
-    complete: "/planos/suites/pisos/suitepiso1.jpg",
-  },
-  2: {
-    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
-  },
-  3: {
-    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
-  },
-  4: {
-    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
-  },
-  5: {
-    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
-  },
-  6: {
-    complete: "/planos/suites/pisos/suitepiso2-6.jpg",
-  },
-  7: {
-    complete: "/planos/suites/pisos/suitepiso7-9.jpg",
-  },
-  8: {
-    complete: "/planos/suites/pisos/suitepiso7-9.jpg",
-  },
-  9: {
-    complete: "/planos/suites/pisos/suitepiso7-9.jpg",
-  },
-  10: {
-    complete: "/planos/suites/pisos/suitepiso10.jpg",
-  },
-  11: {
-    complete: "/planos/suites/pisos/suitepiso11.jpg",
-  },
-  12: {
-    complete: "/planos/suites/pisos/suitepiso12.jpg",
-  },
-}
-
-// Funciones helper
-export const getSuitesStatusColor = (status: SuitesApartment["status"]): string => {
-  switch (status) {
-    case "DISPONIBLE":
-      return "#10B981" // Verde
-    case "VENDIDO":
-      return "#EF4444" // Rojo
-    case "RESERVADO":
-      return "#F59E0B" // Amarillo
-    case "BLOQUEADO":
-      return "#3B82F6" // Azul
-    default:
-      return "#6B7280" // Gris
-  }
-}
-
-export const getSuitesStatusLabel = (status: SuitesApartment["status"]): string => {
-  switch (status) {
-    case "DISPONIBLE":
-      return "Disponible"
-    case "VENDIDO":
-      return "Vendido"
-    case "RESERVADO":
-      return "Reservado"
-    case "BLOQUEADO":
-      return "Bloqueado"
-    default:
-      return status
-  }
-}
-
-export const formatSuitesPrice = (price: number): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price)
-}
-
-export const formatSuitesArea = (area: number): string => {
-  return `${area.toFixed(1)} m²`
-}
-
-// Función para obtener estadísticas del proyecto
-export const getSuitesProjectStats = () => {
-  const allApartments = suitesFloorsData.flatMap((floor) => floor.apartments)
-
-  const totalUnits = allApartments.length
-  const availableUnits = allApartments.filter((apt) => apt.status === "DISPONIBLE").length
-  const soldUnits = allApartments.filter((apt) => apt.status === "VENDIDO").length
-  const reservedUnits = allApartments.filter((apt) => apt.status === "RESERVADO").length
-  const blockedUnits = allApartments.filter((apt) => apt.status === "BLOQUEADO").length
-
-  return {
-    totalUnits,
-    availableUnits,
-    soldUnits,
-    reservedUnits,
-    blockedUnits,
-    occupancyRate: Math.round(((soldUnits + reservedUnits) / totalUnits) * 100),
-  }
-}
-
-// Función para obtener apartamento por ID
-export const getSuitesApartmentById = (id: string): SuitesApartment | null => {
-  for (const floor of suitesFloorsData) {
-    const apartment = floor.apartments.find((apt) => apt.id === id)
-    if (apartment) return apartment
-  }
-  return null
-}
-
-// Función para actualizar estado de apartamento
-export const updateSuitesApartmentStatus = (id: string, newStatus: SuitesApartment["status"]): boolean => {
-  for (const floor of suitesFloorsData) {
-    const aptIndex = floor.apartments.findIndex((apt) => apt.id === id)
-    if (aptIndex !== -1) {
-      floor.apartments[aptIndex].status = newStatus
-      return true
-    }
-  }
-  return false
 }

@@ -28,7 +28,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/app/auth/auth-context"
-import { domePalermoData } from "@/lib/dome-palermo-data"
+import { domePalermoData, type GarageLevel } from "@/lib/dome-palermo-data"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
@@ -63,7 +63,7 @@ interface FloorData {
 interface ParkingSpot {
   id: string
   level: number
-  status: "available" | "occupied"
+  status: "available" | "occupied" | "reserved" | "sold"
   assignedTo: string | null
   path: string
 }
@@ -81,9 +81,10 @@ const garagePlans = {
 export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(1)
   const [selectedApartment, setSelectedApartment] = useState<string | null>(null)
+  const [selectedParkingSpot, setSelectedParkingSpot] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
-  const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
+  const [currentGarageLevel, setCurrentGarageLevel] = useState<GarageLevel>(1)
   const [action, setAction] = useState<string | null>(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -113,7 +114,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
   const projectData = domePalermoData.projectInfo
   const floorData = domePalermoData.getFloorData(currentFloor)
-  const parkingSpots = domePalermoData.parkingSpots
+  const parkingSpots = domePalermoData.getParkingSpotsByLevel(currentGarageLevel)
 
   const statusColors = {
     available: "#87f5af",
@@ -125,11 +126,31 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   const handleFloorClick = (floor: number) => {
     setCurrentFloor(floor)
     setSelectedApartment(null)
+    setSelectedParkingSpot(null)
     setIsModalOpen(false)
   }
 
   const handleApartmentClick = (apartment: string) => {
     setSelectedApartment(apartment)
+    setSelectedParkingSpot(null)
+    setIsModalOpen(true)
+    setAction(null)
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      price: "",
+      note: "",
+      reservationOrder: null,
+    })
+    setConfirmReservation(false)
+    setConfirmCancelReservation(false)
+    setConfirmRelease(false)
+  }
+
+  const handleParkingSpotClick = (spotId: string) => {
+    setSelectedParkingSpot(spotId)
+    setSelectedApartment(null)
     setIsModalOpen(true)
     setAction(null)
     setFormData({
@@ -149,8 +170,8 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     setAction(actionType)
     if (
       actionType === "reserve" &&
-      selectedApartment &&
-      floorData?.apartments[selectedApartment]?.status === "blocked"
+      ((selectedApartment && floorData?.apartments[selectedApartment]?.status === "blocked") ||
+        (selectedParkingSpot && parkingSpots.find((spot) => spot.id === selectedParkingSpot)?.status === "blocked"))
     ) {
       setConfirmReservation(true)
     } else if (actionType === "cancelReservation") {
@@ -162,7 +183,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedApartment || !user) return
+    if ((!selectedApartment && !selectedParkingSpot) || !user) return
 
     setLoading(true)
     try {
@@ -170,16 +191,17 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
       if (notyf) {
+        const itemType = selectedApartment ? "Departamento" : "Cochera"
         switch (action) {
           case "block":
-            notyf.success("Departamento bloqueado con éxito")
+            notyf.success(`${itemType} bloqueado con éxito`)
             break
           case "reserve":
           case "directReserve":
-            notyf.success("Departamento reservado con éxito")
+            notyf.success(`${itemType} reservado con éxito`)
             break
           case "sell":
-            notyf.success("Departamento vendido con éxito")
+            notyf.success(`${itemType} vendido con éxito`)
             break
           case "unblock":
             notyf.success("Bloqueo liberado con éxito")
@@ -188,7 +210,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             notyf.success("Reserva cancelada con éxito")
             break
           case "release":
-            notyf.success("Departamento liberado con éxito")
+            notyf.success(`${itemType} liberado con éxito`)
             break
           default:
             notyf.success("Acción completada con éxito")
@@ -197,6 +219,8 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
       // Actualizar el registro de actividades
       const timestamp = new Date().toLocaleString()
+      const itemId = selectedApartment || selectedParkingSpot
+      const itemType = selectedApartment ? "departamento" : "cochera"
       const description = `${user.name} ${
         action === "block"
           ? "bloqueó"
@@ -205,7 +229,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             : action === "sell"
               ? "vendió"
               : "liberó"
-      } el departamento ${selectedApartment}`
+      } ${itemType} ${itemId}`
       setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
 
       setIsModalOpen(false)
@@ -235,7 +259,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   }
 
   const handleDownloadFloorPlan = () => {
-    if (!selectedApartment) return
+    if (!selectedApartment && !selectedParkingSpot) return
 
     const filePath = "/general/planogenerales/Planos_DOME-Palermo-Residence.pdf"
     const link = document.createElement("a")
@@ -295,7 +319,15 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     }
   }
 
+  const getParkingStats = () => {
+    const stats = domePalermoData.getParkingStats()
+    return stats
+  }
+
   const stats = getUnitStats()
+  const parkingStats = getParkingStats()
+
+  const selectedSpot = selectedParkingSpot ? parkingSpots.find((spot) => spot.id === selectedParkingSpot) : null
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -476,7 +508,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   {garageLevels.map((level) => (
                     <Button
                       key={level}
-                      onClick={() => setCurrentGarageLevel(level)}
+                      onClick={() => setCurrentGarageLevel(level as GarageLevel)}
                       variant={currentGarageLevel === level ? "default" : "outline"}
                       className={currentGarageLevel === level ? "bg-blue-600" : ""}
                     >
@@ -489,53 +521,91 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   <Image
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
-                      "/placeholder.svg?height=600&width=800"
+                      "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
                     fill
-                    className="object-contain"
+                    className="object-contain pointer-events-none"
                   />
-                  {currentGarageLevel === 1 && (
-                    <svg viewBox="90 450 4400 2600" className="absolute top-0 left-0 w-full h-full">
-                      {parkingSpots
-                        .filter((spot) => spot.level === currentGarageLevel)
-                        .map((spot) => (
-                          <g key={spot.id} style={{ cursor: "pointer" }}>
-                            <path
-                              d={spot.path}
-                              fill={
-                                spot.status === "available" ? "rgba(135, 245, 175, 0.3)" : "rgba(245, 127, 127, 0.3)"
-                              }
-                              stroke={spot.status === "available" ? "#22c55e" : "#ef4444"}
-                              strokeWidth="3"
-                            />
-                            <text
-                              x="50%"
-                              y="50%"
-                              textAnchor="middle"
-                              fill="white"
-                              fontSize="40"
-                              dominantBaseline="middle"
-                              stroke="black"
-                              strokeWidth="1"
-                            >
-                              {spot.id}
-                            </text>
-                          </g>
-                        ))}
+                  <div className="absolute inset-0 z-10">
+                    <svg viewBox="100 0 1350 850" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                      {parkingSpots.map((spot) => (
+                        <g key={spot.id} style={{ cursor: "pointer" }} onClick={() => handleParkingSpotClick(spot.id)}>
+                          <path
+                            d={spot.path}
+                            fill={
+                              spot.status === "available"
+                                ? "rgba(135, 245, 175, 0.3)"
+                                : spot.status === "reserved"
+                                  ? "rgba(237, 207, 83, 0.3)"
+                                  : spot.status === "sold"
+                                    ? "rgba(245, 127, 127, 0.3)"
+                                    : "rgba(127, 127, 255, 0.3)"
+                            }
+                            stroke={
+                              spot.status === "available"
+                                ? "#22c55e"
+                                : spot.status === "reserved"
+                                  ? "#eab308"
+                                  : spot.status === "sold"
+                                    ? "#ef4444"
+                                    : "#3b82f6"
+                            }
+                            strokeWidth="2"
+                            className="hover:opacity-80 transition-opacity"
+                          />
+                          <text
+                            x="50%"
+                            y="50%"
+                            textAnchor="middle"
+                            fill="white"
+                            fontSize="12"
+                            dominantBaseline="middle"
+                            stroke="black"
+                            strokeWidth="0.5"
+                            style={{ pointerEvents: "none" }}
+                          >
+                            {spot.id.replace("P" + currentGarageLevel + "-", "")}
+                          </text>
+                        </g>
+                      ))}
                     </svg>
-                  )}
+                  </div>
+                </div>
+
+                {/* Parking Stats */}
+                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Disponibles</div>
+                    <div className="text-xl font-bold text-green-400">{parkingStats.available}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Reservadas</div>
+                    <div className="text-xl font-bold text-yellow-400">{parkingStats.reserved}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Vendidas</div>
+                    <div className="text-xl font-bold text-red-400">{parkingStats.sold}</div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Total</div>
+                    <div className="text-xl font-bold text-blue-400">{parkingStats.total}</div>
+                  </div>
                 </div>
               </div>
             </div>
           </TabsContent>
         </Tabs>
 
-        {/* Apartment Modal */}
+        {/* Unified Modal for Apartments and Parking Spots */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Departamento {selectedApartment}</DialogTitle>
+              <DialogTitle>
+                {selectedApartment ? `Departamento ${selectedApartment}` : `Cochera ${selectedParkingSpot}`}
+              </DialogTitle>
             </DialogHeader>
 
             {selectedApartment && floorData?.apartments[selectedApartment] && (
@@ -680,143 +750,261 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     )}
                   </div>
                 )}
+              </div>
+            )}
 
-                {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
-                    {action !== "sell" && (
+            {selectedParkingSpot && selectedSpot && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-zinc-400">Estado</Label>
+                    <div className="flex items-center mt-1">
+                      <div
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{
+                          backgroundColor:
+                            statusColors[selectedSpot.status as keyof typeof statusColors] || statusColors.available,
+                        }}
+                      />
+                      <Badge variant="outline" className="capitalize">
+                        {selectedSpot.status === "available"
+                          ? "Disponible"
+                          : selectedSpot.status === "reserved"
+                            ? "Reservado"
+                            : selectedSpot.status === "sold"
+                              ? "Vendido"
+                              : "Bloqueado"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Nivel</Label>
+                    <p className="font-semibold">{selectedSpot.level}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Precio</Label>
+                    <p className="font-semibold text-green-400">$15,000</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Asignado a</Label>
+                    <p className="font-semibold">{selectedSpot.assignedTo || "No asignado"}</p>
+                  </div>
+                </div>
+
+                {!action && (
+                  <div className="space-y-2">
+                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                      <Download className="mr-2 h-4 w-4" />
+                      Descargar plano cochera
+                    </Button>
+
+                    {selectedSpot.status === "available" && (
                       <>
-                        <div>
-                          <Label htmlFor="name" className="text-white">
-                            Nombre
-                          </Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            required
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phone" className="text-white">
-                            Teléfono
-                          </Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="email" className="text-white">
-                            Email
-                          </Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
+                        <Button
+                          onClick={() => handleActionClick("block")}
+                          className="w-full bg-purple-600 hover:bg-purple-700"
+                        >
+                          Bloquear
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("directReserve")}
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          Reservar
+                        </Button>
                       </>
                     )}
+
+                    {selectedSpot.status === "blocked" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("reserve")}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          Reservar
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("unblock")}
+                          className="w-full bg-red-600 hover:bg-red-700"
+                        >
+                          Liberar Bloqueo
+                        </Button>
+                      </>
+                    )}
+
+                    {selectedSpot.status === "reserved" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("sell")}
+                          className="w-full bg-green-600 hover:bg-green-700"
+                        >
+                          Vender
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("cancelReservation")}
+                          className="w-full bg-red-600 hover:bg-red-700"
+                        >
+                          Cancelar Reserva
+                        </Button>
+                      </>
+                    )}
+
+                    {selectedSpot.status === "sold" && (
+                      <>
+                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                          Descargar contrato
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("release")}
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                        >
+                          Liberar cochera
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                {action !== "sell" && (
+                  <>
                     <div>
-                      <Label htmlFor="price" className="text-white">
-                        Precio
+                      <Label htmlFor="name" className="text-white">
+                        Nombre
                       </Label>
                       <Input
-                        id="price"
-                        value={formData.price || floorData.apartments[selectedApartment]?.price || ""}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    {action === "sell" && (
-                      <div>
-                        <Label htmlFor="reservationOrder" className="text-white">
-                          Contrato de Venta
-                        </Label>
-                        <Input
-                          id="reservationOrder"
-                          type="file"
-                          onChange={handleFileChange}
-                          required
-                          className="text-white bg-zinc-800 border-zinc-700"
-                          ref={fileInputRef}
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <Label htmlFor="note" className="text-white">
-                        Notas
-                      </Label>
-                      <Textarea
-                        id="note"
-                        value={formData.note}
-                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
-                      {loading
-                        ? "Procesando..."
-                        : `Confirmar ${action === "block" ? "Bloqueo" : action === "reserve" || action === "directReserve" ? "Reserva" : "Venta"}`}
-                    </Button>
-                  </form>
-                )}
-
-                {(action === "unblock" || action === "cancelReservation" || action === "release") && (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
-                    <div>
-                      <Label htmlFor="note" className="text-white">
-                        Nota (Obligatoria)
-                      </Label>
-                      <Textarea
-                        id="note"
-                        value={formData.note}
-                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         required
                         className="text-white bg-zinc-800 border-zinc-700"
                       />
                     </div>
-                    <Button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700">
-                      {loading
-                        ? "Procesando..."
-                        : `Confirmar ${action === "unblock" ? "Liberación" : action === "cancelReservation" ? "Cancelación" : "Liberación"}`}
-                    </Button>
-                  </form>
-                )}
-
-                {(confirmReservation || confirmCancelReservation || confirmRelease) && (
-                  <div className="space-y-4">
-                    <p className="text-yellow-400">
-                      {confirmReservation
-                        ? "¿Confirmar reserva del departamento?"
-                        : confirmCancelReservation
-                          ? "¿Confirmar cancelación de la reserva?"
-                          : "¿Confirmar liberación del departamento?"}
-                    </p>
-                    <div className="flex space-x-2">
-                      <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
-                        Confirmar
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setConfirmReservation(false)
-                          setConfirmCancelReservation(false)
-                          setConfirmRelease(false)
-                          setAction(null)
-                        }}
-                        className="bg-red-600 hover:bg-red-700 flex-1"
-                      >
-                        Cancelar
-                      </Button>
+                    <div>
+                      <Label htmlFor="phone" className="text-white">
+                        Teléfono
+                      </Label>
+                      <Input
+                        id="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
                     </div>
+                    <div>
+                      <Label htmlFor="email" className="text-white">
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                  </>
+                )}
+                <div>
+                  <Label htmlFor="price" className="text-white">
+                    Precio
+                  </Label>
+                  <Input
+                    id="price"
+                    value={
+                      formData.price ||
+                      (selectedApartment && floorData?.apartments[selectedApartment]?.price) ||
+                      "$15,000"
+                    }
+                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                    className="text-white bg-zinc-800 border-zinc-700"
+                  />
+                </div>
+                {action === "sell" && (
+                  <div>
+                    <Label htmlFor="reservationOrder" className="text-white">
+                      Contrato de Venta
+                    </Label>
+                    <Input
+                      id="reservationOrder"
+                      type="file"
+                      onChange={handleFileChange}
+                      required
+                      className="text-white bg-zinc-800 border-zinc-700"
+                      ref={fileInputRef}
+                    />
                   </div>
                 )}
+                <div>
+                  <Label htmlFor="note" className="text-white">
+                    Notas
+                  </Label>
+                  <Textarea
+                    id="note"
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    className="text-white bg-zinc-800 border-zinc-700"
+                  />
+                </div>
+                <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
+                  {loading
+                    ? "Procesando..."
+                    : `Confirmar ${action === "block" ? "Bloqueo" : action === "reserve" || action === "directReserve" ? "Reserva" : "Venta"}`}
+                </Button>
+              </form>
+            )}
+
+            {(action === "unblock" || action === "cancelReservation" || action === "release") && (
+              <form onSubmit={handleFormSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="note" className="text-white">
+                    Nota (Obligatoria)
+                  </Label>
+                  <Textarea
+                    id="note"
+                    value={formData.note}
+                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                    required
+                    className="text-white bg-zinc-800 border-zinc-700"
+                  />
+                </div>
+                <Button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700">
+                  {loading
+                    ? "Procesando..."
+                    : `Confirmar ${action === "unblock" ? "Liberación" : action === "cancelReservation" ? "Cancelación" : "Liberación"}`}
+                </Button>
+              </form>
+            )}
+
+            {(confirmReservation || confirmCancelReservation || confirmRelease) && (
+              <div className="space-y-4">
+                <p className="text-yellow-400">
+                  {confirmReservation
+                    ? `¿Confirmar reserva ${selectedApartment ? "del departamento" : "de la cochera"}?`
+                    : confirmCancelReservation
+                      ? "¿Confirmar cancelación de la reserva?"
+                      : `¿Confirmar liberación ${selectedApartment ? "del departamento" : "de la cochera"}?`}
+                </p>
+                <div className="flex space-x-2">
+                  <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
+                    Confirmar
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setConfirmReservation(false)
+                      setConfirmCancelReservation(false)
+                      setConfirmRelease(false)
+                      setAction(null)
+                    }}
+                    className="bg-red-600 hover:bg-red-700 flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -895,7 +1083,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Estadísticas</h4>
+                  <h4 className="font-semibold text-zinc-300">Estadísticas Departamentos</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Total unidades:</span>
@@ -917,19 +1105,23 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                 </div>
 
                 <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Detalles</h4>
+                  <h4 className="font-semibold text-zinc-300">Estadísticas Cocheras</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between">
-                      <span className="text-zinc-400">Pisos:</span>
-                      <span>{projectData.floors}</span>
+                      <span className="text-zinc-400">Total cocheras:</span>
+                      <span>{parkingStats.total}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-400">Cocheras:</span>
-                      <span>{domePalermoData.parkingConfig.totalSpots}</span>
+                      <span className="text-zinc-400">Disponibles:</span>
+                      <span className="text-green-400">{parkingStats.available}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-400">Estado:</span>
-                      <Badge className="bg-yellow-600">En construcción</Badge>
+                      <span className="text-zinc-400">Reservadas:</span>
+                      <span className="text-yellow-400">{parkingStats.reserved}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Vendidas:</span>
+                      <span className="text-red-400">{parkingStats.sold}</span>
                     </div>
                   </div>
                 </div>

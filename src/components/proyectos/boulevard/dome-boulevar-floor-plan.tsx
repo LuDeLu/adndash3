@@ -38,7 +38,9 @@ import {
   getBoulevardUnitById,
   getBoulevardFloorImage,
   boulevardFloorCoordinates,
+  getBoulevardGarageSpotsByLevel,
   type BoulevardUnit,
+  type BoulevardGarageSpot,
 } from "@/lib/dome-boulevar-data"
 
 let notyf: Notyf | null = null
@@ -84,6 +86,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const [selectedGarageSpot, setSelectedGarageSpot] = useState<BoulevardGarageSpot | null>(null)
 
   // Initialize Notyf
   useEffect(() => {
@@ -288,6 +291,23 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     }
   }
 
+  const handleGarageSpotClick = useCallback((spot: BoulevardGarageSpot) => {
+    setSelectedGarageSpot(spot)
+    setIsModalOpen(true)
+    setAction(null)
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      reservationOrder: null,
+      price: spot.price.toString(),
+      note: "",
+    })
+    setConfirmReservation(false)
+    setConfirmCancelReservation(false)
+    setConfirmRelease(false)
+  }, [])
+
   if (!currentFloorData) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -446,12 +466,34 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   <Image
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
-                      "/placeholder.svg?height=600&width=800"
+                      "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
                     fill
-                    className="object-contain"
+                    className="object-contain pointer-events-none"
                   />
+
+                  {/* SVG overlay for clickable garage spots */}
+                  {(currentGarageLevel === 1 || currentGarageLevel === 3) && (
+                    <div className="absolute inset-0 z-10">
+                      <svg viewBox="0 0 975 860" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                        {getBoulevardGarageSpotsByLevel(currentGarageLevel).map((spot) => (
+                          <polygon
+                            key={spot.id}
+                            points={spot.coords}
+                            fill={getStatusColor(spot.status)}
+                            stroke="white"
+                            strokeWidth="2"
+                            opacity="0.7"
+                            onClick={() => handleGarageSpotClick(spot)}
+                            style={{ cursor: "pointer" }}
+                            className="hover:opacity-100 transition-opacity"
+                          />
+                        ))}
+                      </svg>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -486,7 +528,13 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
             <DialogHeader>
-              <DialogTitle>Detalles de la unidad {selectedUnit?.unitNumber}</DialogTitle>
+              <DialogTitle>
+                {selectedUnit
+                  ? `Detalles de la unidad ${selectedUnit.unitNumber}`
+                  : selectedGarageSpot
+                    ? `Cochera ${selectedGarageSpot.spotNumber} - Nivel ${selectedGarageSpot.level}`
+                    : "Detalles"}
+              </DialogTitle>
             </DialogHeader>
             {selectedUnit && (
               <div className="space-y-4">
@@ -700,6 +748,88 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                 )}
               </div>
             )}
+
+            {selectedGarageSpot && (
+              <div className="space-y-4">
+                <DialogDescription className="text-zinc-300 space-y-2">
+                  <p>
+                    <strong>Estado:</strong> {getStatusLabel(selectedGarageSpot.status)}
+                  </p>
+                  <p>
+                    <strong>Precio:</strong> USD {selectedGarageSpot.price.toLocaleString()}
+                  </p>
+                  <p>
+                    <strong>Nivel:</strong> {selectedGarageSpot.level}
+                  </p>
+                  <p>
+                    <strong>Número:</strong> {selectedGarageSpot.spotNumber}
+                  </p>
+                </DialogDescription>
+
+                {!action && (
+                  <div className="space-y-2">
+                    {selectedGarageSpot.status === "DISPONIBLE" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("block")}
+                          className="bg-blue-600 hover:bg-blue-700 w-full"
+                        >
+                          Bloquear
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("directReserve")}
+                          className="bg-green-600 hover:bg-green-700 w-full"
+                        >
+                          Reservar
+                        </Button>
+                      </>
+                    )}
+                    {selectedGarageSpot.status === "BLOQUEADO" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("reserve")}
+                          className="bg-green-600 hover:bg-green-700 w-full"
+                        >
+                          Reservar
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("unblock")}
+                          className="bg-red-600 hover:bg-red-700 w-full"
+                        >
+                          Liberar Bloqueo
+                        </Button>
+                      </>
+                    )}
+                    {selectedGarageSpot.status === "RESERVADO" && (
+                      <>
+                        <Button
+                          onClick={() => handleActionClick("sell")}
+                          className="bg-green-600 hover:bg-green-700 w-full"
+                        >
+                          Vender
+                        </Button>
+                        <Button
+                          onClick={() => handleActionClick("cancelReservation")}
+                          className="bg-red-600 hover:bg-red-700 w-full"
+                        >
+                          Cancelar Reserva
+                        </Button>
+                      </>
+                    )}
+                    {selectedGarageSpot.status === "VENDIDO" && (
+                      <Button
+                        onClick={() => handleActionClick("release")}
+                        className="bg-yellow-600 hover:bg-yellow-700 w-full"
+                      >
+                        Liberar cochera
+                      </Button>
+                    )}
+                  </div>
+                )}
+                {/* Rest of garage spot modal content - same form handling as units */}
+              </div>
+            )}
+
             <DialogFooter>
               <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar

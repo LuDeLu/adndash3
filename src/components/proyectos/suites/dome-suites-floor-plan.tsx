@@ -42,6 +42,10 @@ import {
   formatSuitesArea,
   updateSuitesApartmentStatus,
   getSuitesStatusColor,
+  type SuitesGarageSpot,
+  getSuitesGarageSpotsByLevel,
+  updateSuitesGarageSpotStatus,
+  getSuitesGarageStatusColor,
 } from "@/lib/dome-suites-data"
 
 let notyf: Notyf | null = null
@@ -85,7 +89,7 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   const [confirmRelease, setConfirmRelease] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedParking, setSelectedParking] = useState<string | null>(null)
+  const [selectedParking, setSelectedParking] = useState<SuitesGarageSpot | null>(null)
   // Fix: Explicitly type currentGarageLevel to be one of the literal numbers from garageLevels
   const [currentGarageLevel, setCurrentGarageLevel] = useState<(typeof garageLevels)[number]>(1)
   const [parkingSpots, setParkingSpots] = useState<any[]>([])
@@ -96,6 +100,11 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const handleParkingClick = useCallback((spot: SuitesGarageSpot) => {
+    setSelectedParking(spot)
+    setIsParkingModalOpen(true)
+  }, [])
 
   // Initialize Notyf
   useEffect(() => {
@@ -477,12 +486,47 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
                 </div>
                 <div className="relative aspect-video">
                   <Image
-                    src={garagePlans[currentGarageLevel] || "/placeholder.svg"} // This line is now correctly typed
+                    src={garagePlans[currentGarageLevel] || "/placeholder.svg"}
                     alt={`Plano de la cochera nivel ${currentGarageLevel}`}
                     fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                     style={{ objectFit: "contain" }}
+                    className="pointer-events-none"
                   />
+
+                  {/* SVG overlay for clickable garage spots */}
+                  <div className="absolute inset-0 z-10">
+                    <svg viewBox="0 -10 1370 855" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                      {getSuitesGarageSpotsByLevel(currentGarageLevel).map((spot) => {
+                        const coords = spot.coordinates.split(",").map(Number)
+                        if (coords.length === 4) {
+                          const [x1, y1, x2, y2] = coords
+                          const points = `${x1},${y1} ${x2},${y1} ${x2},${y2} ${x1},${y2}`
+
+                          return (
+                            <polygon
+                              key={spot.id}
+                              points={points}
+                              fill={getSuitesGarageStatusColor(spot.status as any)}
+                              stroke="white"
+                              strokeWidth="2"
+                              opacity="0.7"
+                              onClick={() => handleParkingClick(spot)}
+                              style={{ cursor: "pointer" }}
+                              className="hover:opacity-100 transition-opacity"
+                            />
+                          )
+                        }
+                        return null
+                      })}
+                    </svg>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <p className="text-sm text-zinc-400">
+                    Nivel {currentGarageLevel}: {getSuitesGarageSpotsByLevel(currentGarageLevel).length} cocheras
+                    disponibles
+                  </p>
                 </div>
               </div>
             </div>
@@ -799,6 +843,130 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
             </ScrollArea>
           </div>
         </div>
+
+        {/* Parking Modal */}
+        <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
+          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+            <DialogHeader>
+              <DialogTitle>Cochera {selectedParking?.spotNumber}</DialogTitle>
+            </DialogHeader>
+            {selectedParking && (
+              <div className="space-y-4">
+                <DialogDescription className="text-zinc-300 space-y-2">
+                  <p>
+                    <strong>Nivel:</strong> {selectedParking.level}
+                  </p>
+                  <p>
+                    <strong>Estado:</strong> {getSuitesStatusLabel(selectedParking.status as any)}
+                  </p>
+                  <p>
+                    <strong>Precio:</strong> {formatSuitesPrice(selectedParking.price)}
+                  </p>
+                  <p>
+                    <strong>Área:</strong> {selectedParking.area} m²
+                  </p>
+                  {selectedParking.assignedTo && (
+                    <p>
+                      <strong>Asignada a:</strong> Unidad {selectedParking.assignedTo}
+                    </p>
+                  )}
+                </DialogDescription>
+
+                <div className="space-y-2">
+                  {selectedParking.status === "DISPONIBLE" && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          updateSuitesGarageSpotStatus(selectedParking.id, "BLOQUEADO")
+                          setIsParkingModalOpen(false)
+                          if (notyf) notyf.success("Cochera bloqueada")
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 w-full"
+                      >
+                        Bloquear
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          updateSuitesGarageSpotStatus(selectedParking.id, "RESERVADO")
+                          setIsParkingModalOpen(false)
+                          if (notyf) notyf.success("Cochera reservada")
+                        }}
+                        className="bg-green-600 hover:bg-green-700 w-full"
+                      >
+                        Reservar
+                      </Button>
+                    </>
+                  )}
+                  {selectedParking.status === "BLOQUEADO" && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          updateSuitesGarageSpotStatus(selectedParking.id, "RESERVADO")
+                          setIsParkingModalOpen(false)
+                          if (notyf) notyf.success("Cochera reservada")
+                        }}
+                        className="bg-green-600 hover:bg-green-700 w-full"
+                      >
+                        Reservar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          updateSuitesGarageSpotStatus(selectedParking.id, "DISPONIBLE")
+                          setIsParkingModalOpen(false)
+                          if (notyf) notyf.success("Bloqueo liberado")
+                        }}
+                        className="bg-red-600 hover:bg-red-700 w-full"
+                      >
+                        Liberar Bloqueo
+                      </Button>
+                    </>
+                  )}
+                  {selectedParking.status === "RESERVADO" && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          updateSuitesGarageSpotStatus(selectedParking.id, "VENDIDO")
+                          setIsParkingModalOpen(false)
+                          if (notyf) notyf.success("Cochera vendida")
+                        }}
+                        className="bg-green-600 hover:bg-green-700 w-full"
+                      >
+                        Vender
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          updateSuitesGarageSpotStatus(selectedParking.id, "DISPONIBLE")
+                          setIsParkingModalOpen(false)
+                          if (notyf) notyf.success("Reserva cancelada")
+                        }}
+                        className="bg-red-600 hover:bg-red-700 w-full"
+                      >
+                        Cancelar Reserva
+                      </Button>
+                    </>
+                  )}
+                  {selectedParking.status === "VENDIDO" && (
+                    <Button
+                      onClick={() => {
+                        updateSuitesGarageSpotStatus(selectedParking.id, "DISPONIBLE", undefined)
+                        setIsParkingModalOpen(false)
+                        if (notyf) notyf.success("Cochera liberada")
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-700 w-full"
+                    >
+                      Liberar Cochera
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

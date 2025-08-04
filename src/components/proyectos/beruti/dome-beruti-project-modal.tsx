@@ -138,11 +138,11 @@ export function DomeBerutiProjectModal({
 
                 {/* SVG Overlay para pisos */}
                 <svg
-                  viewBox="0 0 1000 800"
+                  viewBox="-120 100 1000 800"
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
-                  <g transform="scale(1.2, 1.0) translate(-200, 50)">
+                  <g transform="scale(1.0, 1.15) translate(-200, 50)">
                     <AnimatePresence>
                       {floors.map((floor) => {
                         const totalUnits =

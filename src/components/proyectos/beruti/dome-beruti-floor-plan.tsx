@@ -34,6 +34,7 @@ import {
   updateBerutiApartmentStatus,
   type BerutiApartment,
   berutiParkingSpots,
+  type BerutiParkingSpot,
 } from "@/lib/dome-beruti-data"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
@@ -81,6 +82,8 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
   const [refreshing, setRefreshing] = useState(false)
+  const [selectedParkingSpot, setSelectedParkingSpot] = useState<BerutiParkingSpot | null>(null)
+  const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
 
   // Initialize Notyf
   useEffect(() => {
@@ -277,6 +280,11 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   }
 
   const stats = getUnitStats()
+
+  const handleParkingSpotClick = useCallback((spot: BerutiParkingSpot) => {
+    setSelectedParkingSpot(spot)
+    setIsParkingModalOpen(true)
+  }, [])
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -486,26 +494,121 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                   ))}
                 </div>
 
+                {/* Garage Plan with Interactive Areas */}
                 <div className="relative aspect-video">
                   <Image
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
-                      "/placeholder.svg?height=600&width=800"
+                      "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
                     fill
-                    className="object-contain"
+                    className="object-contain pointer-events-none"
                   />
+
+                  {/* Interactive parking spots overlay */}
+                  <div className="absolute inset-0 z-10">
+                    <svg viewBox="0 0 1200 780" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                      {berutiParkingSpots
+                        .filter((spot) => spot.level === currentGarageLevel)
+                        .map((spot) => {
+                          if (!spot.coordinates) return null
+
+                          const coords = spot.coordinates.split(",").map(Number)
+                          const [x1, y1, x2, y2] = coords
+
+                          return (
+                            <rect
+                              key={spot.id}
+                              x={x1}
+                              y={y1}
+                              width={x2 - x1}
+                              height={y2 - y1}
+                              fill={getBerutiStatusColor(spot.status)}
+                              stroke="white"
+                              strokeWidth="2"
+                              opacity="0.7"
+                              onClick={() => handleParkingSpotClick(spot)}
+                              style={{ cursor: "pointer" }}
+                              className="hover:opacity-100 transition-opacity"
+                            />
+                          )
+                        })}
+                    </svg>
+                  </div>
                 </div>
 
-                {/* Parking Info */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {berutiParkingSpots.map((parking) => (
-                    <div key={parking.id} className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                      <h4 className="font-semibold text-white">{parking.level}</h4>
-                      <p className="text-green-400 font-bold">{formatBerutiPrice(parking.price)}</p>
+                {/* Parking Stats */}
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Total Cocheras</div>
+                    <div className="text-xl font-bold text-white">
+                      {berutiParkingSpots.filter((spot) => spot.level === currentGarageLevel).length}
                     </div>
-                  ))}
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Disponibles</div>
+                    <div className="text-xl font-bold text-green-400">
+                      {
+                        berutiParkingSpots.filter(
+                          (spot) => spot.level === currentGarageLevel && spot.status === "DISPONIBLE",
+                        ).length
+                      }
+                    </div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Vendidas</div>
+                    <div className="text-xl font-bold text-red-400">
+                      {
+                        berutiParkingSpots.filter(
+                          (spot) => spot.level === currentGarageLevel && spot.status === "VENDIDO",
+                        ).length
+                      }
+                    </div>
+                  </div>
+                  <div className="bg-zinc-800 p-3 rounded">
+                    <div className="text-sm text-zinc-400">Reservadas</div>
+                    <div className="text-xl font-bold text-yellow-400">
+                      {
+                        berutiParkingSpots.filter(
+                          (spot) => spot.level === currentGarageLevel && spot.status === "RESERVADO",
+                        ).length
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                {/* Parking Legend */}
+                <div className="flex flex-wrap gap-4 mt-4">
+                  <div className="flex items-center">
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: getBerutiStatusColor("DISPONIBLE") }}
+                    ></div>
+                    <span className="text-sm">Disponible</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: getBerutiStatusColor("RESERVADO") }}
+                    ></div>
+                    <span className="text-sm">Reservado</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: getBerutiStatusColor("VENDIDO") }}
+                    ></div>
+                    <span className="text-sm">Vendido</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: getBerutiStatusColor("BLOQUEADO") }}
+                    ></div>
+                    <span className="text-sm">Bloqueado</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -819,6 +922,85 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
             )}
             <DialogFooter>
               <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Parking Spot Modal */}
+        <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
+          <DialogContent className="sm:max-w-[400px] bg-zinc-900 text-white border-zinc-800">
+            <DialogHeader>
+              <DialogTitle>Cochera {selectedParkingSpot?.id}</DialogTitle>
+            </DialogHeader>
+
+            {selectedParkingSpot && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-zinc-400">Estado</Label>
+                    <div className="flex items-center mt-1">
+                      <div
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: getBerutiStatusColor(selectedParkingSpot.status) }}
+                      />
+                      <Badge variant="outline" className="capitalize">
+                        {getBerutiStatusLabel(selectedParkingSpot.status)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Nivel</Label>
+                    <p className="font-semibold">Nivel {selectedParkingSpot.level}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Tipo</Label>
+                    <p className="font-semibold">{selectedParkingSpot.type}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Precio</Label>
+                    <p className="font-semibold text-green-400">{formatBerutiPrice(selectedParkingSpot.price)}</p>
+                  </div>
+                </div>
+
+                {selectedParkingSpot.assignedTo && (
+                  <div className="p-3 bg-zinc-800 rounded">
+                    <Label className="text-zinc-400">Asignada a:</Label>
+                    <p className="font-semibold">{selectedParkingSpot.assignedTo}</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {selectedParkingSpot.status === "DISPONIBLE" && (
+                    <>
+                      <Button className="w-full bg-purple-600 hover:bg-purple-700">asignar Cochera</Button>
+                    </>
+                  )}
+
+                  {selectedParkingSpot.status === "BLOQUEADO" && (
+                    <>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">Reservar Cochera</Button>
+                      <Button className="w-full bg-red-600 hover:bg-red-700">Liberar Bloqueo</Button>
+                    </>
+                  )}
+
+                  {selectedParkingSpot.status === "RESERVADO" && (
+                    <>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">Vender Cochera</Button>
+                      <Button className="w-full bg-red-600 hover:bg-red-700">Cancelar Reserva</Button>
+                    </>
+                  )}
+
+                  {selectedParkingSpot.status === "VENDIDO" && (
+                    <Button className="w-full bg-yellow-600 hover:bg-yellow-700">Liberar Cochera</Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
               </Button>
             </DialogFooter>

@@ -114,7 +114,7 @@ export function DomeBoulevardProjectModal({
               {/* Imagen del edificio con overlay de pisos */}
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
-                  src="/placeholder.svg?height=800&width=600&text=DOME+Boulevar+Edificio"
+                  src="/images/edificio/cerviño.png"
                   alt="DOME Boulevard"
                   fill
                   style={{ objectFit: "cover" }}
@@ -125,11 +125,11 @@ export function DomeBoulevardProjectModal({
 
                 {/* SVG Overlay para pisos */}
                 <svg
-                  viewBox="850 93 3000 800"
+                  viewBox="-150 850 2300 1000"
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
-                  <g transform="scale(5.3, 0.8) translate(-200, 50)">
+                  <g transform="scale(2.6, 3) translate(-200, 50)">
                     <AnimatePresence>
                       {floors.map((floor) => {
                         const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
