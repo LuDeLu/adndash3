@@ -58,6 +58,156 @@ const garagePlans = {
   3: "/planos/apart/cochera/nivel3.png",
 }
 
+// Coordenadas de las cocheras para cada nivel
+const apartGarageCoordinates = {
+  1: [
+    {
+      id: "a1",
+      coords: "455,109,440,216,444,226,442,241,452,248,488,255,495,250,499,233,506,227,517,118,507,109,489,106,472,104",
+    },
+    {
+      id: "a2",
+      coords: "552,127,531,236,535,245,533,260,546,269,580,272,591,263,592,250,600,240,610,136,595,128,569,122",
+    },
+    { id: "a3", coords: "222,283,215,318,216,342,334,362,356,356,360,336,360,306,334,295" },
+    { id: "a4", coords: "208,379,202,411,203,436,254,445,326,453,341,445,347,409,343,393,294,387,247,380" },
+    { id: "a5", coords: "189,488,184,525,219,536,296,547,321,546,328,533,330,506,331,490,317,486,298,480,199,468" },
+    {
+      id: "a6",
+      coords:
+        "379,634,380,735,385,750,407,755,428,754,443,747,446,637,441,631,443,615,435,615,429,610,415,607,398,607,391,610,385,617",
+    },
+    {
+      id: "a7",
+      coords:
+        "478,631,477,734,480,745,484,750,498,755,530,754,539,749,541,722,541,639,537,632,536,619,531,610,511,608,495,608,486,610",
+    },
+    {
+      id: "a8",
+      coords: "569,633,571,748,588,754,599,754,622,752,630,749,633,636,629,630,631,619,623,609,599,607,585,607,576,611",
+    },
+    {
+      id: "a9",
+      coords:
+        "679,634,679,748,703,754,716,754,729,753,738,750,742,743,744,637,739,629,739,617,733,610,723,608,712,608,691,608,686,613",
+    },
+    {
+      id: "a10",
+      coords: "785,634,786,744,795,753,816,756,837,753,847,745,850,637,847,630,846,618,838,609,798,607,789,611",
+    },
+    {
+      id: "a11",
+      coords:
+        "887,632,889,750,896,752,902,752,921,755,936,752,946,752,952,740,951,637,950,630,947,617,942,609,928,607,908,607,900,608,892,615",
+    },
+  ],
+  2: [
+    {
+      id: "b1",
+      coords: "465,112,447,218,450,229,449,243,456,250,490,255,497,252,504,245,511,233,516,180,523,132,519,113,487,107",
+    },
+    {
+      id: "b2",
+      coords:
+        "559,127,536,236,540,246,537,260,549,267,576,274,589,269,594,268,595,253,599,247,614,160,614,140,605,131,588,129,581,128",
+    },
+    {
+      id: "b3",
+      coords: "231,316,241,288,353,296,358,301,372,304,378,313,376,330,375,348,372,356,364,363,349,359,345,364,233,346",
+    },
+    {
+      id: "b4",
+      coords: "226,380,221,403,219,430,229,438,330,454,338,450,350,453,361,444,365,415,358,398,347,395,338,390,266,381",
+    },
+    {
+      id: "b5",
+      coords: "214,471,205,489,204,512,206,530,313,546,323,543,335,548,343,538,348,527,350,506,348,495,338,486,326,483",
+    },
+    {
+      id: "b6",
+      coords:
+        "386,628,387,734,388,748,418,750,440,748,449,740,451,632,446,629,446,613,435,607,419,607,407,607,398,609,390,612",
+    },
+    {
+      id: "b7",
+      coords:
+        "480,630,482,743,496,749,515,748,528,748,542,742,546,633,543,627,539,610,530,607,520,607,510,606,499,604,492,607,487,613,482,622",
+    },
+    {
+      id: "b8",
+      coords:
+        "588,632,592,738,598,745,609,748,620,748,636,748,644,749,651,744,653,719,654,631,650,626,652,616,645,606,611,605,600,606,593,616,595,627",
+    },
+    {
+      id: "b9",
+      coords:
+        "686,629,688,738,691,745,697,746,703,746,713,748,738,747,744,743,748,736,748,730,748,653,750,632,747,627,745,612,735,604,718,604,699,606,690,613",
+    },
+    {
+      id: "b10",
+      coords:
+        "790,630,790,725,793,743,801,750,815,751,828,751,841,750,852,746,856,635,849,628,850,612,837,608,821,607,808,606,801,607,795,612",
+    },
+    {
+      id: "b11",
+      coords:
+        "892,634,893,740,898,749,903,750,918,751,928,751,940,750,948,750,953,745,955,737,957,634,953,631,954,617,949,611,932,608,919,608,910,607,900,611,895,618",
+    },
+  ],
+  3: [
+    {
+      id: "c1",
+      coords:
+        "455,104,450,126,434,217,437,222,437,236,445,242,459,246,471,245,480,246,490,242,492,230,499,226,511,119,501,109,478,105",
+    },
+    {
+      id: "c2",
+      coords:
+        "546,122,539,149,525,230,529,239,525,253,536,260,541,262,551,264,567,268,583,262,583,249,587,245,590,228,600,158,601,143,603,131,591,124,566,120",
+    },
+    {
+      id: "c3",
+      coords:
+        "227,280,218,292,215,313,214,327,217,337,240,347,272,348,288,350,306,353,314,355,326,356,339,355,351,354,354,348,358,340,361,321,362,311,357,298,346,296,337,294,323,291,310,291,290,288,275,286,257,283",
+    },
+    {
+      id: "c4",
+      coords:
+        "213,374,204,389,202,419,204,431,226,438,250,439,284,444,292,447,309,448,319,446,332,449,342,441,347,405,343,394,331,390,314,382,279,381,253,377,232,375",
+    },
+    {
+      id: "c5",
+      coords:
+        "197,466,188,480,186,499,187,512,188,520,194,524,204,529,225,530,259,535,281,539,287,541,296,543,302,538,314,539,326,536,330,528,331,512,331,495,327,486,322,482,310,481,304,475,288,475,269,475,257,473,241,471,230,469,221,468",
+    },
+    {
+      id: "c6",
+      coords:
+        "369,624,370,681,370,708,369,726,372,739,383,742,396,743,409,743,420,742,429,740,432,731,434,629,431,623,433,611,429,602,420,596,411,598,398,597,386,597,374,599",
+    },
+    {
+      id: "c7",
+      coords:
+        "464,621,467,644,466,667,466,683,467,699,464,722,467,734,475,741,490,743,503,742,512,741,519,739,527,739,529,726,527,678,529,651,530,641,531,629,530,622,525,617,527,604,518,601,511,598,493,598,481,597,469,602,470,610",
+    },
+    {
+      id: "c8",
+      coords:
+        "575,620,576,643,578,659,579,676,576,704,577,719,579,736,588,741,603,741,619,740,629,740,635,736,641,721,641,709,641,697,641,685,640,671,640,661,639,651,640,644,641,633,641,624,638,617,637,609,635,599,626,597,617,595,600,595,588,594,580,603",
+    },
+    {
+      id: "c9",
+      coords:
+        "672,623,674,645,675,658,674,685,674,697,672,709,673,719,674,728,678,740,685,740,696,740,704,742,711,741,719,739,729,739,732,734,734,728,738,720,737,655,737,644,740,636,740,629,738,623,733,619,735,604,725,598,711,593,694,594,680,596,674,609",
+    },
+    {
+      id: "c10",
+      coords:
+        "778,623,780,644,781,656,779,678,779,702,780,713,782,730,784,738,798,739,818,741,831,741,841,735,840,724,842,707,843,694,842,685,844,665,842,647,846,639,842,621,842,612,837,598,825,597,810,597,791,595,781,602",
+    },
+  ],
+}
+
 export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: DomeApartFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedUnit, setSelectedUnit] = useState<ApartUnit | null>(null)
@@ -286,6 +436,14 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
 
   const stats = getUnitStats()
 
+  const handleParkingClick = useCallback((parkingId: string) => {
+    const parking = apartParking.find((p) => p.id === parkingId)
+    if (parking) {
+      setSelectedParking(parkingId)
+      setIsParkingModalOpen(true)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -493,12 +651,40 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                   <Image
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
-                      "/placeholder.svg?height=600&width=800"
+                      "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
                     fill
                     className="object-contain"
                   />
+                  {/* SVG Overlay para cocheras clickeables */}
+                  {apartGarageCoordinates[currentGarageLevel as keyof typeof apartGarageCoordinates] && (
+                    <div className="absolute inset-0 z-10">
+                      <svg viewBox="0 0 1155 860" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                        {apartGarageCoordinates[currentGarageLevel as keyof typeof apartGarageCoordinates].map(
+                          (parkingCoord) => {
+                            const parking = apartParking.find((p) => p.id === parkingCoord.id)
+                            if (!parking) return null
+
+                            return (
+                              <polygon
+                                key={parkingCoord.id}
+                                points={parkingCoord.coords}
+                                fill={parking.status === "ocupado" ? "#ef4444" : "#22c55e"}
+                                stroke="black"
+                                strokeWidth="2"
+                                opacity="0.7"
+                                onClick={() => handleParkingClick(parkingCoord.id)}
+                                style={{ cursor: "pointer" }}
+                                className="hover:opacity-100 transition-opacity"
+                              />
+                            )
+                          },
+                        )}
+                      </svg>
+                    </div>
+                  )}
                 </div>
 
                 {/* Parking Info */}
@@ -780,6 +966,69 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
             )}
             <DialogFooter>
               <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Parking Modal */}
+        <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
+          <DialogContent className="sm:max-w-[400px] bg-zinc-900 text-white border-zinc-800">
+            <DialogHeader>
+              <DialogTitle>Cochera {selectedParking}</DialogTitle>
+            </DialogHeader>
+
+            {selectedParking && (
+              <div className="space-y-4">
+                {(() => {
+                  const parking = apartParking.find((p) => p.id === selectedParking)
+                  if (!parking) return null
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <Label className="text-zinc-400">Estado</Label>
+                          <div className="flex items-center mt-1">
+                            <div
+                              className="w-3 h-3 rounded-full mr-2"
+                              style={{ backgroundColor: parking.status === "ocupado" ? "#ef4444" : "#22c55e" }}
+                            />
+                            <Badge variant="outline" className="capitalize">
+                              {parking.status === "ocupado" ? "Ocupado" : "Libre"}
+                            </Badge>
+                          </div>
+                        </div>
+                        <div>
+                          <Label className="text-zinc-400">Nivel</Label>
+                          <p className="font-semibold">{parking.level}</p>
+                        </div>
+                        <div>
+                          <Label className="text-zinc-400">Precio</Label>
+                          <p className="font-semibold text-green-400">{formatApartPrice(parking.price)}</p>
+                        </div>
+                        <div>
+                          <Label className="text-zinc-400">Condición</Label>
+                          <p className="font-semibold">{parking.condition}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {parking.status === "libre" && (
+                          <Button className="w-full bg-blue-600 hover:bg-blue-700">Asignar Cochera</Button>
+                        )}
+                        {parking.status === "ocupado" && (
+                          <Button className="w-full bg-red-600 hover:bg-red-700">Liberar Cochera</Button>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
               </Button>
             </DialogFooter>

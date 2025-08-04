@@ -1,0 +1,68 @@
+Nivel 1
+
+ <area target="" alt="" title="" href="" coords="1010,606,1053,717" shape="rect">
+    <area target="" alt="" title="" href="" coords="939,606,984,717" shape="rect">
+    <area target="" alt="" title="" href="" coords="877,606,919,715" shape="rect">
+    <area target="" alt="" title="" href="" coords="813,606,856,715" shape="rect">
+    <area target="" alt="" title="" href="" coords="743,606,787,716" shape="rect">
+    <area target="" alt="" title="" href="" coords="681,606,723,717" shape="rect">
+    <area target="" alt="" title="" href="" coords="616,607,662,716" shape="rect">
+    <area target="" alt="" title="" href="" coords="546,607,590,717" shape="rect">
+    <area target="" alt="" title="" href="" coords="484,606,526,718" shape="rect">
+    <area target="" alt="" title="" href="" coords="420,606,463,716" shape="rect">
+    <area target="" alt="" title="" href="" coords="275,548,386,589" shape="rect">
+    <area target="" alt="" title="" href="" coords="275,485,386,527" shape="rect">
+    <area target="" alt="" title="" href="" coords="275,424,388,467" shape="rect">
+    <area target="" alt="" title="" href="" coords="274,354,386,398" shape="rect">
+
+Nivel 2
+
+<area target="" alt="" title="" href="" coords="1104,47,1212,86" shape="rect">
+    <area target="" alt="" title="" href="" coords="1104,108,1216,147" shape="rect">
+    <area target="" alt="" title="" href="" coords="1104,169,1214,208" shape="0">
+    <area target="" alt="" title="" href="" coords="1103,237,1213,279" shape="0">
+    <area target="" alt="" title="" href="" coords="1104,299,1214,341" shape="0">
+    <area target="" alt="" title="" href="" coords="1104,362,1212,403" shape="0">
+    <area target="" alt="" title="" href="" coords="1103,430,1214,470" shape="0">
+    <area target="" alt="" title="" href="" coords="1104,489,1214,533" shape="0">
+    <area target="" alt="" title="" href="" coords="1104,552,1215,594" shape="0">
+    <area target="" alt="" title="" href="" coords="1038,611,1079,720" shape="0">
+    <area target="" alt="" title="" href="" coords="968,612,1010,720" shape="0">
+    <area target="" alt="" title="" href="" coords="907,612,948,721" shape="0">
+    <area target="" alt="" title="" href="" coords="847,613,887,721" shape="0">
+    <area target="" alt="" title="" href="" coords="776,612,818,722" shape="0">
+    <area target="" alt="" title="" href="" coords="713,613,758,721" shape="0">
+    <area target="" alt="" title="" href="" coords="653,614,695,720" shape="0">
+    <area target="" alt="" title="" href="" coords="585,614,628,720" shape="0">
+    <area target="" alt="" title="" href="" coords="525,613,563,722" shape="0">
+    <area target="" alt="" title="" href="" coords="461,611,502,724" shape="0">
+    <area target="" alt="" title="" href="" coords="319,554,429,595" shape="0">
+    <area target="" alt="" title="" href="" coords="320,490,428,533" shape="0">
+    <area target="" alt="" title="" href="" coords="320,429,429,470" shape="0">
+    <area target="" alt="" title="" href="" coords="320,362,428,400" shape="0">
+    <area target="" alt="" title="" href="" coords="319,301,430,340" shape="0">
+    <area target="" alt="" title="" href="" coords="321,237,429,278" shape="0">
+    <area target="" alt="" title="" href="" coords="320,167,429,208" shape="0">
+    <area target="" alt="" title="" href="" coords="317,100,430,143" shape="0">
+    <area target="" alt="" title="" href="" coords="321,37,429,82" shape="0">
+
+Nivel 3
+
+    <area target="" alt="c1" title="c1" href="" coords="1063,49,1170,86" shape="rect">
+    <area target="" alt="c2" title="c2" href="" coords="1062,151,1171,109" shape="0">
+    <area target="" alt="c3" title="c3" href="" coords="1062,172,1169,209" shape="0">
+    <area target="" alt="c4" title="c4" href="" coords="1062,240,1169,279" shape="0">
+    <area target="" alt="c5" title="c5" href="" coords="1062,301,1171,340" shape="0">
+    <area target="" alt="c6" title="c6" href="" coords="1063,363,1171,401" shape="0">
+    <area target="" alt="c7" title="c7" href="" coords="1062,429,1170,469" shape="0">
+    <area target="" alt="c8" title="c8" href="" coords="1062,492,1172,533" shape="0">
+    <area target="" alt="c9" title="c9" href="" coords="1063,553,1170,593" shape="rect">
+    <area target="" alt="c13" title="c13" href="" coords="996,613,1037,720" shape="rect">
+    <area target="" alt="c14" title="c14" href="" coords="926,612,967,720" shape="0">
+    <area target="" alt="c15" title="c15" href="" coords="864,612,907,720" shape="0">
+    <area target="" alt="c16" title="c16" href="" coords="804,611,847,723" shape="0">
+    <area target="" alt="c17" title="c17" href="" coords="737,610,777,720" shape="0">
+    <area target="" alt="c18" title="c18" href="" coords="674,612,715,721" shape="0">
+    <area target="" alt="c10" title="c10" href="" coords="818,294,926,335" shape="0">
+    <area target="" alt="c11" title="c11" href="" coords="818,357,927,397" shape="0">
+    <area target="" alt="c12" title="c12" href="" coords="819,417,926,457" shape="0">

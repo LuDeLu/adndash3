@@ -105,6 +105,15 @@ export type ApartUnit = {
   coordinates?: string
 }
 
+export type ApartParking = {
+  id: string
+  level: string
+  condition: string
+  price: number
+  status: "libre" | "ocupado"
+  assignedTo?: string
+}
+
 // Datos exactos de las unidades según la tabla proporcionada
 export const apartUnits: ApartUnit[] = [
   // Piso 1
@@ -577,26 +586,45 @@ export const apartUnits: ApartUnit[] = [
   },
 ]
 
-// Datos de cocheras exactos según la tabla
-export const apartParking = [
-  {
-    id: "parking-1",
-    level: "1º Subsuelo A",
-    condition: "Cubierta",
-    price: 51000,
-  },
-  {
-    id: "parking-2",
-    level: "2º Subsuelo B",
-    condition: "Cubierta",
-    price: 48000,
-  },
-  {
-    id: "parking-3",
-    level: "3º Subsuelo C",
-    condition: "Cubierta",
-    price: 45000,
-  },
+// Datos de cocheras con paths individuales
+export const apartParking: ApartParking[] = [
+  // Nivel 1
+  { id: "a1", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "libre" },
+  { id: "a2", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "ocupado", assignedTo: "apart-1-01" },
+  { id: "a3", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "libre" },
+  { id: "a4", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "ocupado", assignedTo: "apart-2-02" },
+  { id: "a5", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "libre" },
+  { id: "a6", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "ocupado", assignedTo: "apart-3-01" },
+  { id: "a7", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "libre" },
+  { id: "a8", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "ocupado", assignedTo: "apart-4-02" },
+  { id: "a9", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "libre" },
+  { id: "a10", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "ocupado", assignedTo: "apart-5-01" },
+  { id: "a11", level: "Nivel 1", condition: "Cubierta", price: 51000, status: "libre" },
+
+  // Nivel 2
+  { id: "b1", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "libre" },
+  { id: "b2", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-6-01" },
+  { id: "b3", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "libre" },
+  { id: "b4", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-7-02" },
+  { id: "b5", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "libre" },
+  { id: "b6", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-8-01" },
+  { id: "b7", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "libre" },
+  { id: "b8", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-9-01" },
+  { id: "b9", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "libre" },
+  { id: "b10", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-9-02" },
+  { id: "b11", level: "Nivel 2", condition: "Cubierta", price: 48000, status: "libre" },
+
+  // Nivel 3
+  { id: "c1", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "libre" },
+  { id: "c2", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "ocupado", assignedTo: "apart-1-02" },
+  { id: "c3", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "libre" },
+  { id: "c4", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "ocupado", assignedTo: "apart-2-03" },
+  { id: "c5", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "libre" },
+  { id: "c6", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "ocupado", assignedTo: "apart-3-02" },
+  { id: "c7", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "libre" },
+  { id: "c8", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "ocupado", assignedTo: "apart-4-01" },
+  { id: "c9", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "libre" },
+  { id: "c10", level: "Nivel 3", condition: "Cubierta", price: 45000, status: "ocupado", assignedTo: "apart-5-02" },
 ]
 
 // Función para obtener unidades por piso
@@ -741,6 +769,156 @@ export const apartFloorCoordinates: { [key: number]: Array<{ id: string; coords:
   ],
 }
 
+// Coordenadas de las cocheras para cada nivel con los paths que proporcionaste
+export const apartGarageCoordinates = {
+  1: [
+    {
+      id: "a1",
+      coords: "455,109,440,216,444,226,442,241,452,248,488,255,495,250,499,233,506,227,517,118,507,109,489,106,472,104",
+    },
+    {
+      id: "a2",
+      coords: "552,127,531,236,535,245,533,260,546,269,580,272,591,263,592,250,600,240,610,136,595,128,569,122",
+    },
+    { id: "a3", coords: "222,283,215,318,216,342,334,362,356,356,360,336,360,306,334,295" },
+    { id: "a4", coords: "208,379,202,411,203,436,254,445,326,453,341,445,347,409,343,393,294,387,247,380" },
+    { id: "a5", coords: "189,488,184,525,219,536,296,547,321,546,328,533,330,506,331,490,317,486,298,480,199,468" },
+    {
+      id: "a6",
+      coords:
+        "379,634,380,735,385,750,407,755,428,754,443,747,446,637,441,631,443,615,435,615,429,610,415,607,398,607,391,610,385,617",
+    },
+    {
+      id: "a7",
+      coords:
+        "478,631,477,734,480,745,484,750,498,755,530,754,539,749,541,722,541,639,537,632,536,619,531,610,511,608,495,608,486,610",
+    },
+    {
+      id: "a8",
+      coords: "569,633,571,748,588,754,599,754,622,752,630,749,633,636,629,630,631,619,623,609,599,607,585,607,576,611",
+    },
+    {
+      id: "a9",
+      coords:
+        "679,634,679,748,703,754,716,754,729,753,738,750,742,743,744,637,739,629,739,617,733,610,723,608,712,608,691,608,686,613",
+    },
+    {
+      id: "a10",
+      coords: "785,634,786,744,795,753,816,756,837,753,847,745,850,637,847,630,846,618,838,609,798,607,789,611",
+    },
+    {
+      id: "a11",
+      coords:
+        "887,632,889,750,896,752,902,752,921,755,936,752,946,752,952,740,951,637,950,630,947,617,942,609,928,607,908,607,900,608,892,615",
+    },
+  ],
+  2: [
+    {
+      id: "b1",
+      coords: "465,112,447,218,450,229,449,243,456,250,490,255,497,252,504,245,511,233,516,180,523,132,519,113,487,107",
+    },
+    {
+      id: "b2",
+      coords:
+        "559,127,536,236,540,246,537,260,549,267,576,274,589,269,594,268,595,253,599,247,614,160,614,140,605,131,588,129,581,128",
+    },
+    {
+      id: "b3",
+      coords: "231,316,241,288,353,296,358,301,372,304,378,313,376,330,375,348,372,356,364,363,349,359,345,364,233,346",
+    },
+    {
+      id: "b4",
+      coords: "226,380,221,403,219,430,229,438,330,454,338,450,350,453,361,444,365,415,358,398,347,395,338,390,266,381",
+    },
+    {
+      id: "b5",
+      coords: "214,471,205,489,204,512,206,530,313,546,323,543,335,548,343,538,348,527,350,506,348,495,338,486,326,483",
+    },
+    {
+      id: "b6",
+      coords:
+        "386,628,387,734,388,748,418,750,440,748,449,740,451,632,446,629,446,613,435,607,419,607,407,607,398,609,390,612",
+    },
+    {
+      id: "b7",
+      coords:
+        "480,630,482,743,496,749,515,748,528,748,542,742,546,633,543,627,539,610,530,607,520,607,510,606,499,604,492,607,487,613,482,622",
+    },
+    {
+      id: "b8",
+      coords:
+        "588,632,592,738,598,745,609,748,620,748,636,748,644,749,651,744,653,719,654,631,650,626,652,616,645,606,611,605,600,606,593,616,595,627",
+    },
+    {
+      id: "b9",
+      coords:
+        "686,629,688,738,691,745,697,746,703,746,713,748,738,747,744,743,748,736,748,730,748,653,750,632,747,627,745,612,735,604,718,604,699,606,690,613",
+    },
+    {
+      id: "b10",
+      coords:
+        "790,630,790,725,793,743,801,750,815,751,828,751,841,750,852,746,856,635,849,628,850,612,837,608,821,607,808,606,801,607,795,612",
+    },
+    {
+      id: "b11",
+      coords:
+        "892,634,893,740,898,749,903,750,918,751,928,751,940,750,948,750,953,745,955,737,957,634,953,631,954,617,949,611,932,608,919,608,910,607,900,611,895,618",
+    },
+  ],
+  3: [
+    {
+      id: "c1",
+      coords:
+        "455,104,450,126,434,217,437,222,437,236,445,242,459,246,471,245,480,246,490,242,492,230,499,226,511,119,501,109,478,105",
+    },
+    {
+      id: "c2",
+      coords:
+        "546,122,539,149,525,230,529,239,525,253,536,260,541,262,551,264,567,268,583,262,583,249,587,245,590,228,600,158,601,143,603,131,591,124,566,120",
+    },
+    {
+      id: "c3",
+      coords:
+        "227,280,218,292,215,313,214,327,217,337,240,347,272,348,288,350,306,353,314,355,326,356,339,355,351,354,354,348,358,340,361,321,362,311,357,298,346,296,337,294,323,291,310,291,290,288,275,286,257,283",
+    },
+    {
+      id: "c4",
+      coords:
+        "213,374,204,389,202,419,204,431,226,438,250,439,284,444,292,447,309,448,319,446,332,449,342,441,347,405,343,394,331,390,314,382,279,381,253,377,232,375",
+    },
+    {
+      id: "c5",
+      coords:
+        "197,466,188,480,186,499,187,512,188,520,194,524,204,529,225,530,259,535,281,539,287,541,296,543,302,538,314,539,326,536,330,528,331,512,331,495,327,486,322,482,310,481,304,475,288,475,269,475,257,473,241,471,230,469,221,468",
+    },
+    {
+      id: "c6",
+      coords:
+        "369,624,370,681,370,708,369,726,372,739,383,742,396,743,409,743,420,742,429,740,432,731,434,629,431,623,433,611,429,602,420,596,411,598,398,597,386,597,374,599",
+    },
+    {
+      id: "c7",
+      coords:
+        "464,621,467,644,466,667,466,683,467,699,464,722,467,734,475,741,490,743,503,742,512,741,519,739,527,739,529,726,527,678,529,651,530,641,531,629,530,622,525,617,527,604,518,601,511,598,493,598,481,597,469,602,470,610",
+    },
+    {
+      id: "c8",
+      coords:
+        "575,620,576,643,578,659,579,676,576,704,577,719,579,736,588,741,603,741,619,740,629,740,635,736,641,721,641,709,641,697,641,685,640,671,640,661,639,651,640,644,641,633,641,624,638,617,637,609,635,599,626,597,617,595,600,595,588,594,580,603",
+    },
+    {
+      id: "c9",
+      coords:
+        "672,623,674,645,675,658,674,685,674,697,672,709,673,719,674,728,678,740,685,740,696,740,704,742,711,741,719,739,729,739,732,734,734,728,738,720,737,655,737,644,740,636,740,629,738,623,733,619,735,604,725,598,711,593,694,594,680,596,674,609",
+    },
+    {
+      id: "c10",
+      coords:
+        "778,623,780,644,781,656,779,678,779,702,780,713,782,730,784,738,798,739,818,741,831,741,841,735,840,724,842,707,843,694,842,685,844,665,842,647,846,639,842,621,842,612,837,598,825,597,810,597,791,595,781,602",
+    },
+  ],
+}
+
 // Estadísticas del proyecto
 export const getApartProjectStats = () => {
   const totalUnits = apartUnits.length
@@ -756,6 +934,21 @@ export const getApartProjectStats = () => {
     reservedUnits,
     soldUnits,
     blockedUnits,
+    occupancyRate,
+  }
+}
+
+// Estadísticas de cocheras
+export const getApartParkingStats = () => {
+  const totalParking = apartParking.length
+  const availableParking = apartParking.filter((parking) => parking.status === "libre").length
+  const occupiedParking = apartParking.filter((parking) => parking.status === "ocupado").length
+  const occupancyRate = Math.round((occupiedParking / totalParking) * 100)
+
+  return {
+    totalParking,
+    availableParking,
+    occupiedParking,
     occupancyRate,
   }
 }
@@ -849,10 +1042,36 @@ export const getApartStatusColor = (status: ApartUnit["status"]): string => {
   return colors[status]
 }
 
+export const getApartParkingStatusColor = (status: ApartParking["status"]): string => {
+  const colors = {
+    libre: "#22c55e",
+    ocupado: "#ef4444",
+  }
+  return colors[status]
+}
+
 export const updateApartUnitStatus = (unitId: string, newStatus: ApartUnit["status"]): boolean => {
   const unitIndex = apartUnits.findIndex((unit) => unit.id === unitId)
   if (unitIndex !== -1) {
     apartUnits[unitIndex].status = newStatus
+    return true
+  }
+  return false
+}
+
+export const updateApartParkingStatus = (
+  parkingId: string,
+  newStatus: ApartParking["status"],
+  assignedTo?: string,
+): boolean => {
+  const parkingIndex = apartParking.findIndex((parking) => parking.id === parkingId)
+  if (parkingIndex !== -1) {
+    apartParking[parkingIndex].status = newStatus
+    if (assignedTo) {
+      apartParking[parkingIndex].assignedTo = assignedTo
+    } else {
+      delete apartParking[parkingIndex].assignedTo
+    }
     return true
   }
   return false

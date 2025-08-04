@@ -1,0 +1,57 @@
+Nivel 1
+
+<area target="" alt="A1" title="A1" href="" coords="126,519,178,628" shape="rect">
+    <area target="" alt="A2" title="A2" href="" coords="188,520,238,625" shape="rect">
+    <area target="" alt="A3" title="A3" href="" coords="248,521,300,626" shape="rect">
+    <area target="" alt="A4" title="A4" href="" coords="307,520,360,626" shape="rect">
+    <area target="" alt="A5" title="A5" href="" coords="364,520,414,625" shape="rect">
+    <area target="" alt="A6" title="A6" href="" coords="422,519,475,625" shape="rect">
+    <area target="" alt="A7" title="A7" href="" coords="483,519,536,626" shape="rect">
+    <area target="" alt="A8" title="A8" href="" coords="539,520,590,627" shape="rect">
+    <area target="" alt="A9" title="A9" href="" coords="599,521,651,626" shape="rect">
+    <area target="" alt="A10" title="A10" href="" coords="660,518,713,627" shape="rect">
+    <area target="" alt="A11" title="A11" href="" coords="720,518,772,626" shape="rect">
+    <area target="" alt="A12" title="A12" href="" coords="775,519,828,625" shape="rect">
+    <area target="" alt="A13" title="A13" href="" coords="831,518,884,624" shape="rect">
+    <area target="" alt="A14" title="A14" href="" coords="793,303,846,411" shape="rect">
+    <area target="" alt="A15" title="A15" href="" coords="569,326,676,376" shape="rect">
+    <area target="" alt="A16" title="A16" href="" coords="568,249,676,300" shape="rect">
+    <area target="" alt="A17" title="A17" href="" coords="785,162,892,212" shape="rect">
+
+Nivel 2
+ <area target="" alt="a18" title="a18" href="" coords="114,534,167,639" shape="rect">
+    <area target="" alt="a19" title="a19" href="" coords="175,532,228,639" shape="rect">
+    <area target="" alt="a20" title="a20" href="" coords="238,532,289,639" shape="rect">
+    <area target="" alt="a21" title="a21" href="" coords="297,533,349,639" shape="rect">
+    <area target="" alt="a22" title="a22" href="" coords="351,533,403,639" shape="rect">
+    <area target="" alt="a23" title="a23" href="" coords="412,532,464,639" shape="rect">
+    <area target="" alt="a24" title="a24" href="" coords="473,532,525,640" shape="rect">
+    <area target="" alt="a25" title="a25" href="" coords="526,533,578,640" shape="rect">
+    <area target="" alt="a26" title="a26" href="" coords="586,534,639,639" shape="rect">
+    <area target="" alt="a27" title="a27" href="" coords="650,533,699,640" shape="rect">
+    <area target="" alt="a28" title="a28" href="" coords="708,534,761,638" shape="rect">
+    <area target="" alt="a29" title="a29" href="" coords="764,534,814,639" shape="rect">
+    <area target="" alt="a30" title="a30" href="" coords="818,533,871,640" shape="rect">
+    <area target="" alt="a31" title="a31" href="" coords="781,317,833,426" shape="rect">
+    <area target="" alt="a32" title="a32" href="" coords="605,316,657,426" shape="rect">
+    <area target="" alt="a33" title="a33" href="" coords="772,178,877,229" shape="rect">
+
+Nivel 3
+ <area target="" alt="a34" title="a34" href="" coords="111,420,220,470" shape="rect">
+    <area target="" alt="a35" title="a35" href="" coords="113,473,219,521" shape="rect">
+    <area target="" alt="a36" title="a36" href="" coords="247,524,299,628" shape="rect">
+    <area target="" alt="a37" title="a37" href="" coords="307,524,358,627" shape="rect">
+    <area target="" alt="a38" title="a38" href="" coords="360,524,413,628" shape="rect">
+    <area target="" alt="a39" title="a39" href="" coords="421,523,472,629" shape="rect">
+    <area target="" alt="a40" title="a40" href="" coords="482,524,531,629" shape="rect">
+    <area target="" alt="a41" title="a41" href="" coords="534,525,585,628" shape="rect">
+    <area target="" alt="a42" title="a42" href="" coords="594,524,646,629" shape="rect">
+    <area target="" alt="a43" title="a43" href="" coords="653,523,706,629" shape="rect">
+    <area target="" alt="a44" title="a44" href="" coords="714,524,764,628" shape="rect">
+    <area target="" alt="a45" title="a45" href="" coords="768,524,818,629" shape="rect">
+    <area target="" alt="a46" title="a46" href="" coords="822,524,873,628" shape="rect">
+    <area target="" alt="a47" title="a47" href="" coords="786,311,837,418" shape="rect">
+    <area target="" alt="a48" title="a48" href="" coords="611,312,663,417" shape="rect">
+    <area target="" alt="a49" title="a49" href="" coords="552,312,604,417" shape="rect">
+    <area target="" alt="a50" title="a50" href="" coords="552,259,666,310" shape="rect">
+    <area target="" alt="a51" title="a51" href="" coords="777,172,881,223" shape="rect">
