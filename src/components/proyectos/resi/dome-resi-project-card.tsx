@@ -27,6 +27,7 @@ export function DomePalermoProjectCard({ onViewProject, onViewFloorPlans, onView
   }
 
   const occupancyRate = Math.round(((projectData.soldUnits + projectData.reservedUnits) / projectData.totalUnits) * 100)
+  const priceRange = domePalermoData.getPriceRange()
 
   return (
     <Card
@@ -54,7 +55,7 @@ export function DomePalermoProjectCard({ onViewProject, onViewFloorPlans, onView
         {/* Precio destacado */}
         <div className="absolute bottom-4 left-4 text-white">
           <p className="text-sm opacity-90">Desde</p>
-          <p className="text-xl font-bold">{formatPrice(160000)}</p>
+          <p className="text-xl font-bold">{formatPrice(priceRange.min)}</p>
         </div>
       </div>
 
@@ -94,7 +95,7 @@ export function DomePalermoProjectCard({ onViewProject, onViewFloorPlans, onView
             <Building2 className="h-4 w-4 text-blue-500" />
             <div>
               <p className="font-medium">{projectData.totalUnits}</p>
-              <p className="text-gray-500">Unidades</p>
+              <p className="text-gray-500">Departamentos</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -106,20 +107,25 @@ export function DomePalermoProjectCard({ onViewProject, onViewFloorPlans, onView
           </div>
         </div>
 
+        {/* Información adicional */}
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-gray-700">Locales Comerciales:</p>
+          <div className="flex flex-wrap gap-1">
+            <Badge variant="outline" className="text-xs">
+              {projectData.commercialUnits} Locales (Vendidos)
+            </Badge>
+          </div>
+        </div>
+
         {/* Tipos de unidades */}
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-700">Tipos de Unidades:</p>
           <div className="flex flex-wrap gap-1">
-            {domePalermoData.unitTypes.slice(0, 3).map((type, index) => (
+            {domePalermoData.unitTypes.slice(0, 2).map((type, index) => (
               <Badge key={index} variant="outline" className="text-xs">
                 {type.type}
               </Badge>
             ))}
-            {domePalermoData.unitTypes.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{domePalermoData.unitTypes.length - 3} más
-              </Badge>
-            )}
           </div>
         </div>
 
@@ -159,7 +165,7 @@ export function DomePalermoProjectCard({ onViewProject, onViewFloorPlans, onView
 
         {/* Información de contacto rápida */}
         <div className="border-t pt-3 text-center">
-          <p className="text-xs text-gray-500">Consulte por promociones vigentes y descuentos por pago contado</p>
+          <p className="text-xs text-gray-500">Última actualización: {projectData.lastUpdate}</p>
         </div>
       </CardContent>
     </Card>

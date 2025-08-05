@@ -52,33 +52,85 @@ export function DomeSuitesProjectModal({
   const [refreshing, setRefreshing] = useState(false)
   const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
 
-  // Datos simulados del proyecto
+  // Datos reales del proyecto basados en el PDF
   const projectData = {
     name: "DOME Suites & Residences",
     location: "Paraguay & Humboldt",
     image: "/images/edificio/suitesedi.png",
     description: "Exclusivo desarrollo de suites y residencias en el corazón de Palermo con amenities de primer nivel.",
-    totalUnits: 45,
-    availableUnits: 12,
-    reservedUnits: 8,
-    soldUnits: 25,
+    totalUnits: 361,
+    availableUnits: 89,
+    reservedUnits: 4,
+    soldUnits: 268,
   }
 
-  // Crear datos de pisos para la visualización
+  // Crear datos de pisos para la visualización basados en datos reales
   const floors: Floor[] = useMemo(() => {
     const floorData = []
 
-    // Pisos 1-8
-    for (let i = 1; i <= 8; i++) {
+    // Piso 1: 17 unidades
+    floorData.push({
+      number: 1,
+      availableUnits: 2,
+      reservedUnits: 1,
+      soldUnits: 14,
+      x: 448,
+      y: 680,
+    })
+
+    // Pisos 2-6: ~24 unidades cada uno
+    for (let i = 2; i <= 6; i++) {
       floorData.push({
         number: i,
-        availableUnits: Math.floor(Math.random() * 3) + 1,
-        reservedUnits: Math.floor(Math.random() * 2),
-        soldUnits: Math.floor(Math.random() * 3) + 1,
+        availableUnits: i === 2 ? 2 : i === 3 ? 8 : i === 4 ? 10 : i === 5 ? 12 : 8,
+        reservedUnits: 0,
+        soldUnits: i === 2 ? 22 : i === 3 ? 16 : i === 4 ? 14 : i === 5 ? 12 : 16,
         x: 448,
         y: 680 - (i - 1) * 70,
       })
     }
+
+    // Pisos 7-9: ~16-17 unidades cada uno
+    for (let i = 7; i <= 9; i++) {
+      floorData.push({
+        number: i,
+        availableUnits: i === 7 ? 4 : i === 8 ? 6 : 8,
+        reservedUnits: i === 7 ? 1 : i === 9 ? 2 : 0,
+        soldUnits: i === 7 ? 12 : i === 8 ? 11 : 7,
+        x: 448,
+        y: 680 - (i - 1) * 70,
+      })
+    }
+
+    // Piso 10: 17 unidades
+    floorData.push({
+      number: 10,
+      availableUnits: 15,
+      reservedUnits: 1,
+      soldUnits: 1,
+      x: 448,
+      y: 680 - 9 * 70,
+    })
+
+    // Piso 11: 13 unidades
+    floorData.push({
+      number: 11,
+      availableUnits: 11,
+      reservedUnits: 0,
+      soldUnits: 2,
+      x: 448,
+      y: 680 - 10 * 70,
+    })
+
+    // Piso 12: 7 unidades
+    floorData.push({
+      number: 12,
+      availableUnits: 7,
+      reservedUnits: 0,
+      soldUnits: 0,
+      x: 448,
+      y: 680 - 11 * 70,
+    })
 
     return floorData
   }, [])
@@ -129,17 +181,17 @@ export function DomeSuitesProjectModal({
 
                 {/* SVG Overlay para pisos */}
                 <svg
-                  viewBox="-190 105 1500 800"
+                  viewBox="-300 -100 1800 1000"
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
-                  <g transform="scale(1.2, 1.2) translate(-200, 10)">
+                  <g transform="scale(1, 1) translate(-200, 100)">
                     <AnimatePresence>
                       {floors.map((floor) => {
                         const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
                         if (totalUnits === 0) return null
 
-                        const floorWidth = 555
+                        const floorWidth = 850
                         const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
                         const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
                         const availableWidth = floorWidth - soldWidth - reservedWidth

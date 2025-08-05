@@ -125,11 +125,11 @@ export function DomeBoulevardProjectModal({
 
                 {/* SVG Overlay para pisos */}
                 <svg
-                  viewBox="-150 850 2300 1000"
+                  viewBox="-980 750 4000 1000"
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
-                  <g transform="scale(2.6, 3) translate(-200, 50)">
+                  <g transform="scale(2.5, 3) translate(-200, 50)">
                     <AnimatePresence>
                       {floors.map((floor) => {
                         const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits

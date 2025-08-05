@@ -10,7 +10,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { domePalermoData } from "@/lib/dome-palermo-data"
+import { domePalermoData, type FloorNumber } from "@/lib/dome-palermo-data"
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 import { cn } from "@/lib/utils"
@@ -87,27 +87,29 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
     floor_label_fontsize: "14",
   }
 
-  // Crear datos de pisos con configuración específica para Palermo
+  // Crear datos de pisos con estadísticas reales
   const initializeFloors = useCallback(() => {
     const floorsData: Floor[] = Array.from({ length: 9 }, (_, index) => {
-      const floorNumber = index + 1
+      const floorNumber = (index + 1) as FloorNumber
+      const floorStats = domePalermoData.getFloorStats(floorNumber)
+
       return {
         id: floorNumber,
         number: floorNumber,
         floor_number: floorNumber,
-        availableUnits: Math.floor(Math.random() * 4) + 1,
-        reservedUnits: Math.floor(Math.random() * 2),
-        soldUnits: Math.floor(Math.random() * 2),
+        availableUnits: floorStats?.available || 0,
+        reservedUnits: floorStats?.reserved || 0,
+        soldUnits: floorStats?.sold || 0,
         path: "", // Path específico del SVG si se necesita
         x: 448, // Coordenada X específica para Palermo
         y: floorNumber <= 7 ? 680 - (floorNumber - 1) * 80 : floorNumber === 8 ? 125 : 55, // Coordenadas Y específicas
-        total_apartments: 0,
+        total_apartments: floorStats?.total || 0,
       }
     })
     setFloors(floorsData)
   }, [])
 
-  // Función para obtener datos del proyecto (simulada para Palermo)
+  // Función para obtener datos del proyecto
   const fetchProjectDetails = useCallback(
     async (forceRefresh = false) => {
       setLoadingProjectData(true)
@@ -145,7 +147,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
   }, [fetchProjectDetails])
 
   const handleBrochureClick = () => {
-    console.log("Downloading brochure...")
+    window.open(projectData.brochure, "_blank")
   }
 
   const handleFloorClick = (floorNumber: number) => {
@@ -179,6 +181,8 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
     reservedUnits: projectData.reservedUnits,
     soldUnits: projectData.soldUnits,
   }
+
+  const priceRange = domePalermoData.getPriceRange()
 
   if (!isOpen) return null
 
@@ -381,6 +385,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                           {projectData.name}
                         </DialogTitle>
                         <p className="text-sm sm:text-base text-muted-foreground">{projectData.location}</p>
+                        <p className="text-xs text-muted-foreground">Última actualización: {projectData.lastUpdate}</p>
                       </div>
                     </div>
                   </DialogHeader>
@@ -422,18 +427,35 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                         <div className="bg-card p-4 rounded-lg border">
                           <p className="text-sm text-muted-foreground mb-4">
                             Moderno edificio residencial en el corazón de Palermo con amenities premium y acabados de
-                            lujo.
+                            lujo. {projectData.totalUnits} departamentos de 3 dormitorios con dependencia y{" "}
+                            {projectData.commercialUnits} locales comerciales.
                           </p>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <p className="font-medium">Rango de precios:</p>
+                              <p className="text-muted-foreground">
+                                ${priceRange.min.toLocaleString()} - ${priceRange.max.toLocaleString()}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="font-medium">Cocheras disponibles:</p>
+                              <p className="text-muted-foreground">
+                                {domePalermoData.parkingConfig.totalSpots} espacios en 3 niveles
+                              </p>
+                            </div>
+                          </div>
                         </div>
 
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm sm:text-base">Total de unidades: {stats.totalUnits}</h4>
+                          <h4 className="font-medium text-sm sm:text-base">
+                            Total de departamentos: {stats.totalUnits}
+                          </h4>
                           <Progress value={100} className="w-full" />
                         </div>
 
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades disponibles: {stats.availableUnits}
+                            Departamentos disponibles: {stats.availableUnits}
                           </h4>
                           <Progress
                             value={totalUnits > 0 ? (stats.availableUnits / totalUnits) * 100 : 0}
@@ -443,7 +465,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
 
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades reservadas: {stats.reservedUnits}
+                            Departamentos reservados: {stats.reservedUnits}
                           </h4>
                           <Progress
                             value={totalUnits > 0 ? (stats.reservedUnits / totalUnits) * 100 : 0}
@@ -452,7 +474,9 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                         </div>
 
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm sm:text-base">Unidades vendidas: {stats.soldUnits}</h4>
+                          <h4 className="font-medium text-sm sm:text-base">
+                            Departamentos vendidos: {stats.soldUnits}
+                          </h4>
                           <Progress
                             value={totalUnits > 0 ? (stats.soldUnits / totalUnits) * 100 : 0}
                             className="w-full"
@@ -520,6 +544,20 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                             <p className="text-sm text-muted-foreground">Estado: {unit.status}</p>
                           </div>
                         ))}
+
+                        <div className="bg-muted p-4 rounded-lg">
+                          <h5 className="font-medium">Locales Comerciales</h5>
+                          <p className="text-sm text-muted-foreground">
+                            {projectData.commercialUnits} locales en planta baja (todos vendidos)
+                          </p>
+                          <div className="mt-2 space-y-1">
+                            {domePalermoData.commercialUnits.map((commercial, index) => (
+                              <div key={index} className="text-xs text-muted-foreground">
+                                • {commercial.name} - {commercial.surface} m² ({commercial.location})
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </TabsContent>
 
@@ -549,6 +587,18 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                         <div className="bg-muted p-4 rounded-lg">
                           <h5 className="font-medium">Crédito Hipotecario</h5>
                           <p className="text-sm text-muted-foreground">Asistencia para obtener créditos hipotecarios</p>
+                        </div>
+
+                        <div className="bg-muted p-4 rounded-lg">
+                          <h5 className="font-medium">Cocheras</h5>
+                          <p className="text-sm text-muted-foreground mb-2">
+                            {domePalermoData.parkingConfig.parkingInfo}
+                          </p>
+                          <div className="space-y-1 text-xs">
+                            <div>• 1º Subsuelo: {domePalermoData.parkingConfig.prices[1]}</div>
+                            <div>• 2º Subsuelo: {domePalermoData.parkingConfig.prices[2]}</div>
+                            <div>• 3º Subsuelo: {domePalermoData.parkingConfig.prices[3]}</div>
+                          </div>
                         </div>
 
                         <div className="bg-muted p-4 rounded-lg mt-4">
@@ -589,6 +639,10 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                               <li>
                                 <span className="font-semibold text-foreground">Ciudad:</span> Buenos Aires
                               </li>
+                              <li>
+                                <span className="font-semibold text-foreground">Código Postal:</span>{" "}
+                                {domePalermoData.mapConfig.postalCode}
+                              </li>
                             </ul>
                           </div>
 
@@ -596,7 +650,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                             <h5 className="font-medium text-lg mb-3">Comodidades del Área</h5>
                             <p className="text-sm text-muted-foreground">
                               Ubicado en el corazón de Palermo, con acceso a restaurantes, cafés, parques y transporte
-                              público.
+                              público. Zona de alta valorización inmobiliaria.
                             </p>
                           </div>
                         </div>

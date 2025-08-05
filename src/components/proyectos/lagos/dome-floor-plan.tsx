@@ -43,6 +43,9 @@ import {
   formatArea,
   updateDomeApartmentStatus,
   getStatusColor,
+  type ParkingSpot, // Import ParkingSpot interface
+  getParkingSpotColor, // Import getParkingSpotColor function
+  getParkingSpotsByLevel, // Import getParkingSpotsByLevel function
 } from "@/lib/dome-puertos-data"
 
 let notyf: Notyf | null = null
@@ -93,6 +96,10 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Add state for parking spots after existing state declarations
+  const [selectedParkingSpot, setSelectedParkingSpot] = useState<ParkingSpot | null>(null)
+  const [isParkingSpotModalOpen, setIsParkingSpotModalOpen] = useState(false)
 
   // Initialize Notyf
   useEffect(() => {
@@ -181,8 +188,6 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
           newStatus = "VENDIDO"
           break
         case "unblock":
-        case "cancelReservation":
-        case "release":
           newStatus = "DISPONIBLE"
           break
       }
@@ -307,6 +312,12 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
     return floorPlan?.complete || "/planos/lagos/lagospb.jpg"
   }
 
+  // Add parking spot click handler
+  const handleParkingSpotClick = useCallback((parkingSpot: ParkingSpot) => {
+    setSelectedParkingSpot(parkingSpot)
+    setIsParkingSpotModalOpen(true)
+  }, [])
+
   if (!currentFloorData) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -361,6 +372,68 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
               Cochera
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="garage">
+            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
+              <div className="p-4 md:p-6">
+                <h2 className="text-xl md:text-2xl font-semibold mb-4">
+                  Mapa de Cocheras - Nivel {currentGarageLevel}
+                </h2>
+                <div className="flex justify-center space-x-4 mb-4">
+                  {garageLevels.map((level) => (
+                    <Button
+                      key={level}
+                      onClick={() => setCurrentGarageLevel(level)}
+                      variant={currentGarageLevel === level ? "default" : "outline"}
+                    >
+                      Nivel {level}
+                    </Button>
+                  ))}
+                </div>
+                <div className="relative aspect-video">
+                  <Image
+                    src={
+                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
+                      "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg"
+                    }
+                    alt={`Cocheras Nivel ${currentGarageLevel}`}
+                    fill
+                    className="object-contain pointer-events-none"
+                  />
+
+                  {/* SVG overlay for clickable parking spots */}
+                  <div className="absolute inset-0 z-10">
+                    <svg viewBox="0 120 1600 600" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                      {getParkingSpotsByLevel(currentGarageLevel).map((spot) => {
+                        const coords = spot.coordinates.split(",").map(Number)
+                        if (coords.length === 4) {
+                          // Ensure it's a rectangle (x1,y1,x2,y2)
+                          return (
+                            <rect
+                              key={spot.id}
+                              x={coords[0]}
+                              y={coords[1]}
+                              width={coords[2] - coords[0]}
+                              height={coords[3] - coords[1]}
+                              fill={getParkingSpotColor(spot.status)}
+                              stroke="white"
+                              strokeWidth="2"
+                              opacity="0.7"
+                              onClick={() => handleParkingSpotClick(spot)}
+                              style={{ cursor: "pointer" }}
+                              className="hover:opacity-100 transition-opacity"
+                            />
+                          )
+                        }
+                        return null
+                      })}
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
 
           <TabsContent value="apartments">
             {/* Floor Selection */}
@@ -447,38 +520,6 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
               <div className="p-4">
                 <h3 className="text-lg font-bold">{currentFloorData.name}</h3>
                 <p className="text-zinc-400 text-sm">Selecciona los departamentos para ver su estado.</p>
-              </div>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="garage">
-            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
-              <div className="p-4 md:p-6">
-                <h2 className="text-xl md:text-2xl font-semibold mb-4">
-                  Mapa de Cocheras - Nivel {currentGarageLevel}
-                </h2>
-                <div className="flex justify-center space-x-4 mb-4">
-                  {garageLevels.map((level) => (
-                    <Button
-                      key={level}
-                      onClick={() => setCurrentGarageLevel(level)}
-                      variant={currentGarageLevel === level ? "default" : "outline"}
-                    >
-                      Nivel {level}
-                    </Button>
-                  ))}
-                </div>
-                <div className="relative aspect-video">
-                  <Image
-                    src={
-                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
-                      "/placeholder.svg?height=600&width=800"
-                    }
-                    alt={`Cocheras Nivel ${currentGarageLevel}`}
-                    fill
-                    className="object-contain"
-                  />
-                </div>
               </div>
             </div>
           </TabsContent>
@@ -728,6 +769,51 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
             )}
             <DialogFooter>
               <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* parking spot modal */}
+        <Dialog open={isParkingSpotModalOpen} onOpenChange={setIsParkingSpotModalOpen}>
+          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+            <DialogHeader>
+              <DialogTitle>Cochera {selectedParkingSpot?.number}</DialogTitle>
+            </DialogHeader>
+            {selectedParkingSpot && (
+              <div className="space-y-4">
+                <DialogDescription className="text-zinc-300 space-y-2">
+                  <p>
+                    <strong>Tipo:</strong> {selectedParkingSpot.type === "simple" ? "Simple" : "Doble"}
+                  </p>
+                  <p>
+                    <strong>Estado:</strong>{" "}
+                    {selectedParkingSpot.status === "available"
+                      ? "Disponible"
+                      : selectedParkingSpot.status === "reserved"
+                        ? "Reservada"
+                        : "Vendida"}
+                  </p>
+                  <p>
+                    <strong>Precio:</strong> {formatPrice(selectedParkingSpot.price)}
+                  </p>
+                  {selectedParkingSpot.assignedTo && (
+                    <p>
+                      <strong>Asignada a:</strong> {selectedParkingSpot.assignedTo}
+                    </p>
+                  )}
+                </DialogDescription>
+
+                {selectedParkingSpot.status === "available" && (
+                  <div className="space-y-2">
+                    <Button className="bg-green-600 hover:bg-green-700 w-full">asignar Cochera</Button>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button onClick={() => setIsParkingSpotModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
               </Button>
             </DialogFooter>

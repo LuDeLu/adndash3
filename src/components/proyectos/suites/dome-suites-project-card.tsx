@@ -17,6 +17,15 @@ export default function SuitesProjectCard({ onViewProject, onViewFloorPlans, onV
   const [isHovered, setIsHovered] = useState(false)
   const stats = getSuitesProjectStats()
 
+  // Datos correctos del proyecto
+  const correctStats = {
+    totalUnits: 361,
+    availableUnits: 89,
+    soldUnits: 268,
+    reservedUnits: 4,
+    occupancyRate: Math.round(((268 + 4) / 361) * 100), // 75%
+  }
+
   return (
     <Card
       className="w-full max-w-md mx-auto overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-105 cursor-pointer"
@@ -36,7 +45,7 @@ export default function SuitesProjectCard({ onViewProject, onViewFloorPlans, onV
         {/* Badge de estado */}
         <div className="absolute top-4 left-4">
           <Badge variant="secondary" className="bg-green-500 text-white">
-            {stats.availableUnits} Disponibles
+            {correctStats.availableUnits} Disponibles
           </Badge>
         </div>
 
@@ -66,7 +75,7 @@ export default function SuitesProjectCard({ onViewProject, onViewFloorPlans, onV
             </div>
           </div>
           <Badge variant="outline" className="text-xs">
-            {stats.occupancyRate}% Vendido
+            {correctStats.occupancyRate}% Vendido
           </Badge>
         </div>
       </CardHeader>
@@ -80,7 +89,7 @@ export default function SuitesProjectCard({ onViewProject, onViewFloorPlans, onV
           <div className="flex items-center space-x-2">
             <Building2 className="h-4 w-4 text-blue-500" />
             <div>
-              <p className="font-medium">{suitesProjectInfo.totalUnits}</p>
+              <p className="font-medium">{correctStats.totalUnits}</p>
               <p className="text-gray-500">Unidades</p>
             </div>
           </div>
