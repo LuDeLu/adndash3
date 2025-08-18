@@ -13,6 +13,11 @@ import {
   FileSpreadsheet,
   FileBarChart,
   RefreshCw,
+  User,
+  Phone,
+  Mail,
+  Search,
+  Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -33,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
 import {
   suitesFloorsData,
   suitesFloorPlans,
@@ -50,6 +56,32 @@ import {
 
 let notyf: Notyf | null = null
 
+interface Cliente {
+  id: number
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
+
+interface NewClienteData {
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
+
+interface UnitOwner {
+  name: string
+  email: string
+  phone: string
+  type: string
+}
+
 type SuitesFloorPlanProps = {
   floorNumber?: number | null
   onReturnToProjectModal: () => void
@@ -59,22 +91,21 @@ const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 // Garage plan images for Dome Suites
-const garageLevels = [1, 2, 3] as const // Use 'as const' to infer literal types for array elements
+const garageLevels = [1, 2, 3] as const
 const garagePlans: Record<(typeof garageLevels)[number], string> = {
-  // Explicitly define type for indexing
   1: "/planos/suites/cochera/nivel1.png",
   2: "/planos/suites/cochera/nivel2.png",
   3: "/planos/suites/cochera/nivel3.png",
 }
 
-export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }: SuitesFloorPlanProps) {
+export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: SuitesFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedApartment, setSelectedApartment] = useState<SuitesApartment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
-    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | null
+    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | "addOwner" | null
   >(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -90,7 +121,6 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [selectedParking, setSelectedParking] = useState<SuitesGarageSpot | null>(null)
-  // Fix: Explicitly type currentGarageLevel to be one of the literal numbers from garageLevels
   const [currentGarageLevel, setCurrentGarageLevel] = useState<(typeof garageLevels)[number]>(1)
   const [parkingSpots, setParkingSpots] = useState<any[]>([])
   const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
@@ -100,6 +130,23 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
+  const [showCreateClient, setShowCreateClient] = useState(false)
+  const [newClienteData, setNewClienteData] = useState<NewClienteData>({
+    nombre: "",
+    apellido: "",
+    telefono: "",
+    email: "",
+    tipo: "COMPRADOR",
+    estado: "ACTIVO",
+  })
+  const [isLoadingClientes, setIsLoadingClientes] = useState(false)
+
+  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
 
   const handleParkingClick = useCallback((spot: SuitesGarageSpot) => {
     setSelectedParking(spot)
@@ -139,6 +186,7 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
     setConfirmReservation(false)
     setConfirmCancelReservation(false)
     setConfirmRelease(false)
+    setSelectedCliente(null)
   }, [])
 
   const handleFloorClick = (floor: number) => {
@@ -148,7 +196,15 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
   }
 
   const handleActionClick = (
-    actionType: "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release",
+    actionType:
+      | "block"
+      | "reserve"
+      | "sell"
+      | "unblock"
+      | "directReserve"
+      | "cancelReservation"
+      | "release"
+      | "addOwner",
   ) => {
     setAction(actionType)
     setConfirmReservation(
@@ -156,6 +212,128 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
     )
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
+  }
+
+  const loadClientes = async () => {
+    setIsLoadingClientes(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (response.ok) {
+        const clientesData = await response.json()
+        setClientes(clientesData)
+        setFilteredClientes(clientesData)
+      } else {
+        console.error("Error al cargar clientes")
+        if (notyf) {
+          notyf.error("Error al cargar la lista de clientes")
+        }
+      }
+    } catch (error) {
+      console.error("Error al cargar clientes:", error)
+      if (notyf) {
+        notyf.error("Error de conexión al cargar clientes")
+      }
+    } finally {
+      setIsLoadingClientes(false)
+    }
+  }
+
+  const createNewCliente = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(newClienteData),
+      })
+
+      if (response.ok) {
+        const nuevoCliente = await response.json()
+        if (notyf) {
+          notyf.success("Cliente creado exitosamente")
+        }
+
+        await loadClientes()
+        setSelectedCliente(nuevoCliente)
+        setShowCreateClient(false)
+
+        setNewClienteData({
+          nombre: "",
+          apellido: "",
+          telefono: "",
+          email: "",
+          tipo: "COMPRADOR",
+          estado: "ACTIVO",
+        })
+      } else {
+        if (notyf) {
+          notyf.error("Error al crear el cliente")
+        }
+      }
+    } catch (error) {
+      console.error("Error al crear cliente:", error)
+      if (notyf) {
+        notyf.error("Error de conexión al crear cliente")
+      }
+    }
+  }
+
+  const handleSearchClientes = (term: string) => {
+    setSearchTerm(term)
+    if (term.trim() === "") {
+      setFilteredClientes(clientes)
+    } else {
+      const filtered = clientes.filter(
+        (cliente) =>
+          `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.email.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.telefono.includes(term),
+      )
+      setFilteredClientes(filtered)
+    }
+  }
+
+  useEffect(() => {
+    if (action === "addOwner") {
+      loadClientes()
+    }
+  }, [action])
+
+  const handleAssignOwner = async () => {
+    if (!selectedCliente || !selectedApartment) return
+
+    try {
+      setUnitOwners((prev) => ({
+        ...prev,
+        [selectedApartment.unitNumber]: {
+          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+          email: selectedCliente.email,
+          phone: selectedCliente.telefono,
+          type: selectedCliente.tipo,
+        },
+      }))
+
+      if (notyf) {
+        notyf.success(`Propietario asignado a la unidad ${selectedApartment.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al asignar propietario:", error)
+      if (notyf) {
+        notyf.error("Error al asignar propietario")
+      }
+    }
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -590,10 +768,44 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
                   <p>
                     <strong>Precio por m²:</strong> {formatSuitesPrice(selectedApartment.pricePerM2)}
                   </p>
+
+                  {unitOwners[selectedApartment.unitNumber] && (
+                    <div className="mt-4 p-3 bg-zinc-800 rounded-lg">
+                      <h4 className="font-semibold text-green-400 mb-2 flex items-center">
+                        <User className="w-4 h-4 mr-2" />
+                        Propietario Actual
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-center">
+                          <User className="w-3 h-3 mr-2" />
+                          {unitOwners[selectedApartment.unitNumber].name}
+                        </p>
+                        <p className="flex items-center">
+                          <Mail className="w-3 h-3 mr-2" />
+                          {unitOwners[selectedApartment.unitNumber].email}
+                        </p>
+                        <p className="flex items-center">
+                          <Phone className="w-3 h-3 mr-2" />
+                          {unitOwners[selectedApartment.unitNumber].phone}
+                        </p>
+                        <Badge variant="secondary" className="mt-2">
+                          {unitOwners[selectedApartment.unitNumber].type}
+                        </Badge>
+                      </div>
+                    </div>
+                  )}
                 </DialogDescription>
 
                 {!action && (
                   <div className="space-y-2">
+                    <Button
+                      onClick={() => handleActionClick("addOwner")}
+                      className="bg-purple-600 hover:bg-purple-700 w-full"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      {unitOwners[selectedApartment.unitNumber] ? "Cambiar Propietario" : "Añadir Propietario"}
+                    </Button>
+
                     {selectedApartment.status === "DISPONIBLE" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
@@ -657,6 +869,167 @@ export default function SuitesFloorPlan({ floorNumber, onReturnToProjectModal }:
                           Liberar unidad
                         </Button>
                       </>
+                    )}
+                  </div>
+                )}
+
+                {action === "addOwner" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Seleccionar Propietario</h4>
+                      <Button
+                        onClick={() => setShowCreateClient(!showCreateClient)}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Crear Cliente
+                      </Button>
+                    </div>
+
+                    {!showCreateClient ? (
+                      <>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                          <Input
+                            placeholder="Buscar cliente por nombre, email o teléfono..."
+                            value={searchTerm}
+                            onChange={(e) => handleSearchClientes(e.target.value)}
+                            className="pl-10 text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {isLoadingClientes ? (
+                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                          ) : filteredClientes.length === 0 ? (
+                            <div className="text-center py-4 text-zinc-400">
+                              {searchTerm ? "No se encontraron clientes" : "No hay clientes disponibles"}
+                            </div>
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                onClick={() => setSelectedCliente(cliente)}
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  selectedCliente?.id === cliente.id
+                                    ? "border-indigo-500 bg-indigo-500/20"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium text-white">
+                                      {cliente.nombre} {cliente.apellido}
+                                    </p>
+                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                    <p className="text-sm text-zinc-400">{cliente.telefono}</p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {cliente.tipo}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {selectedCliente && (
+                          <div className="space-y-3">
+                            <div className="p-3 bg-indigo-500/20 border border-indigo-500 rounded-lg">
+                              <p className="text-sm text-indigo-300">Cliente seleccionado:</p>
+                              <p className="font-medium text-white">
+                                {selectedCliente.nombre} {selectedCliente.apellido}
+                              </p>
+                            </div>
+                            <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                              Asignar como Propietario
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="newNombre" className="text-white">
+                              Nombre *
+                            </Label>
+                            <Input
+                              id="newNombre"
+                              value={newClienteData.nombre}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
+                              required
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newApellido" className="text-white">
+                              Apellido *
+                            </Label>
+                            <Input
+                              id="newApellido"
+                              value={newClienteData.apellido}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
+                              required
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newTelefono" className="text-white">
+                            Teléfono *
+                          </Label>
+                          <Input
+                            id="newTelefono"
+                            type="tel"
+                            value={newClienteData.telefono}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newEmail" className="text-white">
+                            Email *
+                          </Label>
+                          <Input
+                            id="newEmail"
+                            type="email"
+                            value={newClienteData.email}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={createNewCliente}
+                            disabled={
+                              !newClienteData.nombre ||
+                              !newClienteData.apellido ||
+                              !newClienteData.telefono ||
+                              !newClienteData.email
+                            }
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            Crear Cliente
+                          </Button>
+                          <Button
+                            onClick={() => setShowCreateClient(false)}
+                            variant="outline"
+                            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}

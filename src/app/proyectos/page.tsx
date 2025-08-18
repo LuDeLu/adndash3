@@ -7,7 +7,7 @@ import { DomeBoulevardFloorPlan } from "@/components/proyectos/boulevard/dome-bo
 import { DomeApartFloorPlan } from "@/components/proyectos/apart/dome-apart-floor-plan"
 import { DomeBerutiFloorPlan } from "@/components/proyectos/beruti/dome-beruti-floor-plan"
 import DomeFloorPlan from "@/components/proyectos/lagos/dome-floor-plan"
-import DomeSuitesFloorPlan from "@/components/proyectos/suites/dome-suites-floor-plan"
+import { DomeSuitesFloorPlan } from "@/components/proyectos/suites/dome-suites-floor-plan"
 import { DomePalermoFloorPlan } from "@/components/proyectos/resi/dome-resi-floor-plan"
 import Image from "next/image"
 

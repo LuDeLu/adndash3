@@ -14,6 +14,9 @@ import {
   FileBarChart,
   MapPin,
   Home,
+  Search,
+  Plus,
+  User,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -208,6 +211,27 @@ const apartGarageCoordinates = {
   ],
 }
 
+interface Cliente {
+  id: number
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
+
+interface NewClienteData {
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
+
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+
 export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: DomeApartFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedUnit, setSelectedUnit] = useState<ApartUnit | null>(null)
@@ -215,7 +239,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
-    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | null
+    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | "addOwner" | null
   >(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -225,6 +249,22 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     price: "",
     note: "",
   })
+
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
+  const [showCreateClient, setShowCreateClient] = useState(false)
+  const [newClienteData, setNewClienteData] = useState<NewClienteData>({
+    nombre: "",
+    apellido: "",
+    telefono: "",
+    email: "",
+    tipo: "COMPRADOR",
+    estado: "ACTIVO",
+  })
+  const [isLoadingClientes, setIsLoadingClientes] = useState(false)
+
   const [confirmReservation, setConfirmReservation] = useState(false)
   const [confirmCancelReservation, setConfirmCancelReservation] = useState(false)
   const [confirmRelease, setConfirmRelease] = useState(false)
@@ -236,6 +276,8 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const [unitOwners, setUnitOwners] = useState<Record<string, Cliente>>({})
 
   // Initialize Notyf
   useEffect(() => {
@@ -277,13 +319,158 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     setIsModalOpen(false)
   }
 
+  const loadClientes = async () => {
+    setIsLoadingClientes(true)
+    try {
+      // Simulando llamada a la API - reemplazar con tu endpoint real
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (response.ok) {
+        const clientesData = await response.json()
+        setClientes(clientesData)
+        setFilteredClientes(clientesData)
+      } else {
+        console.error("Error al cargar clientes")
+        if (notyf) {
+          notyf.error("Error al cargar la lista de clientes")
+        }
+      }
+    } catch (error) {
+      console.error("Error al cargar clientes:", error)
+      if (notyf) {
+        notyf.error("Error de conexión al cargar clientes")
+      }
+    } finally {
+      setIsLoadingClientes(false)
+    }
+  }
+
+  const createNewCliente = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(newClienteData),
+      })
+
+      if (response.ok) {
+        const nuevoCliente = await response.json()
+        if (notyf) {
+          notyf.success("Cliente creado exitosamente")
+        }
+
+        // Actualizar la lista de clientes
+        await loadClientes()
+
+        // Seleccionar el nuevo cliente
+        setSelectedCliente(nuevoCliente)
+        setShowCreateClient(false)
+
+        // Limpiar formulario
+        setNewClienteData({
+          nombre: "",
+          apellido: "",
+          telefono: "",
+          email: "",
+          tipo: "COMPRADOR",
+          estado: "ACTIVO",
+        })
+      } else {
+        if (notyf) {
+          notyf.error("Error al crear el cliente")
+        }
+      }
+    } catch (error) {
+      console.error("Error al crear cliente:", error)
+      if (notyf) {
+        notyf.error("Error de conexión al crear cliente")
+      }
+    }
+  }
+
+  const handleSearchClientes = (term: string) => {
+    setSearchTerm(term)
+    if (term.trim() === "") {
+      setFilteredClientes(clientes)
+    } else {
+      const filtered = clientes.filter(
+        (cliente) =>
+          `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.email.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.telefono.includes(term),
+      )
+      setFilteredClientes(filtered)
+    }
+  }
+
+  useEffect(() => {
+    if (action === "addOwner") {
+      loadClientes()
+    }
+  }, [action])
+
   const handleActionClick = (
-    actionType: "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release",
+    actionType:
+      | "block"
+      | "reserve"
+      | "sell"
+      | "unblock"
+      | "directReserve"
+      | "cancelReservation"
+      | "release"
+      | "addOwner",
   ) => {
     setAction(actionType)
     setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
+
+    if (actionType !== "addOwner") {
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    }
+  }
+
+  const handleAssignOwner = async () => {
+    if (!selectedCliente || !selectedUnit) return
+
+    try {
+      setUnitOwners((prev) => ({
+        ...prev,
+        [selectedUnit.unitNumber]: selectedCliente,
+      }))
+
+      if (notyf) {
+        notyf.success(
+          `Propietario ${selectedCliente.nombre} ${selectedCliente.apellido} asignado a la unidad ${selectedUnit.unitNumber}`,
+        )
+      }
+
+      // Cerrar modal y resetear estados
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al asignar propietario:", error)
+      setUnitOwners((prev) => {
+        const newOwners = { ...prev }
+        delete newOwners[selectedUnit.unitNumber]
+        return newOwners
+      })
+
+      if (notyf) {
+        notyf.error("Error al asignar el propietario")
+      }
+    }
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -652,6 +839,9 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -767,6 +957,29 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <span className="text-zinc-400">Precio por m²:</span>
                       <span>{formatApartPrice(selectedUnit.pricePerSqm)}</span>
                     </div>
+                    <div className="border-t border-zinc-700 pt-2 mt-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-400">Propietario:</span>
+                        <span className="text-white">
+                          {unitOwners[selectedUnit.unitNumber]
+                            ? `${unitOwners[selectedUnit.unitNumber].nombre} ${unitOwners[selectedUnit.unitNumber].apellido}`
+                            : "Sin asignar"}
+                        </span>
+                      </div>
+
+                      {unitOwners[selectedUnit.unitNumber] && (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="text-zinc-400">Email:</span>
+                            <span className="text-white text-sm">{unitOwners[selectedUnit.unitNumber].email}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-zinc-400">Teléfono:</span>
+                            <span className="text-white text-sm">{unitOwners[selectedUnit.unitNumber].telefono}</span>
+                          </div>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -775,6 +988,14 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
                       <Download className="mr-2 h-4 w-4" />
                       Descargar plano
+                    </Button>
+
+                    <Button
+                      onClick={() => handleActionClick("addOwner")}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Añadir Propietario
                     </Button>
 
                     {selectedUnit.status === "DISPONIBLE" && (
@@ -960,6 +1181,171 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                         Cancelar
                       </Button>
                     </div>
+                  </div>
+                )}
+
+                {action === "addOwner" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Seleccionar Propietario</h4>
+                      <Button
+                        onClick={() => setShowCreateClient(!showCreateClient)}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Crear Cliente
+                      </Button>
+                    </div>
+
+                    {!showCreateClient ? (
+                      <>
+                        {/* Buscador de clientes */}
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                          <Input
+                            placeholder="Buscar cliente por nombre, email o teléfono..."
+                            value={searchTerm}
+                            onChange={(e) => handleSearchClientes(e.target.value)}
+                            className="pl-10 text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        {/* Lista de clientes */}
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {isLoadingClientes ? (
+                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                          ) : filteredClientes.length === 0 ? (
+                            <div className="text-center py-4 text-zinc-400">
+                              {searchTerm ? "No se encontraron clientes" : "No hay clientes disponibles"}
+                            </div>
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                onClick={() => setSelectedCliente(cliente)}
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  selectedCliente?.id === cliente.id
+                                    ? "border-indigo-500 bg-indigo-500/20"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium text-white">
+                                      {cliente.nombre} {cliente.apellido}
+                                    </p>
+                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                    <p className="text-sm text-zinc-400">{cliente.telefono}</p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {cliente.tipo}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Botón para confirmar selección */}
+                        {selectedCliente && (
+                          <div className="space-y-3">
+                            <div className="p-3 bg-indigo-500/20 border border-indigo-500 rounded-lg">
+                              <p className="text-sm text-indigo-300">Cliente seleccionado:</p>
+                              <p className="font-medium text-white">
+                                {selectedCliente.nombre} {selectedCliente.apellido}
+                              </p>
+                            </div>
+                            <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                              Asignar como Propietario
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      /* Formulario para crear nuevo cliente */
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="newNombre" className="text-white">
+                              Nombre *
+                            </Label>
+                            <Input
+                              id="newNombre"
+                              value={newClienteData.nombre}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
+                              required
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newApellido" className="text-white">
+                              Apellido *
+                            </Label>
+                            <Input
+                              id="newApellido"
+                              value={newClienteData.apellido}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
+                              required
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newTelefono" className="text-white">
+                            Teléfono *
+                          </Label>
+                          <Input
+                            id="newTelefono"
+                            type="tel"
+                            value={newClienteData.telefono}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newEmail" className="text-white">
+                            Email *
+                          </Label>
+                          <Input
+                            id="newEmail"
+                            type="email"
+                            value={newClienteData.email}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={createNewCliente}
+                            disabled={
+                              !newClienteData.nombre ||
+                              !newClienteData.apellido ||
+                              !newClienteData.telefono ||
+                              !newClienteData.email
+                            }
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            Crear Cliente
+                          </Button>
+                          <Button
+                            onClick={() => setShowCreateClient(false)}
+                            variant="outline"
+                            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

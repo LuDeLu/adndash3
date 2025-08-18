@@ -13,6 +13,8 @@ import {
   FileSpreadsheet,
   FileBarChart,
   RefreshCw,
+  Search,
+  UserPlus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,7 +45,19 @@ import {
   type BoulevardGarageSpot,
 } from "@/lib/dome-boulevar-data"
 
+interface Cliente {
+  id: number
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
 let notyf: Notyf | null = null
+
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+
 
 type DomeBoulevardFloorPlanProps = {
   floorNumber?: number | null
@@ -67,7 +81,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
-    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | null
+    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | "addOwner" | null
   >(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -88,6 +102,14 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [selectedGarageSpot, setSelectedGarageSpot] = useState<BoulevardGarageSpot | null>(null)
 
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
+  const [showCreateClient, setShowCreateClient] = useState(false)
+  const [unitOwners, setUnitOwners] = useState<{ [key: string]: Cliente }>({})
+  const [isLoadingClientes, setIsLoadingClientes] = useState(false)
+
   // Initialize Notyf
   useEffect(() => {
     if (typeof window !== "undefined" && !notyf) {
@@ -97,6 +119,78 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       })
     }
   }, [])
+
+  const loadClientes = useCallback(async () => {
+    setIsLoadingClientes(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+      if (response.ok) {
+        const data = await response.json()
+        setClientes(data)
+        setFilteredClientes(data)
+      } else {
+        console.error("Error loading clients:", response.statusText)
+        if (notyf) notyf.error("Error al cargar los clientes")
+      }
+    } catch (error) {
+      console.error("Error loading clients:", error)
+      if (notyf) notyf.error("Error al cargar los clientes")
+    } finally {
+      setIsLoadingClientes(false)
+    }
+  }, [])
+
+  const handleSearchClientes = useCallback(
+    (term: string) => {
+      setSearchTerm(term)
+      if (term.trim() === "") {
+        setFilteredClientes(clientes)
+      } else {
+        const filtered = clientes.filter(
+          (cliente) =>
+            cliente.nombre.toLowerCase().includes(term.toLowerCase()) ||
+            cliente.apellido.toLowerCase().includes(term.toLowerCase()) ||
+            cliente.email.toLowerCase().includes(term.toLowerCase()) ||
+            cliente.telefono.includes(term),
+        )
+        setFilteredClientes(filtered)
+      }
+    },
+    [clientes],
+  )
+
+  const handleAssignOwner = useCallback(async () => {
+    if (!selectedCliente || !selectedUnit) return
+
+    try {
+      // Update unit owners state
+      setUnitOwners((prev) => ({
+        ...prev,
+        [selectedUnit.id]: selectedCliente,
+      }))
+
+      // Log the activity
+      const timestamp = new Date().toLocaleString()
+      const description = `${user?.name} asignó a ${selectedCliente.nombre} ${selectedCliente.apellido} como propietario de la unidad ${selectedUnit.unitNumber}`
+      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
+      if (notyf) notyf.success("Propietario asignado con éxito")
+
+      // Reset states
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+      setIsModalOpen(false)
+    } catch (error) {
+      console.error("Error assigning owner:", error)
+      if (notyf) notyf.error("Error al asignar propietario")
+    }
+  }, [selectedCliente, selectedUnit, user])
 
   // Obtener datos del piso seleccionado
   const getCurrentFloorData = useCallback(() => {
@@ -134,9 +228,20 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }
 
   const handleActionClick = (
-    actionType: "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release",
+    actionType:
+      | "block"
+      | "reserve"
+      | "sell"
+      | "unblock"
+      | "directReserve"
+      | "cancelReservation"
+      | "release"
+      | "addOwner",
   ) => {
     setAction(actionType)
+    if (actionType === "addOwner") {
+      loadClientes()
+    }
     setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
@@ -467,6 +572,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -526,7 +632,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
         {/* Unit Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
+          <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>
                 {selectedUnit
@@ -557,10 +663,113 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   <p>
                     <strong>Piso:</strong> {selectedUnit.floor}
                   </p>
+
+                  {unitOwners[selectedUnit.id] && (
+                    <div className="p-3 bg-zinc-800 rounded">
+                      <p>
+                        <strong>Propietario:</strong> {unitOwners[selectedUnit.id].nombre}{" "}
+                        {unitOwners[selectedUnit.id].apellido}
+                      </p>
+                      <p>
+                        <strong>Email:</strong> {unitOwners[selectedUnit.id].email}
+                      </p>
+                      <p>
+                        <strong>Teléfono:</strong> {unitOwners[selectedUnit.id].telefono}
+                      </p>
+                    </div>
+                  )}
                 </DialogDescription>
+
+                {action === "addOwner" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
+                        <Input
+                          placeholder="Buscar cliente por nombre, email o teléfono..."
+                          value={searchTerm}
+                          onChange={(e) => handleSearchClientes(e.target.value)}
+                          className="pl-10 bg-zinc-800 border-zinc-700 text-white"
+                        />
+                      </div>
+                      <Button onClick={() => setShowCreateClient(true)} className="bg-green-600 hover:bg-green-700">
+                        <UserPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {isLoadingClientes ? (
+                      <div className="text-center py-4">
+                        <p className="text-zinc-400">Cargando clientes...</p>
+                      </div>
+                    ) : (
+                      <ScrollArea className="h-60">
+                        <div className="space-y-2">
+                          {filteredClientes.map((cliente) => (
+                            <div
+                              key={cliente.id}
+                              onClick={() => setSelectedCliente(cliente)}
+                              className={`p-3 rounded cursor-pointer transition-colors ${
+                                selectedCliente?.id === cliente.id ? "bg-blue-600" : "bg-zinc-800 hover:bg-zinc-700"
+                              }`}
+                            >
+                              <p className="font-semibold">
+                                {cliente.nombre} {cliente.apellido}
+                              </p>
+                              <p className="text-sm text-zinc-400">{cliente.email}</p>
+                              <p className="text-sm text-zinc-400">{cliente.telefono}</p>
+                            </div>
+                          ))}
+                          {filteredClientes.length === 0 && (
+                            <p className="text-center text-zinc-400 py-4">No se encontraron clientes</p>
+                          )}
+                        </div>
+                      </ScrollArea>
+                    )}
+
+                    {selectedCliente && (
+                      <div className="p-3 bg-zinc-800 rounded">
+                        <p className="font-semibold">Cliente seleccionado:</p>
+                        <p>
+                          {selectedCliente.nombre} {selectedCliente.apellido}
+                        </p>
+                        <p className="text-sm text-zinc-400">{selectedCliente.email}</p>
+                        <p className="text-sm text-zinc-400">{selectedCliente.telefono}</p>
+                      </div>
+                    )}
+
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={handleAssignOwner}
+                        disabled={!selectedCliente}
+                        className="bg-green-600 hover:bg-green-700 flex-1"
+                      >
+                        Asignar Propietario
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setAction(null)
+                          setSelectedCliente(null)
+                          setSearchTerm("")
+                          setShowCreateClient(false)
+                        }}
+                        className="bg-red-600 hover:bg-red-700 flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {!action && (
                   <div className="space-y-2">
+                    <Button
+                      onClick={() => handleActionClick("addOwner")}
+                      className="bg-purple-600 hover:bg-purple-700 w-full"
+                    >
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Añadir Propietario
+                    </Button>
+
                     {selectedUnit.status === "DISPONIBLE" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
