@@ -103,7 +103,7 @@ export default function DetalleTicket({ reclamo, onCerrar, onActualizar }: Detal
                 <p className="font-medium">{reclamo.cliente}</p>
               </div>
               <div>
-                <Label className="text-muted-foreground">Teléfono</Label>
+                <Label className="text-muted-foreground">Telefono</Label>
                 <p className="font-medium flex items-center gap-1">
                   <Phone className="h-4 w-4" />
                   {reclamo.telefono}
@@ -121,7 +121,7 @@ export default function DetalleTicket({ reclamo, onCerrar, onActualizar }: Detal
               )}
               {reclamo.fechaPosesion && (
                 <div>
-                  <Label className="text-muted-foreground">Fecha de Posesión</Label>
+                  <Label className="text-muted-foreground">Fecha de Posesion</Label>
                   <p className="font-medium">{format(new Date(reclamo.fechaPosesion), "dd/MM/yyyy", { locale: es })}</p>
                 </div>
               )}
@@ -236,13 +236,13 @@ export default function DetalleTicket({ reclamo, onCerrar, onActualizar }: Detal
                   )}
                   {reclamo.tiempoResolucion && (
                     <div>
-                      <Label className="text-muted-foreground">Tiempo de Resolución</Label>
+                      <Label className="text-muted-foreground">Tiempo de Resolucion</Label>
                       <p className="font-medium">{reclamo.tiempoResolucion} días</p>
                     </div>
                   )}
                   {reclamo.proveedorResolvio && (
                     <div>
-                      <Label className="text-muted-foreground">Proveedor que Resolvió</Label>
+                      <Label className="text-muted-foreground">Proveedor que Resolvio</Label>
                       <p className="font-medium">{reclamo.proveedorResolvio}</p>
                     </div>
                   )}
@@ -308,7 +308,7 @@ export default function DetalleTicket({ reclamo, onCerrar, onActualizar }: Detal
                     <p className="whitespace-pre-wrap">{notas}</p>
                   ) : (
                     <p className="text-muted-foreground italic">
-                      No hay notas registradas. Haga clic en "Editar" para agregar información.
+                      No hay notas registradas. Haga clic en Editar para agregar informacion.
                     </p>
                   )}
                 </div>
