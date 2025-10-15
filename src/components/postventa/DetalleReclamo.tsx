@@ -22,7 +22,7 @@ import {
   Calendar,
   FileText,
   Clipboard,
-  PenToolIcon as Tool,
+  PenTool as Tool,
   CheckSquare,
   Clock,
   CheckCircle2,
@@ -157,7 +157,7 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
     const reclamoActualizado: Reclamo = {
       ...reclamo,
       inspeccion: nuevaInspeccion,
-      estado: "En Inspección",
+      estado: "En Proceso",
     }
 
     onActualizarReclamo(reclamoActualizado)
@@ -174,7 +174,7 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
     const reclamoActualizado: Reclamo = {
       ...reclamo,
       ordenTrabajo: ordenTrabajo,
-      estado: "En Reparación",
+      estado: "En Proceso",
     }
     onActualizarReclamo(reclamoActualizado)
     setOrdenTrabajo({
@@ -204,18 +204,11 @@ export default function DetalleReclamo({ reclamo, onActualizarReclamo, onEnviarC
             Ingresado
           </Badge>
         )
-      case "En Inspección":
+      case "En Proceso":
         return (
           <Badge variant="outline" className="bg-blue-100 text-blue-800 hover:bg-blue-200 border-blue-200">
             <AlertTriangle className="mr-1 h-3 w-3" />
-            En Inspección
-          </Badge>
-        )
-      case "En Reparación":
-        return (
-          <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200 border-green-200">
-            <Tool className="mr-1 h-3 w-3" />
-            En Reparación
+            En Proceso
           </Badge>
         )
       case "Solucionado":
@@ -527,8 +520,7 @@ function InspeccionReclamo({ reclamo, inspeccion, handleInspeccionChange, agrega
                     <p className="text-sm text-muted-foreground mb-1">Resultado</p>
                     <Badge
                       variant="outline"
-                      className={`
-                      ${
+                      className={`${
                         item.resultado === "Corresponde"
                           ? "bg-green-100 text-green-800 border-green-200"
                           : item.resultado === "No Corresponde"
@@ -536,8 +528,7 @@ function InspeccionReclamo({ reclamo, inspeccion, handleInspeccionChange, agrega
                             : item.resultado === "Re Inspección"
                               ? "bg-amber-100 text-amber-800 border-amber-200"
                               : "bg-blue-100 text-blue-800 border-blue-200"
-                      }
-                    `}
+                      }`}
                     >
                       {item.resultado}
                     </Badge>
@@ -585,7 +576,7 @@ function ReparacionReclamo({
 }: ReparacionReclamoProps) {
   return (
     <div className="space-y-6 pt-4">
-      {reclamo.estado === "En Inspección" && (
+      {reclamo.estado === "En Proceso" && (
         <div className=" dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 space-y-4">
           <h3 className="text-lg font-semibold flex items-center">
             <Tool className="mr-2 h-5 w-5 text-green-600 dark:text-green-400" />
@@ -733,7 +724,7 @@ function ConformidadReclamo({
 }: ConformidadReclamoProps) {
   return (
     <div className="space-y-6 pt-4">
-      {reclamo.estado === "En Reparación" && (
+      {reclamo.estado === "En Proceso" && (
         <div className="dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded-lg p-4 space-y-4">
           <h3 className="text-lg font-semibold flex items-center">
             <CheckSquare className="mr-2 h-5 w-5 text-gray-600 dark:text-gray-400" />
@@ -1007,4 +998,3 @@ function InfoItem({ icon, label, value }: InfoItemProps) {
     </div>
   )
 }
-

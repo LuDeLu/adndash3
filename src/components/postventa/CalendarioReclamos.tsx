@@ -115,13 +115,9 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
         backgroundColor = "#f59e0b" // amarillo
         borderColor = "#d97706"
         break
-      case "En Inspección":
+      case "En Proceso":
         backgroundColor = "#3b82f6" // azul
         borderColor = "#2563eb"
-        break
-      case "En Reparación":
-        backgroundColor = "#10b981" // verde
-        borderColor = "#059669"
         break
       case "Solucionado":
         backgroundColor = "#6b7280" // gris
@@ -331,8 +327,7 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
           <div className="text-sm font-medium">Estados:</div>
           <div className="flex flex-wrap gap-2">
             <Badge className="bg-[#f59e0b]">Ingresado</Badge>
-            <Badge className="bg-[#3b82f6]">En Inspección</Badge>
-            <Badge className="bg-[#10b981]">En Reparación</Badge>
+            <Badge className="bg-[#3b82f6]">En Proceso</Badge>
             <Badge className="bg-[#6b7280]">Solucionado</Badge>
             <Badge className="bg-[#ef4444]">No Corresponde</Badge>
           </div>
@@ -341,4 +336,3 @@ export default function CalendarioReclamos({ reclamos, onEventClick }: Calendari
     </Card>
   )
 }
-

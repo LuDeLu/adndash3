@@ -28,6 +28,13 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
     ticket: "",
     fechaIngreso: "",
     estado: "Ingresado",
+    fechaCreacion: "",
+    fechaPosesion: "",
+    ubicacionAfectada: "",
+    rubro: "",
+    proveedor: "",
+    urgencia: "Media",
+    notas: "",
   })
 
   const [nuevoDetalle, setNuevoDetalle] = useState("")
@@ -71,10 +78,11 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
       ...nuevoReclamo,
       detalle: detalleGeneral,
       fechaIngreso: new Date().toISOString().split("T")[0],
+      fechaCreacion: new Date().toISOString().split("T")[0],
       ticket: `T${Math.floor(Math.random() * 10000)
         .toString()
         .padStart(4, "0")}`,
-      detalles: nuevoReclamo.detalles || [], // Asegurarse de que detalles sea un array
+      detalles: nuevoReclamo.detalles || [],
     }
     onNuevoReclamo(reclamoCompleto)
     setNuevoReclamo({
@@ -89,6 +97,13 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
       ticket: "",
       fechaIngreso: "",
       estado: "Ingresado",
+      fechaCreacion: "",
+      fechaPosesion: "",
+      ubicacionAfectada: "",
+      rubro: "",
+      proveedor: "",
+      urgencia: "Media",
+      notas: "",
     })
     setActiveTab("cliente")
   }
@@ -291,4 +306,3 @@ export default function IngresoReclamo({ onNuevoReclamo }: IngresoReclamoProps) 
     </form>
   )
 }
-
