@@ -25,7 +25,7 @@ import {
   Trash2,
   CheckCircle,
   MessageCircle,
-  FolderSyncIcon as Sync,
+  Send as Sync,
   AlertCircle,
   CalendarIcon,
   Loader2,
@@ -79,6 +79,7 @@ type Event = {
   start: Date
   end: Date
   client: string
+  clientName?: string
   completed: boolean
   reminded: boolean
   description?: string
@@ -128,6 +129,11 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
     }
   }, [value, clients])
 
+  const getClientName = (clientId: string): string => {
+    const client = clients.find((c) => c.id === clientId)
+    return client ? `${client.nombre} ${client.apellido}` : clientId
+  }
+
   const handleChange = (newValue: string) => {
     if (newValue === "other") {
       setIsOther(true)
@@ -148,7 +154,9 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
       ) : (
         <Select value={isOther ? "other" : value} onValueChange={handleChange}>
           <SelectTrigger className="w-full bg-gray-800 text-white border-gray-700">
-            <SelectValue placeholder="Seleccionar cliente" />
+            <SelectValue placeholder="Seleccionar cliente">
+              {value && !isOther ? getClientName(value) : undefined}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent className="bg-gray-800 text-white border-gray-700">
             {clients.map((client) => (
@@ -180,6 +188,7 @@ function MobileEventCard({
   onComplete,
   onRemind,
   loading,
+  getClientDisplayName,
 }: {
   event: Event
   onEdit: () => void
@@ -187,6 +196,7 @@ function MobileEventCard({
   onComplete: () => void
   onRemind: () => void
   loading: boolean
+  getClientDisplayName: (clientId: string) => string
 }) {
   return (
     <Card
@@ -202,7 +212,7 @@ function MobileEventCard({
             )}
           </div>
         </div>
-        <CardDescription className="text-sm">Cliente: {event.client}</CardDescription>
+        <CardDescription className="text-sm">Cliente: {getClientDisplayName(event.client)}</CardDescription>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-2 text-sm mb-4">
@@ -283,6 +293,7 @@ export default function Calendar() {
   const [showGoogleAuthModal, setShowGoogleAuthModal] = useState(false)
   const [googleAuthUrl, setGoogleAuthUrl] = useState("")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [clientsMap, setClientsMap] = useState<{ [key: string]: string }>({})
 
   const checkGoogleConnection = useCallback(async () => {
     try {
@@ -318,8 +329,29 @@ export default function Calendar() {
   }, [])
 
   useEffect(() => {
+    const loadClientsMap = async () => {
+      try {
+        const response = await fetch("https://adndashboard.squareweb.app/api/clientes", {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        })
+        if (response.ok) {
+          const clients = await response.json()
+          const map: { [key: string]: string } = {}
+          clients.forEach((client: any) => {
+            map[client.id] = `${client.nombre} ${client.apellido}`
+          })
+          setClientsMap(map)
+        }
+      } catch (error) {
+        console.error("Error loading clients map:", error)
+      }
+    }
+
     fetchEvents()
     checkGoogleConnection()
+    loadClientsMap()
 
     const urlParams = new URLSearchParams(window.location.search)
     const status = urlParams.get("status")
@@ -388,6 +420,8 @@ export default function Calendar() {
         const eventToAdd: Event = {
           ...newEvent,
           id: selectedEvent ? selectedEvent.id : Date.now().toString(),
+          // Add clientName when creating/editing
+          clientName: clientsMap[newEvent.client] || newEvent.client,
         }
 
         const url = selectedEvent
@@ -649,6 +683,7 @@ export default function Calendar() {
               <MobileEventCard
                 key={event.id}
                 event={event}
+                getClientDisplayName={getClientDisplayName}
                 onEdit={() => {
                   setSelectedEvent(event)
                   setNewEvent(event)
@@ -666,6 +701,10 @@ export default function Calendar() {
       </ScrollArea>
     </div>
   )
+
+  const getClientDisplayName = (clientId: string): string => {
+    return clientsMap[clientId] || clientId
+  }
 
   if (isMobile) {
     return (
@@ -1077,7 +1116,7 @@ export default function Calendar() {
                 <CardHeader>
                   <CardTitle className="text-lg">{event.title}</CardTitle>
                   <CardDescription>
-                    Cliente: {event.client}
+                    Cliente: {getClientDisplayName(event.client)}
                     {event.completed && <Badge className="ml-2 bg-green-500 text-white">Finalizado</Badge>}
                     {event.reminded && !event.completed && (
                       <Badge className="ml-2 bg-yellow-500 text-white">Recordado</Badge>
