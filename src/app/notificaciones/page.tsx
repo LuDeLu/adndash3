@@ -17,6 +17,8 @@ import {
   BarChart3,
   Trash2,
   RefreshCw,
+  Archive,
+  Inbox,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -112,6 +114,19 @@ export default function NotificationsPage() {
   const [dateFilter, setDateFilter] = useState("all")
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showArchived, setShowArchived] = useState(false)
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    const archived = localStorage.getItem("archivedNotifications")
+    if (archived) {
+      try {
+        setArchivedIds(new Set(JSON.parse(archived)))
+      } catch (e) {
+        console.error("Error parsing archived notifications:", e)
+      }
+    }
+  }, [])
 
   // Fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -205,6 +220,28 @@ export default function NotificationsPage() {
     [selectedNotification],
   )
 
+  const archiveNotification = useCallback(
+    (notificationId: string) => {
+      const updated = new Set(archivedIds)
+      updated.add(notificationId)
+      setArchivedIds(updated)
+      localStorage.setItem("archivedNotifications", JSON.stringify(Array.from(updated)))
+      notyf?.success("Notificación archivada")
+    },
+    [archivedIds],
+  )
+
+  const unarchiveNotification = useCallback(
+    (notificationId: string) => {
+      const updated = new Set(archivedIds)
+      updated.delete(notificationId)
+      setArchivedIds(updated)
+      localStorage.setItem("archivedNotifications", JSON.stringify(Array.from(updated)))
+      notyf?.success("Notificación restaurada")
+    },
+    [archivedIds],
+  )
+
   // Format relative time
   const formatRelativeTime = (timestamp: string) => {
     const date = new Date(timestamp)
@@ -266,6 +303,9 @@ export default function NotificationsPage() {
 
   const filteredNotifications = useMemo(() => {
     return notifications.filter((n) => {
+      if (showArchived && !archivedIds.has(n.id)) return false
+      if (!showArchived && archivedIds.has(n.id)) return false
+
       // Tab filter
       if (activeTab === "unread" && n.read) return false
       if (activeTab !== "all" && activeTab !== "unread" && n.module !== activeTab) return false
@@ -295,7 +335,7 @@ export default function NotificationsPage() {
 
       return true
     })
-  }, [notifications, activeTab, searchQuery, typeFilter, dateFilter])
+  }, [notifications, activeTab, searchQuery, typeFilter, dateFilter, showArchived, archivedIds])
 
   const handleSelectAll = () => {
     if (selectedIds.size === filteredNotifications.length) {
@@ -366,6 +406,15 @@ export default function NotificationsPage() {
     }
   }
 
+  const handleBulkArchive = async () => {
+    if (selectedIds.size === 0) return
+
+    selectedIds.forEach((id) => {
+      archiveNotification(id)
+    })
+    setSelectedIds(new Set())
+  }
+
   if (selectedNotification) {
     const { notification, readBy, unreadBy } = selectedNotification
     const readPercentage =
@@ -374,7 +423,7 @@ export default function NotificationsPage() {
         : 0
 
     return (
-      <div className="min-h-screen bg-slate-950 p-4 md:p-6">
+      <div className="min-h-screen p-4 md:p-6">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-4 mb-6">
             <Button
@@ -583,7 +632,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 p-4 md:p-6">
+    <div className="min-h-screen p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -737,6 +786,15 @@ export default function NotificationsPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={handleBulkArchive}
+                        className="border-slate-700 hover:bg-slate-800 text-slate-300 bg-transparent"
+                      >
+                        <Archive className="h-4 w-4 mr-2" />
+                        Archivar ({selectedIds.size})
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={handleBulkDelete}
                         className="border-red-900 hover:bg-red-950/20 text-red-400 bg-transparent"
                       >
@@ -745,6 +803,17 @@ export default function NotificationsPage() {
                       </Button>
                     </div>
                   )}
+
+                  <Button
+                    variant={showArchived ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setShowArchived(!showArchived)}
+                    className={showArchived ? "bg-blue-600 hover:bg-blue-700" : "border-slate-700 text-slate-300"}
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    {showArchived ? "Archivadas" : "Activas"} (
+                    {showArchived ? archivedIds.size : notifications.length - archivedIds.size})
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -864,17 +933,47 @@ export default function NotificationsPage() {
                                 </div>
                               </div>
 
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  deleteNotification(notification.id)
-                                }}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-950/20 h-9 w-9 shrink-0"
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
+                              <div className="flex gap-1 shrink-0">
+                                {showArchived ? (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      unarchiveNotification(notification.id)
+                                    }}
+                                    className="text-blue-400 hover:text-blue-300 hover:bg-blue-950/20 h-9 w-9"
+                                    title="Restaurar notificación"
+                                  >
+                                    <Inbox className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      archiveNotification(notification.id)
+                                    }}
+                                    className="text-slate-400 hover:text-slate-300 hover:bg-slate-800 h-9 w-9"
+                                    title="Archivar notificación"
+                                  >
+                                    <Archive className="h-4 w-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    deleteNotification(notification.id)
+                                  }}
+                                  className="text-red-400 hover:text-red-300 hover:bg-red-950/20 h-9 w-9 shrink-0"
+                                  title="Eliminar notificación"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>

@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { Bell, Check, CheckCheck, X, Settings, Filter } from "lucide-react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
+import { Bell, Check, X, Settings, Archive } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   DropdownMenu,
@@ -19,9 +19,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Skeleton } from "@/components/ui/skeleton"
 import { useRouter } from "next/navigation"
 import { Notyf } from "notyf"
+import { CheckCheck, Filter } from "lucide-react"
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app"
 
 // Types
 export type Notification = {
@@ -110,6 +112,30 @@ const MODULE_ICONS: Record<string, string> = {
   documentos: "📄",
 }
 
+// Define type-specific colors for better styling
+const TYPE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  info: {
+    bg: "bg-blue-500/10 hover:bg-blue-500/20",
+    border: "border-l-blue-500",
+    text: "text-blue-400",
+  },
+  warning: {
+    bg: "bg-yellow-500/10 hover:bg-yellow-500/20",
+    border: "border-l-yellow-500",
+    text: "text-yellow-400",
+  },
+  success: {
+    bg: "bg-green-500/10 hover:bg-green-500/20",
+    border: "border-l-green-500",
+    text: "text-green-400",
+  },
+  error: {
+    bg: "bg-red-500/10 hover:bg-red-500/20",
+    border: "border-l-red-500",
+    text: "text-red-400",
+  },
+}
+
 // Default preferences
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   enableAll: true,
@@ -140,14 +166,73 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 export default function NotificationCenter() {
   const { user } = useAuth()
   const router = useRouter()
+  // Use useRef for polling interval to manage it across renders
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [activeFilter, setActiveFilter] = useState<string>("all")
   const [isOpen, setIsOpen] = useState(false)
   const [loading, setLoading] = useState(true)
+  // Add error state for better user feedback
+  const [error, setError] = useState<string | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_PREFERENCES)
+
+  const [archivedIds, setArchivedIds] = useState<Set<string>>(new Set())
+
+  const getAuthToken = useCallback(() => {
+    return typeof window !== "undefined" ? localStorage.getItem("token") : ""
+  }, [])
+
+  const apiCall = useCallback(
+    async <T,>(
+      path: string,
+      options: {
+        method?: "GET" | "POST" | "PATCH" | "DELETE"
+        body?: any
+      } = {},
+    ): Promise<T | null> => {
+      try {
+        const response = await fetch(`${API_BASE_URL}${path}`, {
+          method: options.method || "GET",
+          headers: {
+            Authorization: `Bearer ${getAuthToken()}`,
+            "Content-Type": "application/json",
+          },
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        })
+
+        if (!response.ok) {
+          // Extract error message from response if available
+          let errorMessage = `API Error: ${response.statusText}`
+          try {
+            const errorData = await response.json()
+            if (errorData.message) {
+              errorMessage = errorData.message
+            }
+          } catch (jsonError) {
+            // Ignore if response is not JSON
+          }
+          throw new Error(errorMessage)
+        }
+
+        // Handle cases where the API might return an empty response for certain operations
+        if (response.status === 204) {
+          // No Content
+          return {} as T // Return an empty object or appropriate type for T
+        }
+
+        return await response.json()
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : "Error desconocido"
+        console.error(`[v0] API Error on ${path}:`, errorMessage)
+        setError(errorMessage) // Set global error state
+        return null
+      }
+    },
+    [getAuthToken],
+  )
 
   // Load preferences from localStorage
   const loadPreferences = useCallback(() => {
@@ -156,60 +241,63 @@ export default function NotificationCenter() {
     const savedPrefs = localStorage.getItem("notificationPreferences")
     if (savedPrefs) {
       try {
-        const parsedPrefs = JSON.parse(savedPrefs)
+        // Merge with existing preferences to avoid losing settings
         setPreferences((prev) => ({
           ...prev,
-          ...parsedPrefs,
+          ...JSON.parse(savedPrefs),
         }))
       } catch (e) {
-        console.error("Error parsing notification preferences:", e)
+        console.error("[v0] Error parsing preferences:", e)
+      }
+    }
+
+    const archivedNotifs = localStorage.getItem("archivedNotifications")
+    if (archivedNotifs) {
+      try {
+        setArchivedIds(new Set(JSON.parse(archivedNotifs)))
+      } catch (e) {
+        console.error("[v0] Error parsing archived notifications:", e)
       }
     }
   }, [])
-
-  // Save preferences to localStorage
-  const savePreferences = useCallback(
-    (newPrefs: Partial<NotificationPreferences>) => {
-      const updatedPrefs = { ...preferences, ...newPrefs }
-      setPreferences(updatedPrefs)
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("notificationPreferences", JSON.stringify(updatedPrefs))
-      }
-    },
-    [preferences],
-  )
 
   // Fetch notifications from server
   const fetchNotifications = useCallback(async () => {
     if (!user) return
 
     try {
-      setLoading(true)
-      const response = await fetch("https://adndashboard.squareweb.app/api/notifications", {
-        headers: {
-          Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
-        },
-      })
+      setError(null) // Clear previous errors
+      setLoading(true) // Start loading
+      const data = await apiCall<any[]>("/api/notifications")
 
-      if (response.ok) {
-        const data = await response.json()
+      if (data && Array.isArray(data)) {
+        console.log("[v0] Received notifications:", data) // Debug log to verify data is received
+
         // Transform data from database format to interface format
         const formattedData = data.map((item: any) => ({
           id: item.id.toString(),
           message: item.message,
           timestamp: item.created_at,
-          read: item.read === 1,
+          read: item.read === 1 || item.read === true,
           type: item.type || "info",
           link: item.link,
           module: item.module,
           priority: item.priority || "medium",
-          actionable: item.actionable === 1,
-          actions: item.actions ? JSON.parse(item.actions) : undefined,
-          metadata: item.metadata ? JSON.parse(item.metadata) : undefined,
+          actionable: item.actionable === 1 || item.actionable === true,
+          actions: item.actions
+            ? typeof item.actions === "string"
+              ? JSON.parse(item.actions)
+              : item.actions
+            : undefined,
+          metadata: item.metadata
+            ? typeof item.metadata === "string"
+              ? JSON.parse(item.metadata)
+              : item.metadata
+            : undefined,
           expiresAt: item.expires_at,
         }))
 
+        console.log("[v0] Formatted notifications:", formattedData) // Debug log after transformation
         setNotifications(formattedData)
         setUnreadCount(formattedData.filter((n: Notification) => !n.read).length)
 
@@ -217,20 +305,21 @@ export default function NotificationCenter() {
         if (
           preferences.desktopNotifications &&
           typeof window !== "undefined" &&
-          Notification.permission !== "granted" &&
-          Notification.permission !== "denied"
+          Notification.permission === "default"
         ) {
           Notification.requestPermission()
         }
       } else {
-        console.error("Error fetching notifications:", response.statusText)
+        console.log("[v0] No data or invalid format received:", data)
+        setNotifications([])
+        setUnreadCount(0)
       }
     } catch (error) {
-      console.error("Error fetching notifications:", error)
+      console.error("[v0] Error in fetchNotifications:", error)
     } finally {
       setLoading(false)
     }
-  }, [user, preferences.desktopNotifications])
+  }, [user, preferences.desktopNotifications, apiCall])
 
   // Group similar notifications
   const groupedNotifications = useMemo(() => {
@@ -253,83 +342,58 @@ export default function NotificationCenter() {
   }, [notifications, preferences.groupSimilar])
 
   // Mark notification as read
-  const markAsRead = useCallback(async (id: string) => {
-    try {
-      const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/${id}/read`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (response.ok) {
-        // Update local state
-        setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
-        setUnreadCount((prev) => Math.max(0, prev - 1))
-      } else {
-        console.error("Error marking notification as read:", response.statusText)
+  const markAsRead = useCallback(
+    async (id: string) => {
+      try {
+        // Use the generic apiCall helper
+        const success = await apiCall(`/api/notifications/${id}/read`, { method: "PATCH" })
+        if (success) {
+          setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)))
+          setUnreadCount((prev) => Math.max(0, prev - 1))
+        }
+      } catch (err) {
+        // Error logged by apiCall
       }
-    } catch (error) {
-      console.error("Error marking notification as read:", error)
-    }
-  }, [])
+    },
+    [apiCall],
+  )
 
   // Mark all notifications as read
   const markAllAsRead = useCallback(async () => {
     try {
-      const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/read-all`, {
-        method: "PATCH",
-        headers: {
-          Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
-          "Content-Type": "application/json",
-        },
-      })
-
-      if (response.ok) {
-        // Update local state
+      // Use the generic apiCall helper
+      const success = await apiCall("/api/notifications/read-all", { method: "PATCH" })
+      if (success) {
         setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
         setUnreadCount(0)
-        notyf?.success("Todas las notificaciones han sido marcadas como leídas")
-      } else {
-        console.error("Error marking all notifications as read:", response.statusText)
+        notyf?.success("Notificaciones marcadas como leídas")
       }
-    } catch (error) {
-      console.error("Error marking all notifications as read:", error)
+    } catch (err) {
+      // Error logged by apiCall
     }
-  }, [])
+  }, [apiCall])
 
   // Delete notification
   const deleteNotification = useCallback(
     async (id: string) => {
       try {
-        const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/${id}`, {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
-          },
-        })
-
-        if (response.ok) {
-          // Update local state
-          const updatedNotifications = notifications.filter((n) => n.id !== id)
-          setNotifications(updatedNotifications)
-
-          // Update unread count if it was an unread notification
-          const wasUnread = notifications.find((n) => n.id === id)?.read === false
-          if (wasUnread) {
-            setUnreadCount((prev) => Math.max(0, prev - 1))
-          }
-
-          notyf?.success("La notificación ha sido eliminada correctamente")
-        } else {
-          console.error("Error deleting notification:", response.statusText)
+        // Use the generic apiCall helper
+        const success = await apiCall(`/api/notifications/${id}`, { method: "DELETE" })
+        if (success) {
+          setNotifications((prev) => {
+            const updated = prev.filter((n) => n.id !== id)
+            // Recalculate unread count correctly
+            setUnreadCount(updated.filter((n) => !n.read).length)
+            return updated
+          })
+          notyf?.success("Notificación eliminada")
         }
-      } catch (error) {
-        console.error("Error deleting notification:", error)
+      } catch (err) {
+        console.error("[v0] Error deleting notification:", err)
+        notyf?.error("Error al eliminar notificación")
       }
     },
-    [notifications],
+    [apiCall],
   )
 
   // Execute notification action
@@ -364,8 +428,11 @@ export default function NotificationCenter() {
   )
 
   // Filter notifications based on active tab
-  const filteredNotifications = useMemo(() => {
+  const filteredNotificationsList = useMemo(() => {
     return notifications.filter((notification) => {
+      // Don't show archived notifications
+      if (archivedIds.has(notification.id)) return false
+
       // First check if the module is enabled in preferences
       if (!preferences.modules[notification.module]) {
         return false
@@ -382,7 +449,7 @@ export default function NotificationCenter() {
       if (activeFilter === "high") return notification.priority === "high"
       return notification.module === activeFilter
     })
-  }, [notifications, preferences.modules, preferences.types, activeFilter])
+  }, [notifications, preferences.modules, preferences.types, activeFilter, archivedIds])
 
   // Format relative time (e.g., "5 minutes ago")
   const formatRelativeTime = useCallback((timestamp: string) => {
@@ -401,6 +468,20 @@ export default function NotificationCenter() {
       month: "short",
       year: "numeric",
     })
+  }, [])
+
+  // Renamed formatRelativeTime to formatTime for consistency with other date formatting functions
+  const formatTime = useCallback((timestamp: string) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const diff = Math.floor((now.getTime() - date.getTime()) / 1000)
+
+    if (diff < 60) return "hace unos segundos"
+    if (diff < 3600) return `hace ${Math.floor(diff / 60)}m`
+    if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`
+    if (diff < 604800) return `hace ${Math.floor(diff / 86400)}d`
+
+    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" })
   }, [])
 
   // Show desktop notification
@@ -474,14 +555,59 @@ export default function NotificationCenter() {
     }
   }, [])
 
-  // Load notifications when component mounts
+  // Save preferences
+  const savePreferences = useCallback(
+    (newPrefs: Partial<NotificationPreferences>) => {
+      setPreferences((prev) => {
+        const updated = { ...prev, ...newPrefs }
+        if (typeof window !== "undefined") {
+          localStorage.setItem("notificationPreferences", JSON.stringify(updated))
+        }
+        return updated
+      })
+    },
+    [], // Empty dependency array as it only uses `preferences` from closure
+  )
+
+  const archiveNotification = useCallback((id: string) => {
+    setArchivedIds((prev) => {
+      const updated = new Set(prev)
+      updated.add(id)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("archivedNotifications", JSON.stringify(Array.from(updated)))
+      }
+      return updated
+    })
+    // Show confirmation message
+    notyf?.success("Notificación archivada")
+  }, [])
+
+  // Unarchive notification (not used in current UI, but good to have)
+  const unarchiveNotification = useCallback((id: string) => {
+    setArchivedIds((prev) => {
+      const updated = new Set(prev)
+      updated.delete(id)
+      if (typeof window !== "undefined") {
+        localStorage.setItem("archivedNotifications", JSON.stringify(Array.from(updated)))
+      }
+      return updated
+    })
+  }, [])
+
+  // Initialize and set up polling
   useEffect(() => {
     loadPreferences()
     fetchNotifications()
 
-    // Set up polling to update notifications every minute
-    const interval = setInterval(fetchNotifications, 60000)
-    return () => clearInterval(interval)
+    // Start polling for new notifications with a configurable interval
+    pollingIntervalRef.current = setInterval(fetchNotifications, 30000) // Every 30 seconds
+
+    // Cleanup interval on unmount
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current)
+      }
+    }
   }, [fetchNotifications, loadPreferences])
 
   // Check for new notifications and show desktop notifications
@@ -499,7 +625,7 @@ export default function NotificationCenter() {
     }
   }, [notifications, preferences.desktopNotifications, showDesktopNotification])
 
-  // Automatically mark as read when dropdown opens
+  // Automatically mark as read when dropdown opens (if enabled)
   useEffect(() => {
     if (isOpen && preferences.autoMarkAsRead && unreadCount > 0) {
       markAllAsRead()
@@ -656,7 +782,7 @@ export default function NotificationCenter() {
         </div>
       </div>
 
-      <Button variant="outline" size="sm" className="w-full mt-4" onClick={() => setShowSettings(false)}>
+      <Button variant="outline" size="sm" className="w-full mt-4 bg-transparent" onClick={() => setShowSettings(false)}>
         Volver a notificaciones
       </Button>
     </div>
@@ -670,17 +796,17 @@ export default function NotificationCenter() {
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex flex-col space-y-2">
               <div className="flex items-center space-x-2">
-                <Skeleton className="h-8 w-8 rounded-full" />
-                <Skeleton className="h-4 w-[250px]" />
+                <div className="h-8 w-8 rounded-full bg-gray-300"></div>
+                <div className="h-4 w-[250px] bg-gray-300"></div>
               </div>
-              <Skeleton className="h-3 w-[200px]" />
+              <div className="h-3 w-[200px] bg-gray-300"></div>
             </div>
           ))}
         </div>
       )
     }
 
-    if (filteredNotifications.length === 0) {
+    if (filteredNotificationsList.length === 0) {
       return (
         <div className="p-8 text-center text-muted-foreground flex flex-col items-center">
           <Bell className="h-8 w-8 mb-2 opacity-20" />
@@ -697,10 +823,10 @@ export default function NotificationCenter() {
       return (
         <>
           {Object.entries(groupedNotifications)
-            .filter(([key, notifs]) => notifs.some((n) => filteredNotifications.some((fn) => fn.id === n.id)))
+            .filter(([key, notifs]) => notifs.some((n) => filteredNotificationsList.some((fn) => fn.id === n.id)))
             .map(([key, notifs]) => {
               // Filter only notifications that pass the current filter
-              const filteredGroupNotifs = notifs.filter((n) => filteredNotifications.some((fn) => fn.id === n.id))
+              const filteredGroupNotifs = notifs.filter((n) => filteredNotificationsList.some((fn) => fn.id === n.id))
 
               if (filteredGroupNotifs.length === 0) return null
 
@@ -761,7 +887,7 @@ export default function NotificationCenter() {
       // Normal view (ungrouped)
       return (
         <>
-          {filteredNotifications.map((notification) => (
+          {filteredNotificationsList.map((notification) => (
             <DropdownMenuItem
               key={notification.id}
               className={`flex flex-col items-start p-3 border-b border-l-4 cursor-pointer ${
@@ -817,7 +943,7 @@ export default function NotificationCenter() {
                 )}
 
                 {/* Quick action buttons */}
-                <div className="flex justify-end mt-1">
+                <div className="flex justify-end gap-1 mt-1">
                   <Button
                     variant="ghost"
                     size="icon"
@@ -829,9 +955,22 @@ export default function NotificationCenter() {
                       }
                     }}
                     disabled={notification.read}
-                    aria-label="Marcar como leída"
+                    title="Marcar como leída"
                   >
                     <Check className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      archiveNotification(notification.id)
+                      notyf?.success("Notificación archivada")
+                    }}
+                    title="Archivar notificación"
+                  >
+                    <Archive className="h-3 w-3" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -841,7 +980,7 @@ export default function NotificationCenter() {
                       e.stopPropagation()
                       deleteNotification(notification.id)
                     }}
-                    aria-label="Eliminar notificación"
+                    title="Eliminar notificación"
                   >
                     <X className="h-3 w-3" />
                   </Button>
@@ -979,4 +1118,3 @@ export default function NotificationCenter() {
     </DropdownMenu>
   )
 }
-
