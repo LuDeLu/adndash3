@@ -12,6 +12,12 @@ import {
   Car,
   FileSpreadsheet,
   FileBarChart,
+  RefreshCw,
+  User,
+  Phone,
+  Mail,
+  Search,
+  Plus,
   MapPin,
   Home,
 } from "lucide-react"
@@ -23,6 +29,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/app/auth/auth-context"
+import { Notyf } from "notyf"
+import "notyf/notyf.min.css"
+import { cn } from "@/lib/utils"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   berutiProjectInfo,
   getBerutiFloorData,
@@ -36,12 +47,34 @@ import {
   berutiParkingSpots,
   type BerutiParkingSpot,
 } from "@/lib/dome-beruti-data"
-import { Notyf } from "notyf"
-import "notyf/notyf.min.css"
-import { cn } from "@/lib/utils"
-import { ScrollArea } from "@/components/ui/scroll-area"
 
 let notyf: Notyf | null = null
+
+interface Cliente {
+  id: number
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
+
+interface NewClienteData {
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
+
+interface UnitOwner {
+  name: string
+  email: string
+  phone: string
+  type: string
+}
 
 type DomeBerutiFloorPlanProps = {
   floorNumber?: number | null
@@ -50,8 +83,8 @@ type DomeBerutiFloorPlanProps = {
 
 const floors = Array.from({ length: 14 }, (_, i) => i + 1)
 const garageLevels = [1, 2, 3]
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
-// Garage plan images for Dome Beruti
 const garagePlans = {
   1: "/planos/beruti/cochera/nivel1.png",
   2: "/planos/beruti/cochera/nivel2.png",
@@ -65,7 +98,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
-    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | null
+    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | "addOwner" | null
   >(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -81,9 +114,26 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
-  const [refreshing, setRefreshing] = useState(false)
   const [selectedParkingSpot, setSelectedParkingSpot] = useState<BerutiParkingSpot | null>(null)
   const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
+
+  const [clientes, setClientes] = useState<Cliente[]>([])
+  const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
+  const [showCreateClient, setShowCreateClient] = useState(false)
+  const [newClienteData, setNewClienteData] = useState<NewClienteData>({
+    nombre: "",
+    apellido: "",
+    telefono: "",
+    email: "",
+    tipo: "COMPRADOR",
+    estado: "ACTIVO",
+  })
+  const [isLoadingClientes, setIsLoadingClientes] = useState(false)
+  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
 
   // Initialize Notyf
   useEffect(() => {
@@ -95,7 +145,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     }
   }, [])
 
-  // Obtener datos del piso seleccionado
   const currentFloorData = getBerutiFloorData(currentFloor)
 
   const handleUnitClick = useCallback((unit: BerutiApartment) => {
@@ -113,6 +162,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     setConfirmReservation(false)
     setConfirmCancelReservation(false)
     setConfirmRelease(false)
+    setSelectedCliente(null)
   }, [])
 
   const handleFloorClick = (floor: number) => {
@@ -122,12 +172,127 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   }
 
   const handleActionClick = (
-    actionType: "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release",
+    actionType:
+      | "block"
+      | "reserve"
+      | "sell"
+      | "unblock"
+      | "directReserve"
+      | "cancelReservation"
+      | "release"
+      | "addOwner",
   ) => {
     setAction(actionType)
     setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
+  }
+
+  const loadClientes = async () => {
+    setIsLoadingClientes(true)
+    try {
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      })
+
+      if (response.ok) {
+        const clientesData = await response.json()
+        setClientes(clientesData)
+        setFilteredClientes(clientesData)
+      } else {
+        if (notyf) notyf.error("Error al cargar la lista de clientes")
+      }
+    } catch (error) {
+      console.error("Error al cargar clientes:", error)
+      if (notyf) notyf.error("Error de conexión al cargar clientes")
+    } finally {
+      setIsLoadingClientes(false)
+    }
+  }
+
+  const createNewCliente = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(newClienteData),
+      })
+
+      if (response.ok) {
+        const nuevoCliente = await response.json()
+        if (notyf) notyf.success("Cliente creado exitosamente")
+        await loadClientes()
+        setSelectedCliente(nuevoCliente)
+        setShowCreateClient(false)
+        setNewClienteData({
+          nombre: "",
+          apellido: "",
+          telefono: "",
+          email: "",
+          tipo: "COMPRADOR",
+          estado: "ACTIVO",
+        })
+      } else {
+        if (notyf) notyf.error("Error al crear el cliente")
+      }
+    } catch (error) {
+      console.error("Error al crear cliente:", error)
+      if (notyf) notyf.error("Error de conexión al crear cliente")
+    }
+  }
+
+  const handleSearchClientes = (term: string) => {
+    setSearchTerm(term)
+    if (term.trim() === "") {
+      setFilteredClientes(clientes)
+    } else {
+      const filtered = clientes.filter(
+        (cliente) =>
+          `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.email.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.telefono.includes(term),
+      )
+      setFilteredClientes(filtered)
+    }
+  }
+
+  useEffect(() => {
+    if (action === "addOwner") {
+      loadClientes()
+    }
+  }, [action])
+
+  const handleAssignOwner = async () => {
+    if (!selectedCliente || !selectedUnit) return
+
+    try {
+      setUnitOwners((prev) => ({
+        ...prev,
+        [selectedUnit.unitNumber]: {
+          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+          email: selectedCliente.email,
+          phone: selectedCliente.telefono,
+          type: selectedCliente.tipo,
+        },
+      }))
+
+      if (notyf) {
+        notyf.success(`Propietario asignado a la unidad ${selectedUnit.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al asignar propietario:", error)
+      if (notyf) notyf.error("Error al asignar propietario")
+    }
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -182,7 +347,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
           }
         }
 
-        // Actualizar el registro de actividades
         const timestamp = new Date().toLocaleString()
         const description = `${user.name} ${
           action === "block"
@@ -249,7 +413,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
         return
     }
 
-    // Create download link
     const link = document.createElement("a")
     link.href = filePath
     link.download = filePath.split("/").pop() || "documento.pdf"
@@ -303,21 +466,19 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Disponibles</div>
-              <div className="text-lg font-bold text-green-400">{stats.available}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Reservadas</div>
-              <div className="text-lg font-bold text-yellow-400">{stats.reserved}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Vendidas</div>
-              <div className="text-lg font-bold text-red-400">{stats.sold}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Bloqueadas</div>
-              <div className="text-lg font-bold text-blue-400">{stats.blocked}</div>
+            <Button onClick={refreshData} disabled={refreshing} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Actualizando..." : "Actualizar"}
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="autoRefresh"
+                checked={autoRefresh}
+                onCheckedChange={(checked) => setAutoRefresh(checked === true)}
+              />
+              <Label htmlFor="autoRefresh" className="text-sm">
+                Auto-actualizar
+              </Label>
             </div>
           </div>
         </div>
@@ -703,8 +864,42 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                   </div>
                 </div>
 
+                {unitOwners[selectedUnit.unitNumber] && (
+                  <div className="mt-4 p-3 bg-zinc-800 rounded-lg">
+                    <h4 className="font-semibold text-green-400 mb-2 flex items-center">
+                      <User className="w-4 h-4 mr-2" />
+                      Propietario Actual
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <p className="flex items-center">
+                        <User className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.unitNumber].name}
+                      </p>
+                      <p className="flex items-center">
+                        <Mail className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.unitNumber].email}
+                      </p>
+                      <p className="flex items-center">
+                        <Phone className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.unitNumber].phone}
+                      </p>
+                      <Badge variant="secondary" className="mt-2">
+                        {unitOwners[selectedUnit.unitNumber].type}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+
                 {!action && (
                   <div className="space-y-2">
+                    <Button
+                      onClick={() => handleActionClick("addOwner")}
+                      className="bg-purple-600 hover:bg-purple-700 w-full"
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      {unitOwners[selectedUnit.unitNumber] ? "Cambiar Propietario" : "Añadir Propietario"}
+                    </Button>
+
                     <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
                       <Download className="mr-2 h-4 w-4" />
                       Descargar plano
@@ -777,6 +972,143 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                   </div>
                 )}
 
+                {action === "addOwner" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Seleccionar Propietario</h4>
+                      <Button
+                        onClick={() => setShowCreateClient(!showCreateClient)}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Crear Cliente
+                      </Button>
+                    </div>
+
+                    {!showCreateClient ? (
+                      <>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                          <Input
+                            placeholder="Buscar cliente..."
+                            value={searchTerm}
+                            onChange={(e) => handleSearchClientes(e.target.value)}
+                            className="pl-10 text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {isLoadingClientes ? (
+                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                          ) : filteredClientes.length === 0 ? (
+                            <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                onClick={() => setSelectedCliente(cliente)}
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  selectedCliente?.id === cliente.id
+                                    ? "border-indigo-500 bg-indigo-500/20"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium text-white">
+                                      {cliente.nombre} {cliente.apellido}
+                                    </p>
+                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {cliente.tipo}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {selectedCliente && (
+                          <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                            Asignar como Propietario
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="newNombre" className="text-white">
+                              Nombre
+                            </Label>
+                            <Input
+                              id="newNombre"
+                              value={newClienteData.nombre}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newApellido" className="text-white">
+                              Apellido
+                            </Label>
+                            <Input
+                              id="newApellido"
+                              value={newClienteData.apellido}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newTelefono" className="text-white">
+                            Teléfono
+                          </Label>
+                          <Input
+                            id="newTelefono"
+                            type="tel"
+                            value={newClienteData.telefono}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newEmail" className="text-white">
+                            Email
+                          </Label>
+                          <Input
+                            id="newEmail"
+                            type="email"
+                            value={newClienteData.email}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <Button onClick={createNewCliente} className="flex-1 bg-green-600 hover:bg-green-700">
+                            Crear Cliente
+                          </Button>
+                          <Button
+                            onClick={() => setShowCreateClient(false)}
+                            variant="outline"
+                            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
                     {action !== "sell" && (
@@ -802,18 +1134,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                             type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="email" className="text-white">
-                            Email
-                          </Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             className="text-white bg-zinc-800 border-zinc-700"
                           />
                         </div>
@@ -846,17 +1166,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                         />
                       </div>
                     )}
-                    <div>
-                      <Label htmlFor="note" className="text-white">
-                        Notas
-                      </Label>
-                      <Textarea
-                        id="note"
-                        value={formData.note}
-                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
                     <Button type="submit" className="bg-green-600 hover:bg-green-700 w-full">
                       {action === "block"
                         ? "Confirmar Bloqueo"
@@ -928,85 +1237,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
           </DialogContent>
         </Dialog>
 
-        {/* Parking Spot Modal */}
-        <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
-          <DialogContent className="sm:max-w-[400px] bg-zinc-900 text-white border-zinc-800">
-            <DialogHeader>
-              <DialogTitle>Cochera {selectedParkingSpot?.id}</DialogTitle>
-            </DialogHeader>
-
-            {selectedParkingSpot && (
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <Label className="text-zinc-400">Estado</Label>
-                    <div className="flex items-center mt-1">
-                      <div
-                        className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getBerutiStatusColor(selectedParkingSpot.status) }}
-                      />
-                      <Badge variant="outline" className="capitalize">
-                        {getBerutiStatusLabel(selectedParkingSpot.status)}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Nivel</Label>
-                    <p className="font-semibold">Nivel {selectedParkingSpot.level}</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Tipo</Label>
-                    <p className="font-semibold">{selectedParkingSpot.type}</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">{formatBerutiPrice(selectedParkingSpot.price)}</p>
-                  </div>
-                </div>
-
-                {selectedParkingSpot.assignedTo && (
-                  <div className="p-3 bg-zinc-800 rounded">
-                    <Label className="text-zinc-400">Asignada a:</Label>
-                    <p className="font-semibold">{selectedParkingSpot.assignedTo}</p>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  {selectedParkingSpot.status === "DISPONIBLE" && (
-                    <>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700">asignar Cochera</Button>
-                    </>
-                  )}
-
-                  {selectedParkingSpot.status === "BLOQUEADO" && (
-                    <>
-                      <Button className="w-full bg-green-600 hover:bg-green-700">Reservar Cochera</Button>
-                      <Button className="w-full bg-red-600 hover:bg-red-700">Liberar Bloqueo</Button>
-                    </>
-                  )}
-
-                  {selectedParkingSpot.status === "RESERVADO" && (
-                    <>
-                      <Button className="w-full bg-green-600 hover:bg-green-700">Vender Cochera</Button>
-                      <Button className="w-full bg-red-600 hover:bg-red-700">Cancelar Reserva</Button>
-                    </>
-                  )}
-
-                  {selectedParkingSpot.status === "VENDIDO" && (
-                    <Button className="w-full bg-yellow-600 hover:bg-yellow-700">Liberar Cochera</Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <DialogFooter>
-              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
-                Cerrar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
         {/* Additional Information */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-zinc-900 p-4 rounded-lg">
@@ -1061,6 +1291,86 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
             </ScrollArea>
           </div>
         </div>
+
+        {/* Parking Spot Modal */}
+        <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
+          <DialogContent className="sm:max-w-[400px] bg-zinc-900 text-white border-zinc-800">
+            <DialogHeader>
+              <DialogTitle>Cochera {selectedParkingSpot?.id}</DialogTitle>
+            </DialogHeader>
+
+            {selectedParkingSpot && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-zinc-400">Estado</Label>
+                    <div className="flex items-center mt-1">
+                      <div
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: getBerutiStatusColor(selectedParkingSpot.status) }}
+                      />
+                      <Badge variant="outline" className="capitalize">
+                        {getBerutiStatusLabel(selectedParkingSpot.status)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Nivel</Label>
+                    <p className="font-semibold">Nivel {selectedParkingSpot.level}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Tipo</Label>
+                    <p className="font-semibold">{selectedParkingSpot.type}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Precio</Label>
+                    <p className="font-semibold text-green-400">{formatBerutiPrice(selectedParkingSpot.price)}</p>
+                  </div>
+                </div>
+
+                {selectedParkingSpot.assignedTo && (
+                  <div className="p-3 bg-zinc-800 rounded">
+                    <Label className="text-zinc-400">Asignada a:</Label>
+                    <p className="font-semibold">{selectedParkingSpot.assignedTo}</p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  {selectedParkingSpot.status === "DISPONIBLE" && (
+                    <>
+                      <Button className="w-full bg-purple-600 hover:bg-purple-700">Bloquear Cochera</Button>
+                      <Button className="w-full bg-yellow-600 hover:bg-yellow-700">Reservar Cochera</Button>
+                    </>
+                  )}
+
+                  {selectedParkingSpot.status === "BLOQUEADO" && (
+                    <>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">Reservar Cochera</Button>
+                      <Button className="w-full bg-red-600 hover:bg-red-700">Liberar Bloqueo</Button>
+                    </>
+                  )}
+
+                  {selectedParkingSpot.status === "RESERVADO" && (
+                    <>
+                      <Button className="w-full bg-green-600 hover:bg-green-700">Vender Cochera</Button>
+                      <Button className="w-full bg-red-600 hover:bg-red-700">Cancelar Reserva</Button>
+                    </>
+                  )}
+
+                  {selectedParkingSpot.status === "VENDIDO" && (
+                    <Button className="w-full bg-yellow-600 hover:bg-yellow-700">Liberar Cochera</Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <DialogFooter>
+              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   )

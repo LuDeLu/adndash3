@@ -17,6 +17,9 @@ import {
   Search,
   Plus,
   User,
+  RefreshCw,
+  Phone,
+  Mail,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -43,6 +46,7 @@ import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Checkbox } from "@/components/ui/checkbox"
 
 let notyf: Notyf | null = null
 
@@ -171,7 +175,7 @@ const apartGarageCoordinates = {
     {
       id: "c3",
       coords:
-        "227,280,218,292,215,313,214,327,217,337,240,347,272,348,288,350,306,353,314,355,326,356,339,355,351,354,354,348,358,340,361,321,362,311,357,298,346,296,337,294,323,291,310,291,290,288,275,286,257,283",
+        "227,280,218,292,215,313,214,327,217,337,240,347,272,348,288,350,306,353,314,355,326,356,339,355,351,354,358,340,361,321,362,311,357,298,346,296,337,294,323,291,310,291,290,288,275,286,257,283",
     },
     {
       id: "c4",
@@ -209,6 +213,13 @@ const apartGarageCoordinates = {
         "778,623,780,644,781,656,779,678,779,702,780,713,782,730,784,738,798,739,818,741,831,741,841,735,840,724,842,707,843,694,842,685,844,665,842,647,846,639,842,621,842,612,837,598,825,597,810,597,791,595,781,602",
     },
   ],
+}
+
+interface UnitOwner {
+  name: string
+  email: string
+  phone: string
+  type: string
 }
 
 interface Cliente {
@@ -276,8 +287,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
-  const [unitOwners, setUnitOwners] = useState<Record<string, Cliente>>({})
 
   // Initialize Notyf
   useEffect(() => {
@@ -439,36 +448,34 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     }
   }
 
+  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
+
   const handleAssignOwner = async () => {
     if (!selectedCliente || !selectedUnit) return
 
     try {
       setUnitOwners((prev) => ({
         ...prev,
-        [selectedUnit.unitNumber]: selectedCliente,
+        [selectedUnit.unitNumber]: {
+          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+          email: selectedCliente.email,
+          phone: selectedCliente.telefono,
+          type: selectedCliente.tipo,
+        },
       }))
 
       if (notyf) {
-        notyf.success(
-          `Propietario ${selectedCliente.nombre} ${selectedCliente.apellido} asignado a la unidad ${selectedUnit.unitNumber}`,
-        )
+        notyf.success(`Propietario asignado a la unidad ${selectedUnit.unitNumber}`)
       }
 
-      // Cerrar modal y resetear estados
       setAction(null)
       setSelectedCliente(null)
       setSearchTerm("")
       setShowCreateClient(false)
     } catch (error) {
       console.error("Error al asignar propietario:", error)
-      setUnitOwners((prev) => {
-        const newOwners = { ...prev }
-        delete newOwners[selectedUnit.unitNumber]
-        return newOwners
-      })
-
       if (notyf) {
-        notyf.error("Error al asignar el propietario")
+        notyf.error("Error al asignar propietario")
       }
     }
   }
@@ -565,6 +572,16 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
 
   const handleDownloadFloorPlan = () => {
     if (!selectedUnit) return
+
+    const filePath = "/general/planosgenerales/Planos_DOME-Palermo-Apartaments.pdf"
+    const link = document.createElement("a")
+    link.href = filePath
+    link.download = "Plano_Apart_Palermo.pdf"
+    link.target = "_blank"
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+
     if (notyf) notyf.success("Descargando plano...")
   }
 
@@ -648,21 +665,19 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Disponibles</div>
-              <div className="text-lg font-bold text-green-400">{stats.available}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Reservadas</div>
-              <div className="text-lg font-bold text-yellow-400">{stats.reserved}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Vendidas</div>
-              <div className="text-lg font-bold text-red-400">{stats.sold}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Bloqueadas</div>
-              <div className="text-lg font-bold text-blue-400">{stats.blocked}</div>
+            <Button onClick={refreshData} disabled={refreshing} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Actualizando..." : "Actualizar datos"}
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="autoRefresh"
+                checked={autoRefresh}
+                onCheckedChange={(checked) => setAutoRefresh(checked === true)}
+              />
+              <Label htmlFor="autoRefresh" className="text-sm">
+                Auto-actualizar
+              </Label>
             </div>
           </div>
         </div>
@@ -842,6 +857,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -958,57 +974,61 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <span>{formatApartPrice(selectedUnit.pricePerSqm)}</span>
                     </div>
                     <div className="border-t border-zinc-700 pt-2 mt-2">
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-400">Propietario:</span>
-                        <span className="text-white">
-                          {unitOwners[selectedUnit.unitNumber]
-                            ? `${unitOwners[selectedUnit.unitNumber].nombre} ${unitOwners[selectedUnit.unitNumber].apellido}`
-                            : "Sin asignar"}
-                        </span>
+                      <div className="mb-3">
+                        <h5 className="font-semibold text-green-400 mb-2 flex items-center">
+                          <User className="w-4 h-4 mr-2" />
+                          Propietario Actual
+                        </h5>
+                        {unitOwners[selectedUnit.unitNumber] ? (
+                          <div className="space-y-1 text-sm">
+                            <p className="flex items-center">
+                              <User className="w-3 h-3 mr-2" />
+                              {unitOwners[selectedUnit.unitNumber].name}
+                            </p>
+                            <p className="flex items-center">
+                              <Mail className="w-3 h-3 mr-2" />
+                              {unitOwners[selectedUnit.unitNumber].email}
+                            </p>
+                            <p className="flex items-center">
+                              <Phone className="w-3 h-3 mr-2" />
+                              {unitOwners[selectedUnit.unitNumber].phone}
+                            </p>
+                            <Badge variant="secondary" className="mt-2">
+                              {unitOwners[selectedUnit.unitNumber].type}
+                            </Badge>
+                          </div>
+                        ) : (
+                          <p className="text-zinc-400">Sin asignar</p>
+                        )}
                       </div>
-
-                      {unitOwners[selectedUnit.unitNumber] && (
-                        <>
-                          <div className="flex justify-between items-center">
-                            <span className="text-zinc-400">Email:</span>
-                            <span className="text-white text-sm">{unitOwners[selectedUnit.unitNumber].email}</span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-zinc-400">Teléfono:</span>
-                            <span className="text-white text-sm">{unitOwners[selectedUnit.unitNumber].telefono}</span>
-                          </div>
-                        </>
-                      )}
                     </div>
                   </div>
                 </div>
 
                 {!action && (
                   <div className="space-y-2">
-                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
-                      <Download className="mr-2 h-4 w-4" />
-                      Descargar plano
-                    </Button>
-
                     <Button
                       onClick={() => handleActionClick("addOwner")}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700"
+                      className="bg-purple-600 hover:bg-purple-700 w-full"
                     >
                       <User className="mr-2 h-4 w-4" />
-                      Añadir Propietario
+                      {unitOwners[selectedUnit.unitNumber] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
                     {selectedUnit.status === "DISPONIBLE" && (
                       <>
+                        <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
+                          <Download className="mr-2 h-4 w-4" /> Descargar plano
+                        </Button>
                         <Button
                           onClick={() => handleActionClick("block")}
-                          className="w-full bg-purple-600 hover:bg-purple-700"
+                          className="bg-blue-600 hover:bg-blue-700 w-full"
                         >
                           Bloquear
                         </Button>
                         <Button
                           onClick={() => handleActionClick("directReserve")}
-                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          className="bg-green-600 hover:bg-green-700 w-full"
                         >
                           Reservar
                         </Button>
@@ -1019,13 +1039,13 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
-                          className="w-full bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 w-full"
                         >
                           Reservar
                         </Button>
                         <Button
                           onClick={() => handleActionClick("unblock")}
-                          className="w-full bg-red-600 hover:bg-red-700"
+                          className="bg-red-600 hover:bg-red-700 w-full"
                         >
                           Liberar Bloqueo
                         </Button>
@@ -1036,13 +1056,13 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
-                          className="w-full bg-green-600 hover:bg-green-700"
+                          className="bg-green-600 hover:bg-green-700 w-full"
                         >
                           Vender
                         </Button>
                         <Button
                           onClick={() => handleActionClick("cancelReservation")}
-                          className="w-full bg-red-600 hover:bg-red-700"
+                          className="bg-red-600 hover:bg-red-700 w-full"
                         >
                           Cancelar Reserva
                         </Button>
@@ -1051,12 +1071,12 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
 
                     {selectedUnit.status === "VENDIDO" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                        <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
                           Descargar contrato
                         </Button>
                         <Button
                           onClick={() => handleActionClick("release")}
-                          className="w-full bg-yellow-600 hover:bg-yellow-700"
+                          className="bg-yellow-600 hover:bg-yellow-700 w-full"
                         >
                           Liberar unidad
                         </Button>

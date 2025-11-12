@@ -13,8 +13,11 @@ import {
   FileSpreadsheet,
   FileBarChart,
   RefreshCw,
+  User,
+  Phone,
+  Mail,
   Search,
-  UserPlus,
+  Plus,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -35,6 +38,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
 import {
   getBoulevardUnitsByFloor,
   getBoulevardUnitById,
@@ -54,10 +58,26 @@ interface Cliente {
   tipo: string
   estado: string
 }
+
+interface NewClienteData {
+  nombre: string
+  apellido: string
+  telefono: string
+  email: string
+  tipo: string
+  estado: string
+}
+
+interface UnitOwner {
+  name: string
+  email: string
+  phone: string
+  type: string
+}
+
 let notyf: Notyf | null = null
 
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
-
 
 type DomeBoulevardFloorPlanProps = {
   floorNumber?: number | null
@@ -101,14 +121,23 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const [selectedGarageSpot, setSelectedGarageSpot] = useState<BoulevardGarageSpot | null>(null)
+  const [isGarageParkingModalOpen, setIsGarageParkingModalOpen] = useState(false)
 
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCliente, setSelectedCliente] = useState<Cliente | null>(null)
   const [showCreateClient, setShowCreateClient] = useState(false)
-  const [unitOwners, setUnitOwners] = useState<{ [key: string]: Cliente }>({})
+  const [newClienteData, setNewClienteData] = useState<NewClienteData>({
+    nombre: "",
+    apellido: "",
+    telefono: "",
+    email: "",
+    tipo: "COMPRADOR",
+    estado: "ACTIVO",
+  })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
+  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
 
   // Initialize Notyf
   useEffect(() => {
@@ -120,6 +149,12 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     }
   }, [])
 
+  useEffect(() => {
+    if (action === "addOwner") {
+      loadClientes()
+    }
+  }, [action])
+
   const loadClientes = useCallback(async () => {
     setIsLoadingClientes(true)
     try {
@@ -128,69 +163,68 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       })
+
       if (response.ok) {
-        const data = await response.json()
-        setClientes(data)
-        setFilteredClientes(data)
+        const clientesData = await response.json()
+        setClientes(clientesData)
+        setFilteredClientes(clientesData)
       } else {
-        console.error("Error loading clients:", response.statusText)
-        if (notyf) notyf.error("Error al cargar los clientes")
+        console.error("Error al cargar clientes")
+        if (notyf) {
+          notyf.error("Error al cargar la lista de clientes")
+        }
       }
     } catch (error) {
-      console.error("Error loading clients:", error)
-      if (notyf) notyf.error("Error al cargar los clientes")
+      console.error("Error al cargar clientes:", error)
+      if (notyf) {
+        notyf.error("Error de conexión al cargar clientes")
+      }
     } finally {
       setIsLoadingClientes(false)
     }
   }, [])
 
-  const handleSearchClientes = useCallback(
-    (term: string) => {
-      setSearchTerm(term)
-      if (term.trim() === "") {
-        setFilteredClientes(clientes)
-      } else {
-        const filtered = clientes.filter(
-          (cliente) =>
-            cliente.nombre.toLowerCase().includes(term.toLowerCase()) ||
-            cliente.apellido.toLowerCase().includes(term.toLowerCase()) ||
-            cliente.email.toLowerCase().includes(term.toLowerCase()) ||
-            cliente.telefono.includes(term),
-        )
-        setFilteredClientes(filtered)
-      }
-    },
-    [clientes],
-  )
-
-  const handleAssignOwner = useCallback(async () => {
-    if (!selectedCliente || !selectedUnit) return
-
+  const createNewCliente = useCallback(async () => {
     try {
-      // Update unit owners state
-      setUnitOwners((prev) => ({
-        ...prev,
-        [selectedUnit.id]: selectedCliente,
-      }))
+      const response = await fetch(`${API_BASE_URL}/clientes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(newClienteData),
+      })
 
-      // Log the activity
-      const timestamp = new Date().toLocaleString()
-      const description = `${user?.name} asignó a ${selectedCliente.nombre} ${selectedCliente.apellido} como propietario de la unidad ${selectedUnit.unitNumber}`
-      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+      if (response.ok) {
+        const nuevoCliente = await response.json()
+        if (notyf) {
+          notyf.success("Cliente creado exitosamente")
+        }
 
-      if (notyf) notyf.success("Propietario asignado con éxito")
+        await loadClientes()
+        setSelectedCliente(nuevoCliente)
+        setShowCreateClient(false)
 
-      // Reset states
-      setAction(null)
-      setSelectedCliente(null)
-      setSearchTerm("")
-      setShowCreateClient(false)
-      setIsModalOpen(false)
+        setNewClienteData({
+          nombre: "",
+          apellido: "",
+          telefono: "",
+          email: "",
+          tipo: "COMPRADOR",
+          estado: "ACTIVO",
+        })
+      } else {
+        if (notyf) {
+          notyf.error("Error al crear el cliente")
+        }
+      }
     } catch (error) {
-      console.error("Error assigning owner:", error)
-      if (notyf) notyf.error("Error al asignar propietario")
+      console.error("Error al crear cliente:", error)
+      if (notyf) {
+        notyf.error("Error de conexión al crear cliente")
+      }
     }
-  }, [selectedCliente, selectedUnit, user])
+  }, [newClienteData, loadClientes])
 
   // Obtener datos del piso seleccionado
   const getCurrentFloorData = useCallback(() => {
@@ -219,6 +253,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     setConfirmReservation(false)
     setConfirmCancelReservation(false)
     setConfirmRelease(false)
+    setSelectedCliente(null)
   }, [])
 
   const handleFloorClick = (floor: number) => {
@@ -239,13 +274,58 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       | "addOwner",
   ) => {
     setAction(actionType)
-    if (actionType === "addOwner") {
-      loadClientes()
-    }
     setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
   }
+
+  const handleSearchClientes = useCallback(
+    (term: string) => {
+      setSearchTerm(term)
+      if (term.trim() === "") {
+        setFilteredClientes(clientes)
+      } else {
+        const filtered = clientes.filter(
+          (cliente) =>
+            `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(term.toLowerCase()) ||
+            cliente.email.toLowerCase().includes(term.toLowerCase()) ||
+            cliente.telefono.includes(term),
+        )
+        setFilteredClientes(filtered)
+      }
+    },
+    [clientes],
+  )
+
+  const handleAssignOwner = useCallback(async () => {
+    if (!selectedCliente || !selectedUnit) return
+
+    try {
+      setUnitOwners((prev) => ({
+        ...prev,
+        [selectedUnit.id]: {
+          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+          email: selectedCliente.email,
+          phone: selectedCliente.telefono,
+          type: selectedCliente.tipo,
+        },
+      }))
+
+      if (notyf) {
+        notyf.success(`Propietario asignado a la unidad ${selectedUnit.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al asignar propietario:", error)
+      if (notyf) {
+        notyf.error("Error al asignar propietario")
+      }
+    }
+  }, [selectedCliente, selectedUnit])
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -398,19 +478,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
   const handleGarageSpotClick = useCallback((spot: BoulevardGarageSpot) => {
     setSelectedGarageSpot(spot)
-    setIsModalOpen(true)
-    setAction(null)
-    setFormData({
-      name: "",
-      phone: "",
-      email: "",
-      reservationOrder: null,
-      price: spot.price.toString(),
-      note: "",
-    })
-    setConfirmReservation(false)
-    setConfirmCancelReservation(false)
-    setConfirmRelease(false)
+    setIsGarageParkingModalOpen(true)
   }, [])
 
   if (!currentFloorData) {
@@ -572,7 +640,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
-                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -635,11 +702,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
           <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>
-                {selectedUnit
-                  ? `Detalles de la unidad ${selectedUnit.unitNumber}`
-                  : selectedGarageSpot
-                    ? `Cochera ${selectedGarageSpot.spotNumber} - Nivel ${selectedGarageSpot.level}`
-                    : "Detalles"}
+                {selectedUnit ? `Detalles de la unidad ${selectedUnit.unitNumber}` : "Detalles"}
               </DialogTitle>
             </DialogHeader>
             {selectedUnit && (
@@ -665,100 +728,31 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </p>
 
                   {unitOwners[selectedUnit.id] && (
-                    <div className="p-3 bg-zinc-800 rounded">
-                      <p>
-                        <strong>Propietario:</strong> {unitOwners[selectedUnit.id].nombre}{" "}
-                        {unitOwners[selectedUnit.id].apellido}
-                      </p>
-                      <p>
-                        <strong>Email:</strong> {unitOwners[selectedUnit.id].email}
-                      </p>
-                      <p>
-                        <strong>Teléfono:</strong> {unitOwners[selectedUnit.id].telefono}
-                      </p>
+                    <div className="mt-4 p-3 bg-zinc-800 rounded-lg">
+                      <h4 className="font-semibold text-green-400 mb-2 flex items-center">
+                        <User className="w-4 h-4 mr-2" />
+                        Propietario Actual
+                      </h4>
+                      <div className="space-y-1 text-sm">
+                        <p className="flex items-center">
+                          <User className="w-3 h-3 mr-2" />
+                          {unitOwners[selectedUnit.id].name}
+                        </p>
+                        <p className="flex items-center">
+                          <Mail className="w-3 h-3 mr-2" />
+                          {unitOwners[selectedUnit.id].email}
+                        </p>
+                        <p className="flex items-center">
+                          <Phone className="w-3 h-3 mr-2" />
+                          {unitOwners[selectedUnit.id].phone}
+                        </p>
+                        <Badge variant="secondary" className="mt-2">
+                          {unitOwners[selectedUnit.id].type}
+                        </Badge>
+                      </div>
                     </div>
                   )}
                 </DialogDescription>
-
-                {action === "addOwner" && (
-                  <div className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400 h-4 w-4" />
-                        <Input
-                          placeholder="Buscar cliente por nombre, email o teléfono..."
-                          value={searchTerm}
-                          onChange={(e) => handleSearchClientes(e.target.value)}
-                          className="pl-10 bg-zinc-800 border-zinc-700 text-white"
-                        />
-                      </div>
-                      <Button onClick={() => setShowCreateClient(true)} className="bg-green-600 hover:bg-green-700">
-                        <UserPlus className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {isLoadingClientes ? (
-                      <div className="text-center py-4">
-                        <p className="text-zinc-400">Cargando clientes...</p>
-                      </div>
-                    ) : (
-                      <ScrollArea className="h-60">
-                        <div className="space-y-2">
-                          {filteredClientes.map((cliente) => (
-                            <div
-                              key={cliente.id}
-                              onClick={() => setSelectedCliente(cliente)}
-                              className={`p-3 rounded cursor-pointer transition-colors ${
-                                selectedCliente?.id === cliente.id ? "bg-blue-600" : "bg-zinc-800 hover:bg-zinc-700"
-                              }`}
-                            >
-                              <p className="font-semibold">
-                                {cliente.nombre} {cliente.apellido}
-                              </p>
-                              <p className="text-sm text-zinc-400">{cliente.email}</p>
-                              <p className="text-sm text-zinc-400">{cliente.telefono}</p>
-                            </div>
-                          ))}
-                          {filteredClientes.length === 0 && (
-                            <p className="text-center text-zinc-400 py-4">No se encontraron clientes</p>
-                          )}
-                        </div>
-                      </ScrollArea>
-                    )}
-
-                    {selectedCliente && (
-                      <div className="p-3 bg-zinc-800 rounded">
-                        <p className="font-semibold">Cliente seleccionado:</p>
-                        <p>
-                          {selectedCliente.nombre} {selectedCliente.apellido}
-                        </p>
-                        <p className="text-sm text-zinc-400">{selectedCliente.email}</p>
-                        <p className="text-sm text-zinc-400">{selectedCliente.telefono}</p>
-                      </div>
-                    )}
-
-                    <div className="flex space-x-2">
-                      <Button
-                        onClick={handleAssignOwner}
-                        disabled={!selectedCliente}
-                        className="bg-green-600 hover:bg-green-700 flex-1"
-                      >
-                        Asignar Propietario
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setAction(null)
-                          setSelectedCliente(null)
-                          setSearchTerm("")
-                          setShowCreateClient(false)
-                        }}
-                        className="bg-red-600 hover:bg-red-700 flex-1"
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                )}
 
                 {!action && (
                   <div className="space-y-2">
@@ -766,8 +760,8 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       onClick={() => handleActionClick("addOwner")}
                       className="bg-purple-600 hover:bg-purple-700 w-full"
                     >
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      Añadir Propietario
+                      <User className="mr-2 h-4 w-4" />
+                      {unitOwners[selectedUnit.id] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
                     {selectedUnit.status === "DISPONIBLE" && (
@@ -833,6 +827,167 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                           Liberar unidad
                         </Button>
                       </>
+                    )}
+                  </div>
+                )}
+
+                {action === "addOwner" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Seleccionar Propietario</h4>
+                      <Button
+                        onClick={() => setShowCreateClient(!showCreateClient)}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Crear Cliente
+                      </Button>
+                    </div>
+
+                    {!showCreateClient ? (
+                      <>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                          <Input
+                            placeholder="Buscar cliente por nombre, email o teléfono..."
+                            value={searchTerm}
+                            onChange={(e) => handleSearchClientes(e.target.value)}
+                            className="pl-10 text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {isLoadingClientes ? (
+                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                          ) : filteredClientes.length === 0 ? (
+                            <div className="text-center py-4 text-zinc-400">
+                              {searchTerm ? "No se encontraron clientes" : "No hay clientes disponibles"}
+                            </div>
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                onClick={() => setSelectedCliente(cliente)}
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  selectedCliente?.id === cliente.id
+                                    ? "border-indigo-500 bg-indigo-500/20"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium text-white">
+                                      {cliente.nombre} {cliente.apellido}
+                                    </p>
+                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                    <p className="text-sm text-zinc-400">{cliente.telefono}</p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {cliente.tipo}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {selectedCliente && (
+                          <div className="space-y-3">
+                            <div className="p-3 bg-indigo-500/20 border border-indigo-500 rounded-lg">
+                              <p className="text-sm text-indigo-300">Cliente seleccionado:</p>
+                              <p className="font-medium text-white">
+                                {selectedCliente.nombre} {selectedCliente.apellido}
+                              </p>
+                            </div>
+                            <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                              Asignar como Propietario
+                            </Button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="newNombre" className="text-white">
+                              Nombre *
+                            </Label>
+                            <Input
+                              id="newNombre"
+                              value={newClienteData.nombre}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
+                              required
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newApellido" className="text-white">
+                              Apellido *
+                            </Label>
+                            <Input
+                              id="newApellido"
+                              value={newClienteData.apellido}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
+                              required
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newTelefono" className="text-white">
+                            Teléfono *
+                          </Label>
+                          <Input
+                            id="newTelefono"
+                            type="tel"
+                            value={newClienteData.telefono}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newEmail" className="text-white">
+                            Email *
+                          </Label>
+                          <Input
+                            id="newEmail"
+                            type="email"
+                            value={newClienteData.email}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={createNewCliente}
+                            disabled={
+                              !newClienteData.nombre ||
+                              !newClienteData.apellido ||
+                              !newClienteData.telefono ||
+                              !newClienteData.email
+                            }
+                            className="flex-1 bg-green-600 hover:bg-green-700"
+                          >
+                            Crear Cliente
+                          </Button>
+                          <Button
+                            onClick={() => setShowCreateClient(false)}
+                            variant="outline"
+                            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 )}
@@ -958,89 +1113,116 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
               </div>
             )}
 
+            <DialogFooter>
+              <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isGarageParkingModalOpen} onOpenChange={setIsGarageParkingModalOpen}>
+          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+            <DialogHeader>
+              <DialogTitle>Cochera {selectedGarageSpot?.spotNumber}</DialogTitle>
+            </DialogHeader>
             {selectedGarageSpot && (
               <div className="space-y-4">
                 <DialogDescription className="text-zinc-300 space-y-2">
+                  <p>
+                    <strong>Nivel:</strong> {selectedGarageSpot.level}
+                  </p>
                   <p>
                     <strong>Estado:</strong> {getStatusLabel(selectedGarageSpot.status)}
                   </p>
                   <p>
                     <strong>Precio:</strong> USD {selectedGarageSpot.price.toLocaleString()}
                   </p>
-                  <p>
-                    <strong>Nivel:</strong> {selectedGarageSpot.level}
-                  </p>
-                  <p>
-                    <strong>Número:</strong> {selectedGarageSpot.spotNumber}
-                  </p>
                 </DialogDescription>
 
-                {!action && (
-                  <div className="space-y-2">
-                    {selectedGarageSpot.status === "DISPONIBLE" && (
-                      <>
-                        <Button
-                          onClick={() => handleActionClick("block")}
-                          className="bg-blue-600 hover:bg-blue-700 w-full"
-                        >
-                          Bloquear
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("directReserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
-                        >
-                          Reservar
-                        </Button>
-                      </>
-                    )}
-                    {selectedGarageSpot.status === "BLOQUEADO" && (
-                      <>
-                        <Button
-                          onClick={() => handleActionClick("reserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
-                        >
-                          Reservar
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("unblock")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
-                        >
-                          Liberar Bloqueo
-                        </Button>
-                      </>
-                    )}
-                    {selectedGarageSpot.status === "RESERVADO" && (
-                      <>
-                        <Button
-                          onClick={() => handleActionClick("sell")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
-                        >
-                          Vender
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("cancelReservation")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
-                        >
-                          Cancelar Reserva
-                        </Button>
-                      </>
-                    )}
-                    {selectedGarageSpot.status === "VENDIDO" && (
+                <div className="space-y-2">
+                  {selectedGarageSpot.status === "DISPONIBLE" && (
+                    <>
                       <Button
-                        onClick={() => handleActionClick("release")}
-                        className="bg-yellow-600 hover:bg-yellow-700 w-full"
+                        onClick={() => {
+                          if (notyf) notyf.success("Cochera bloqueada")
+                          setIsGarageParkingModalOpen(false)
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 w-full"
                       >
-                        Liberar cochera
+                        Bloquear
                       </Button>
-                    )}
-                  </div>
-                )}
-                {/* Rest of garage spot modal content - same form handling as units */}
+                      <Button
+                        onClick={() => {
+                          if (notyf) notyf.success("Cochera reservada")
+                          setIsGarageParkingModalOpen(false)
+                        }}
+                        className="bg-green-600 hover:bg-green-700 w-full"
+                      >
+                        Reservar
+                      </Button>
+                    </>
+                  )}
+                  {selectedGarageSpot.status === "BLOQUEADO" && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          if (notyf) notyf.success("Cochera reservada")
+                          setIsGarageParkingModalOpen(false)
+                        }}
+                        className="bg-green-600 hover:bg-green-700 w-full"
+                      >
+                        Reservar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (notyf) notyf.success("Bloqueo liberado")
+                          setIsGarageParkingModalOpen(false)
+                        }}
+                        className="bg-red-600 hover:bg-red-700 w-full"
+                      >
+                        Liberar Bloqueo
+                      </Button>
+                    </>
+                  )}
+                  {selectedGarageSpot.status === "RESERVADO" && (
+                    <>
+                      <Button
+                        onClick={() => {
+                          if (notyf) notyf.success("Cochera vendida")
+                          setIsGarageParkingModalOpen(false)
+                        }}
+                        className="bg-green-600 hover:bg-green-700 w-full"
+                      >
+                        Vender
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          if (notyf) notyf.success("Reserva cancelada")
+                          setIsGarageParkingModalOpen(false)
+                        }}
+                        className="bg-red-600 hover:bg-red-700 w-full"
+                      >
+                        Cancelar Reserva
+                      </Button>
+                    </>
+                  )}
+                  {selectedGarageSpot.status === "VENDIDO" && (
+                    <Button
+                      onClick={() => {
+                        if (notyf) notyf.success("Cochera liberada")
+                        setIsGarageParkingModalOpen(false)
+                      }}
+                      className="bg-yellow-600 hover:bg-yellow-700 w-full"
+                    >
+                      Liberar Cochera
+                    </Button>
+                  )}
+                </div>
               </div>
             )}
-
             <DialogFooter>
-              <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+              <Button onClick={() => setIsGarageParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
               </Button>
             </DialogFooter>
