@@ -35,9 +35,10 @@ import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 // Assuming API_BASE_URL is defined elsewhere, e.g., in an environment file or constants
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api" // Example API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api" // Example API base URL
 
 let notyf: Notyf | null = null
 
@@ -97,6 +98,7 @@ interface UnitOwner {
   email: string
   phone: string
   type: string
+  assignedAt: string
 }
 
 const floors = Array.from({ length: 9 }, (_, i) => i + 1)
@@ -147,7 +149,8 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     estado: "ACTIVO",
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
-  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
+  // Use hook de almacenamiento local
+  const { unitOwners, addOwner } = useUnitStorage("resi")
 
   // Initialize Notyf
   useEffect(() => {
@@ -255,15 +258,13 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     if (!selectedCliente || !selectedApartment) return
 
     try {
-      setUnitOwners((prev) => ({
-        ...prev,
-        [selectedApartment]: {
-          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
-          email: selectedCliente.email,
-          phone: selectedCliente.telefono,
-          type: selectedCliente.tipo,
-        },
-      }))
+      addOwner(selectedApartment, {
+        name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+        email: selectedCliente.email,
+        phone: selectedCliente.telefono,
+        type: selectedCliente.tipo,
+        assignedAt: new Date().toISOString(),
+      })
 
       if (notyf) {
         notyf.success(`Propietario asignado al departamento ${selectedApartment}`)
@@ -275,9 +276,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       setShowCreateClient(false)
     } catch (error) {
       console.error("Error al asignar propietario:", error)
-      if (notyf) {
-        notyf.error("Error al asignar propietario")
-      }
+      if (notyf) notyf.error("Error al asignar propietario")
     }
   }
 
@@ -697,6 +696,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg"

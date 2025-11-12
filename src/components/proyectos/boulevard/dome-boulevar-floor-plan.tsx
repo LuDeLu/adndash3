@@ -48,6 +48,7 @@ import {
   type BoulevardUnit,
   type BoulevardGarageSpot,
 } from "@/lib/dome-boulevar-data"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 interface Cliente {
   id: number
@@ -73,6 +74,7 @@ interface UnitOwner {
   email: string
   phone: string
   type: string
+  assignedAt: string
 }
 
 let notyf: Notyf | null = null
@@ -137,7 +139,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     estado: "ACTIVO",
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
-  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
+  const { unitOwners, addOwner } = useUnitStorage("boulevard")
 
   // Initialize Notyf
   useEffect(() => {
@@ -301,15 +303,13 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     if (!selectedCliente || !selectedUnit) return
 
     try {
-      setUnitOwners((prev) => ({
-        ...prev,
-        [selectedUnit.id]: {
-          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
-          email: selectedCliente.email,
-          phone: selectedCliente.telefono,
-          type: selectedCliente.tipo,
-        },
-      }))
+      addOwner(selectedUnit.id, {
+        name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+        email: selectedCliente.email,
+        phone: selectedCliente.telefono,
+        type: selectedCliente.tipo,
+        assignedAt: new Date().toISOString(),
+      })
 
       if (notyf) {
         notyf.success(`Propietario asignado a la unidad ${selectedUnit.unitNumber}`)
@@ -321,11 +321,9 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       setShowCreateClient(false)
     } catch (error) {
       console.error("Error al asignar propietario:", error)
-      if (notyf) {
-        notyf.error("Error al asignar propietario")
-      }
+      if (notyf) notyf.error("Error al asignar propietario")
     }
-  }, [selectedCliente, selectedUnit])
+  }, [selectedCliente, selectedUnit, addOwner])
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -640,6 +638,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}

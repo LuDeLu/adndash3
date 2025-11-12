@@ -53,6 +53,7 @@ import {
   updateSuitesGarageSpotStatus,
   getSuitesGarageStatusColor,
 } from "@/lib/dome-suites-data"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 let notyf: Notyf | null = null
 
@@ -80,6 +81,7 @@ interface UnitOwner {
   email: string
   phone: string
   type: string
+  assignedAt: string
 }
 
 type SuitesFloorPlanProps = {
@@ -146,7 +148,7 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
 
-  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
+  const { unitOwners, addOwner } = useUnitStorage("suites")
 
   const handleParkingClick = useCallback((spot: SuitesGarageSpot) => {
     setSelectedParking(spot)
@@ -310,15 +312,13 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
     if (!selectedCliente || !selectedApartment) return
 
     try {
-      setUnitOwners((prev) => ({
-        ...prev,
-        [selectedApartment.unitNumber]: {
-          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
-          email: selectedCliente.email,
-          phone: selectedCliente.telefono,
-          type: selectedCliente.tipo,
-        },
-      }))
+      addOwner(selectedApartment.unitNumber, {
+        name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+        email: selectedCliente.email,
+        phone: selectedCliente.telefono,
+        type: selectedCliente.tipo,
+        assignedAt: new Date().toISOString(),
+      })
 
       if (notyf) {
         notyf.success(`Propietario asignado a la unidad ${selectedApartment.unitNumber}`)
@@ -330,9 +330,7 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
       setShowCreateClient(false)
     } catch (error) {
       console.error("Error al asignar propietario:", error)
-      if (notyf) {
-        notyf.error("Error al asignar propietario")
-      }
+      if (notyf) notyf.error("Error al asignar propietario")
     }
   }
 

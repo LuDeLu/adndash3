@@ -53,6 +53,7 @@ import {
   getParkingSpotsByLevel, // Import getParkingSpotsByLevel function
 } from "@/lib/dome-puertos-data"
 import { Badge } from "@/components/ui/badge" // Import Badge
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage" // Import useUnitStorage
 
 let notyf: Notyf | null = null
 
@@ -80,6 +81,7 @@ interface UnitOwner {
   email: string
   phone: string
   type: string
+  assignedAt: string
 }
 
 type DomeFloorPlanProps = {
@@ -116,7 +118,9 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
     estado: "ACTIVO",
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
-  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
+
+  // CHANGE: Usar hook de almacenamiento local
+  const { unitOwners, addOwner } = useUnitStorage("lagos")
 
   const [action, setAction] = useState<
     "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | "addOwner" | null
@@ -302,15 +306,14 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
     if (!selectedCliente || !selectedApartment) return
 
     try {
-      setUnitOwners((prev) => ({
-        ...prev,
-        [selectedApartment.unitNumber]: {
-          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
-          email: selectedCliente.email,
-          phone: selectedCliente.telefono,
-          type: selectedCliente.tipo,
-        },
-      }))
+      // CHANGE: Usar addOwner del hook para guardar en localStorage
+      addOwner(selectedApartment.unitNumber, {
+        name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+        email: selectedCliente.email,
+        phone: selectedCliente.telefono,
+        type: selectedCliente.tipo,
+        assignedAt: new Date().toISOString(),
+      })
 
       if (notyf) {
         notyf.success(`Propietario asignado a la unidad ${selectedApartment.unitNumber}`)
@@ -322,9 +325,7 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
       setShowCreateClient(false)
     } catch (error) {
       console.error("Error al asignar propietario:", error)
-      if (notyf) {
-        notyf.error("Error al asignar propietario")
-      }
+      if (notyf) notyf.error("Error al asignar propietario")
     }
   }
 
@@ -573,6 +574,7 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
@@ -863,7 +865,7 @@ export default function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: D
                 {action === "addOwner" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">Seleccionar Propietario</h4>
+                      <h4 className="font-semibold text-white">Seleccionar Propietario</h4>
                       <Button
                         onClick={() => setShowCreateClient(!showCreateClient)}
                         size="sm"

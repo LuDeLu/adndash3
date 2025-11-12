@@ -47,6 +47,7 @@ import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 let notyf: Notyf | null = null
 
@@ -190,7 +191,7 @@ const apartGarageCoordinates = {
     {
       id: "c6",
       coords:
-        "369,624,370,681,370,708,369,726,372,739,383,742,396,743,409,743,420,742,429,740,432,731,434,629,431,623,433,611,429,602,420,596,411,598,398,597,386,597,374,599",
+        "369,624,370,681,370,708,369,726,372,739,383,742,396,743,409,743,420,742,429,740,432,731,434,629,431,623,433,611,429,602,420,596,411,598,398,597,374,599",
     },
     {
       id: "c7",
@@ -220,6 +221,7 @@ interface UnitOwner {
   email: string
   phone: string
   type: string
+  assignedAt: string
 }
 
 interface Cliente {
@@ -287,6 +289,8 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+
+  const { unitOwners, addOwner } = useUnitStorage("apart")
 
   // Initialize Notyf
   useEffect(() => {
@@ -448,21 +452,19 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     }
   }
 
-  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
+  // Removed the old unitOwners state and related logic as it's now managed by useUnitStorage
 
   const handleAssignOwner = async () => {
     if (!selectedCliente || !selectedUnit) return
 
     try {
-      setUnitOwners((prev) => ({
-        ...prev,
-        [selectedUnit.unitNumber]: {
-          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
-          email: selectedCliente.email,
-          phone: selectedCliente.telefono,
-          type: selectedCliente.tipo,
-        },
-      }))
+      addOwner(selectedUnit.unitNumber, {
+        name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+        email: selectedCliente.email,
+        phone: selectedCliente.telefono,
+        type: selectedCliente.tipo,
+        assignedAt: new Date().toISOString(),
+      })
 
       if (notyf) {
         notyf.success(`Propietario asignado a la unidad ${selectedUnit.unitNumber}`)
@@ -474,9 +476,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
       setShowCreateClient(false)
     } catch (error) {
       console.error("Error al asignar propietario:", error)
-      if (notyf) {
-        notyf.error("Error al asignar propietario")
-      }
+      if (notyf) notyf.error("Error al asignar propietario")
     }
   }
 
@@ -854,6 +854,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||

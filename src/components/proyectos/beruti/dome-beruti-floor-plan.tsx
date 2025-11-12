@@ -47,6 +47,7 @@ import {
   berutiParkingSpots,
   type BerutiParkingSpot,
 } from "@/lib/dome-beruti-data"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 let notyf: Notyf | null = null
 
@@ -69,12 +70,12 @@ interface NewClienteData {
   estado: string
 }
 
-interface UnitOwner {
-  name: string
-  email: string
-  phone: string
-  type: string
-}
+// type UnitOwner = {
+//   name: string
+//   email: string
+//   phone: string
+//   type: string
+// }
 
 type DomeBerutiFloorPlanProps = {
   floorNumber?: number | null
@@ -133,7 +134,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     estado: "ACTIVO",
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
-  const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
+  // const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
 
   // Initialize Notyf
   useEffect(() => {
@@ -267,19 +268,19 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     }
   }, [action])
 
+  const { unitOwners, addOwner } = useUnitStorage("beruti")
+
   const handleAssignOwner = async () => {
     if (!selectedCliente || !selectedUnit) return
 
     try {
-      setUnitOwners((prev) => ({
-        ...prev,
-        [selectedUnit.unitNumber]: {
-          name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
-          email: selectedCliente.email,
-          phone: selectedCliente.telefono,
-          type: selectedCliente.tipo,
-        },
-      }))
+      addOwner(selectedUnit.unitNumber, {
+        name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
+        email: selectedCliente.email,
+        phone: selectedCliente.telefono,
+        type: selectedCliente.tipo,
+        assignedAt: new Date().toISOString(),
+      })
 
       if (notyf) {
         notyf.success(`Propietario asignado a la unidad ${selectedUnit.unitNumber}`)
@@ -661,6 +662,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
