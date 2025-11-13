@@ -30,7 +30,7 @@ export function useUnitStorage(projectName: string) {
       try {
         setUnitOwners(JSON.parse(savedOwners))
       } catch (error) {
-        console.error("[v0] Error parsing saved owners:", error)
+        console.error(" Error parsing saved owners:", error)
       }
     }
 
@@ -38,7 +38,7 @@ export function useUnitStorage(projectName: string) {
       try {
         setUnitStatuses(JSON.parse(savedStatuses))
       } catch (error) {
-        console.error("[v0] Error parsing saved statuses:", error)
+        console.error(" Error parsing saved statuses:", error)
       }
     }
   }, [projectName])

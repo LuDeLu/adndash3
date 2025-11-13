@@ -226,7 +226,7 @@ export default function NotificationCenter() {
         return await response.json()
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : "Error desconocido"
-        console.error(`[v0] API Error on ${path}:`, errorMessage)
+        console.error(` API Error on ${path}:`, errorMessage)
         setError(errorMessage) // Set global error state
         return null
       }
@@ -247,7 +247,7 @@ export default function NotificationCenter() {
           ...JSON.parse(savedPrefs),
         }))
       } catch (e) {
-        console.error("[v0] Error parsing preferences:", e)
+        console.error(" Error parsing preferences:", e)
       }
     }
 
@@ -256,7 +256,7 @@ export default function NotificationCenter() {
       try {
         setArchivedIds(new Set(JSON.parse(archivedNotifs)))
       } catch (e) {
-        console.error("[v0] Error parsing archived notifications:", e)
+        console.error(" Error parsing archived notifications:", e)
       }
     }
   }, [])
@@ -271,7 +271,7 @@ export default function NotificationCenter() {
       const data = await apiCall<any[]>("/api/notifications")
 
       if (data && Array.isArray(data)) {
-        console.log("[v0] Received notifications:", data) // Debug log to verify data is received
+        console.log(" Received notifications:", data) // Debug log to verify data is received
 
         // Transform data from database format to interface format
         const formattedData = data.map((item: any) => ({
@@ -297,7 +297,7 @@ export default function NotificationCenter() {
           expiresAt: item.expires_at,
         }))
 
-        console.log("[v0] Formatted notifications:", formattedData) // Debug log after transformation
+        console.log(" Formatted notifications:", formattedData) // Debug log after transformation
         setNotifications(formattedData)
         setUnreadCount(formattedData.filter((n: Notification) => !n.read).length)
 
@@ -310,12 +310,12 @@ export default function NotificationCenter() {
           Notification.requestPermission()
         }
       } else {
-        console.log("[v0] No data or invalid format received:", data)
+        console.log(" No data or invalid format received:", data)
         setNotifications([])
         setUnreadCount(0)
       }
     } catch (error) {
-      console.error("[v0] Error in fetchNotifications:", error)
+      console.error(" Error in fetchNotifications:", error)
     } finally {
       setLoading(false)
     }
@@ -389,7 +389,7 @@ export default function NotificationCenter() {
           notyf?.success("Notificación eliminada")
         }
       } catch (err) {
-        console.error("[v0] Error deleting notification:", err)
+        console.error(" Error deleting notification:", err)
         notyf?.error("Error al eliminar notificación")
       }
     },

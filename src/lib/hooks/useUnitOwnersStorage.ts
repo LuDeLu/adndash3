@@ -23,7 +23,7 @@ export function useUnitOwnersStorage(projectId: string) {
       try {
         setUnitOwnersState(JSON.parse(stored))
       } catch (error) {
-        console.error("[v0] Error al cargar propietarios:", error)
+        console.error(" Error al cargar propietarios:", error)
       }
     }
     setIsLoaded(true)

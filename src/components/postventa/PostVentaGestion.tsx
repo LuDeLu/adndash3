@@ -43,18 +43,18 @@ export default function PostVentaGestion() {
   const fetchReclamos = async () => {
     setIsLoading(true)
     try {
-      console.log("[v0] Fetching reclamos from API...")
+      console.log(" Fetching reclamos from API...")
       const response = await axios.get<Reclamo[]>(`${API_BASE_URL}/postventa`, {
         headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       })
-      console.log("[v0] Reclamos fetched:", response.data.length, "tickets")
+      console.log(" Reclamos fetched:", response.data.length, "tickets")
       console.log(
-        "[v0] Estados:",
+        " Estados:",
         response.data.map((r) => ({ ticket: r.ticket, estado: r.estado })),
       )
       setReclamos(response.data)
     } catch (error) {
-      console.error("[v0] Error fetching reclamos:", error)
+      console.error(" Error fetching reclamos:", error)
       notyf.error("Error al cargar los tickets")
     } finally {
       setIsLoading(false)
@@ -89,12 +89,12 @@ export default function PostVentaGestion() {
 
   const actualizarEstado = async (id: string | number, nuevoEstado: EstadoReclamo, datosAdicionales?: any) => {
     try {
-      console.log("[v0] Actualizando estado del ticket:", id, "a", nuevoEstado)
-      console.log("[v0] Datos adicionales:", datosAdicionales)
+      console.log(" Actualizando estado del ticket:", id, "a", nuevoEstado)
+      console.log(" Datos adicionales:", datosAdicionales)
 
       const reclamoActual = reclamos.find((r) => r.id === id)
       if (!reclamoActual) {
-        console.error("[v0] Reclamo no encontrado en el estado local")
+        console.error(" Reclamo no encontrado en el estado local")
         return
       }
 
@@ -104,12 +104,12 @@ export default function PostVentaGestion() {
         ...datosAdicionales,
       }
 
-      console.log("[v0] Actualizando estado local optimísticamente")
+      console.log(" Actualizando estado local optimísticamente")
       setReclamos((prevReclamos) => prevReclamos.map((r) => (r.id === id ? reclamoActualizado : r)))
 
       // Si se está cerrando el ticket, usar el endpoint específico
       if (nuevoEstado === "Solucionado" && datosAdicionales?.proveedorResolvio) {
-        console.log("[v0] Cerrando ticket con endpoint específico")
+        console.log(" Cerrando ticket con endpoint específico")
         await axios.post(
           `${API_BASE_URL}/postventa/${id}/cerrar`,
           {
@@ -123,11 +123,11 @@ export default function PostVentaGestion() {
         )
         notyf.success("Ticket cerrado con éxito. Se enviará email al cliente.")
       } else {
-        console.log("[v0] Actualizando ticket con PUT")
+        console.log(" Actualizando ticket con PUT")
         const response = await axios.put(`${API_BASE_URL}/postventa/${id}`, reclamoActualizado, {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
         })
-        console.log("[v0] Respuesta del servidor:", response.data)
+        console.log(" Respuesta del servidor:", response.data)
 
         if (nuevoEstado === "En Proceso" && datosAdicionales?.fechaVisita) {
           notyf.success("Visita programada. Se enviará recordatorio 48hs antes al cliente.")
@@ -136,10 +136,10 @@ export default function PostVentaGestion() {
         }
       }
 
-      console.log("[v0] Refrescando datos desde el servidor")
+      console.log(" Refrescando datos desde el servidor")
       await fetchReclamos()
     } catch (error) {
-      console.error("[v0] Error updating estado:", error)
+      console.error(" Error updating estado:", error)
       notyf.error("Error al actualizar el estado")
       await fetchReclamos()
     }

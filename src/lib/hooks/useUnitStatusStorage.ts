@@ -22,7 +22,7 @@ export function useUnitStatusStorage(projectId: string) {
       try {
         setStatusesState(JSON.parse(stored))
       } catch (error) {
-        console.error("[v0] Error al cargar estados:", error)
+        console.error(" Error al cargar estados:", error)
       }
     }
     setIsLoaded(true)
