@@ -1,12 +1,12 @@
 "use client"
 
-import { ApprovalForm } from "@/components/checklist/approval-form"
+import { EnhancedDashboard } from "@/components/checklist/enhanced-dashboard"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export default function ChecklistPage() {
   return (
     <>
-      <ApprovalForm />
+      <EnhancedDashboard />
       <SpeedInsights />
     </>
   )

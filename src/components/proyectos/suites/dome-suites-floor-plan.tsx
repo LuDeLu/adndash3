@@ -155,6 +155,32 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
     setIsParkingModalOpen(true)
   }, [])
 
+  const handleLinkParkingToUnit = async (parkingSpot: SuitesGarageSpot, unitNumber: string) => {
+    try {
+      const linkKey = `parking_link_suites_${parkingSpot.id}`
+      const parkingLink = {
+        parkingId: parkingSpot.id,
+        parkingNumber: parkingSpot.spotNumber,
+        unitNumber: unitNumber,
+        linkedAt: new Date().toISOString(),
+      }
+      localStorage.setItem(linkKey, JSON.stringify(parkingLink))
+
+      const unitKey = `unit_parking_suites_${unitNumber}`
+      const existingParkings = localStorage.getItem(unitKey)
+      const parkings = existingParkings ? JSON.parse(existingParkings) : []
+      parkings.push(parkingLink)
+      localStorage.setItem(unitKey, JSON.stringify(parkings))
+
+      if (notyf) {
+        notyf.success(`Cochera ${parkingSpot.spotNumber} vinculada a unidad ${unitNumber}`)
+      }
+    } catch (error) {
+      console.error("Error al vincular cochera:", error)
+      if (notyf) notyf.error("Error al vincular la cochera")
+    }
+  }
+
   // Initialize Notyf
   useEffect(() => {
     if (typeof window !== "undefined" && !notyf) {
@@ -1242,6 +1268,27 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                     </p>
                   )}
                 </DialogDescription>
+
+                <div className="p-3 bg-zinc-800 rounded">
+                  <h4 className="font-semibold mb-3">Vincular Cochera</h4>
+                  <div>
+                    <Label htmlFor="unitSelect" className="text-zinc-400">
+                      Selecciona una unidad
+                    </Label>
+                    <Input
+                      id="unitSelect"
+                      placeholder="Número de unidad (ej: 801)"
+                      className="text-white bg-zinc-700 border-zinc-600 mt-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && e.currentTarget.value) {
+                          handleLinkParkingToUnit(selectedParking, e.currentTarget.value)
+                          e.currentTarget.value = ""
+                        }
+                      }}
+                    />
+                    <p className="text-xs text-zinc-500 mt-1">Escribe el número y presiona Enter</p>
+                  </div>
+                </div>
 
                 <div className="space-y-2">
                   {selectedParking.status === "DISPONIBLE" && (
