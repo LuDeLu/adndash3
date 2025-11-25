@@ -49,4 +49,3 @@ export function UnitInfoModal({ isOpen, onClose, project }: UnitInfoProps) {
     </Dialog>
   )
 }
-

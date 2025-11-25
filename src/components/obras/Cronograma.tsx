@@ -87,4 +87,3 @@ export const Cronograma: React.FC<CronogramaProps> = ({ tareas }) => {
     </Card>
   )
 }
-

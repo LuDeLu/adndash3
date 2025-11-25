@@ -172,4 +172,3 @@ export const InformeProgresoDiario: React.FC = () => {
     </div>
   )
 }
-

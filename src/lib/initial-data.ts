@@ -39,4 +39,3 @@ export const initialFormData: FormData = {
     quienAbona: "",
   },
 }
-

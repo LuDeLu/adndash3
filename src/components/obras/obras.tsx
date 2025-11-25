@@ -193,4 +193,3 @@ const SeguimientoProyectosConstruccionComponent: React.FC = () => {
 }
 
 export default SeguimientoProyectosConstruccionComponent
-

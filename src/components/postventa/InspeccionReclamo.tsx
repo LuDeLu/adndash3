@@ -69,4 +69,3 @@ const InspeccionReclamo: React.FC<InspeccionReclamoProps> = ({ initialInspeccion
 }
 
 export default InspeccionReclamo
-

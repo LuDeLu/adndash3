@@ -112,4 +112,3 @@ Fecha de visita: ${formatearFecha(reclamo.fechaVisita, reclamo.horaVisita)}
     </Dialog>
   )
 }
-

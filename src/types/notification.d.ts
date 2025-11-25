@@ -56,4 +56,3 @@ export type NotificationEvent =
   | "visita_programada"
   | "tarea_vencida"
   | "documento_nuevo"
-

@@ -64,4 +64,3 @@ export const SistemaAlertasNotificaciones: React.FC = () => {
     </div>
   )
 }
-

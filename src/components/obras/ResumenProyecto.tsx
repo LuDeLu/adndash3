@@ -56,4 +56,3 @@ export const ResumenProyecto: React.FC<{ proyecto: Proyecto }> = ({ proyecto }) 
     </div>
   </div>
 )
-

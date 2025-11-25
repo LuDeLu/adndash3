@@ -27,4 +27,3 @@ declare namespace google.accounts.oauth2 {
     callback: string
   }): TokenClient
 }
-

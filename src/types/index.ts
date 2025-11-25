@@ -60,4 +60,3 @@ export type Informe = {
   climaCondiciones: string
   usuario: string
 }
-

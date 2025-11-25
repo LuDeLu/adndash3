@@ -65,4 +65,3 @@ export function useScheduledNotifications(interval = 3600000) {
     return () => clearInterval(intervalId)
   }, [checkScheduledEvents, interval])
 }
-

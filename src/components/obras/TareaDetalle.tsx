@@ -43,4 +43,3 @@ export const TareaDetalle: React.FC<TareaDetalleProps> = ({ tarea }) => {
     </div>
   )
 }
-

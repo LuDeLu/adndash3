@@ -132,4 +132,3 @@ export const datosProductividad = [
   { mes: "May", propias: 620000, brokers: 380000 },
   { mes: "Jun", propias: 650000, brokers: 400000 },
 ]
-

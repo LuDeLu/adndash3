@@ -40,4 +40,3 @@ export interface FormData {
   // Añade esta línea para permitir el acceso con índice de tipo string
   [key: string]: any
 }
-

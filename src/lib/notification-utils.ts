@@ -380,5 +380,3 @@ export async function createNotification(
       checkScheduledEvents,
     }
   }
-  
-  

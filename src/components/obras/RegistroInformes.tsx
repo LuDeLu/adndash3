@@ -105,4 +105,3 @@ export const RegistroInformes: React.FC<RegistroInformesProps> = ({ informes }) 
     </Card>
   )
 }
-

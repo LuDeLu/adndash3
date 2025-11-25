@@ -234,5 +234,3 @@ Atentamente,
     </Card>
   )
 }
-
- 
