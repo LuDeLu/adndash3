@@ -20,10 +20,16 @@ interface UnitStatus {
   notes?: string
 }
 
+interface ParkingAssignment {
+  parkingSpots: string[] // Array of parking spot IDs like ["a1", "b2"]
+  assignedAt: string
+}
+
 interface ProjectData {
   project: string
   owners: { [key: string]: UnitOwner }
   statuses: { [key: string]: UnitStatus }
+  parkingAssignments: { [key: string]: ParkingAssignment } // New field
   updatedAt: string
   createdAt: string
 }
@@ -31,6 +37,7 @@ interface ProjectData {
 export function useUnitStorage(projectName: string) {
   const [unitOwners, setUnitOwners] = useState<{ [key: string]: UnitOwner }>({})
   const [unitStatuses, setUnitStatuses] = useState<{ [key: string]: UnitStatus }>({})
+  const [parkingAssignments, setParkingAssignments] = useState<{ [key: string]: ParkingAssignment }>({})
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastSync, setLastSync] = useState<string | null>(null)
@@ -51,6 +58,7 @@ export function useUnitStorage(projectName: string) {
       // Fallback to localStorage if not authenticated
       const savedOwners = localStorage.getItem(`${projectName}-owners`)
       const savedStatuses = localStorage.getItem(`${projectName}-statuses`)
+      const savedParking = localStorage.getItem(`${projectName}-parking`)
 
       if (savedOwners) {
         try {
@@ -65,6 +73,14 @@ export function useUnitStorage(projectName: string) {
           setUnitStatuses(JSON.parse(savedStatuses))
         } catch (e) {
           console.error("Error parsing local statuses:", e)
+        }
+      }
+
+      if (savedParking) {
+        try {
+          setParkingAssignments(JSON.parse(savedParking))
+        } catch (e) {
+          console.error("Error parsing local parking:", e)
         }
       }
 
@@ -85,21 +101,25 @@ export function useUnitStorage(projectName: string) {
         if (result.success && result.data) {
           setUnitOwners(result.data.owners || {})
           setUnitStatuses(result.data.statuses || {})
+          setParkingAssignments(result.data.parkingAssignments || {})
           setLastSync(new Date().toISOString())
           setError(null)
 
           // Also save to localStorage as backup
           localStorage.setItem(`${projectName}-owners`, JSON.stringify(result.data.owners || {}))
           localStorage.setItem(`${projectName}-statuses`, JSON.stringify(result.data.statuses || {}))
+          localStorage.setItem(`${projectName}-parking`, JSON.stringify(result.data.parkingAssignments || {}))
         }
       } else {
         // Fallback to localStorage on API error
         console.warn("API error, falling back to localStorage")
         const savedOwners = localStorage.getItem(`${projectName}-owners`)
         const savedStatuses = localStorage.getItem(`${projectName}-statuses`)
+        const savedParking = localStorage.getItem(`${projectName}-parking`)
 
         if (savedOwners) setUnitOwners(JSON.parse(savedOwners))
         if (savedStatuses) setUnitStatuses(JSON.parse(savedStatuses))
+        if (savedParking) setParkingAssignments(JSON.parse(savedParking))
       }
     } catch (err) {
       console.error("Error fetching project data:", err)
@@ -108,9 +128,11 @@ export function useUnitStorage(projectName: string) {
       // Fallback to localStorage
       const savedOwners = localStorage.getItem(`${projectName}-owners`)
       const savedStatuses = localStorage.getItem(`${projectName}-statuses`)
+      const savedParking = localStorage.getItem(`${projectName}-parking`)
 
       if (savedOwners) setUnitOwners(JSON.parse(savedOwners))
       if (savedStatuses) setUnitStatuses(JSON.parse(savedStatuses))
+      if (savedParking) setParkingAssignments(JSON.parse(savedParking))
     } finally {
       setIsLoading(false)
     }
@@ -229,6 +251,150 @@ export function useUnitStorage(projectName: string) {
     [projectName, getAuthToken],
   )
 
+  const assignParking = useCallback(
+    async (unitId: string, parkingSpots: string[]) => {
+      const token = getAuthToken()
+      const assignment: ParkingAssignment = {
+        parkingSpots,
+        assignedAt: new Date().toISOString(),
+      }
+
+      // Optimistic update
+      setParkingAssignments((prev) => {
+        const updated = { ...prev, [unitId]: assignment }
+        localStorage.setItem(`${projectName}-parking`, JSON.stringify(updated))
+        return updated
+      })
+
+      if (token) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/project-data/${projectName}/parking`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ unitId, parkingSpots }),
+          })
+
+          if (!response.ok) {
+            console.error("Error syncing parking to backend")
+          }
+        } catch (err) {
+          console.error("Error assigning parking:", err)
+        }
+      }
+    },
+    [projectName, getAuthToken],
+  )
+
+  const addParkingSpot = useCallback(
+    async (unitId: string, parkingSpotId: string) => {
+      const currentAssignment = parkingAssignments[unitId]
+      const currentSpots = currentAssignment?.parkingSpots || []
+
+      // Avoid duplicates
+      if (currentSpots.includes(parkingSpotId)) {
+        return
+      }
+
+      const newSpots = [...currentSpots, parkingSpotId]
+      await assignParking(unitId, newSpots)
+    },
+    [parkingAssignments, assignParking],
+  )
+
+  const removeParkingSpot = useCallback(
+    async (unitId: string, parkingSpotId: string) => {
+      const token = getAuthToken()
+      const currentAssignment = parkingAssignments[unitId]
+
+      if (!currentAssignment) return
+
+      const newSpots = currentAssignment.parkingSpots.filter((id) => id !== parkingSpotId)
+
+      // Optimistic update
+      setParkingAssignments((prev) => {
+        const updated = { ...prev }
+        if (newSpots.length === 0) {
+          delete updated[unitId]
+        } else {
+          updated[unitId] = { ...currentAssignment, parkingSpots: newSpots }
+        }
+        localStorage.setItem(`${projectName}-parking`, JSON.stringify(updated))
+        return updated
+      })
+
+      if (token) {
+        try {
+          await fetch(`${API_BASE_URL}/project-data/${projectName}/parking/${unitId}/${parkingSpotId}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+        } catch (err) {
+          console.error("Error removing parking spot:", err)
+        }
+      }
+    },
+    [projectName, getAuthToken, parkingAssignments],
+  )
+
+  const removeAllParking = useCallback(
+    async (unitId: string) => {
+      const token = getAuthToken()
+
+      // Optimistic update
+      setParkingAssignments((prev) => {
+        const updated = { ...prev }
+        delete updated[unitId]
+        localStorage.setItem(`${projectName}-parking`, JSON.stringify(updated))
+        return updated
+      })
+
+      if (token) {
+        try {
+          await fetch(`${API_BASE_URL}/project-data/${projectName}/parking/${unitId}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          })
+        } catch (err) {
+          console.error("Error removing all parking:", err)
+        }
+      }
+    },
+    [projectName, getAuthToken],
+  )
+
+  const getUnitParking = useCallback(
+    (unitId: string) => {
+      return parkingAssignments[unitId]?.parkingSpots || []
+    },
+    [parkingAssignments],
+  )
+
+  const getParkingSpotUnit = useCallback(
+    (parkingSpotId: string): string | null => {
+      for (const [unitId, assignment] of Object.entries(parkingAssignments)) {
+        if (assignment.parkingSpots.includes(parkingSpotId)) {
+          return unitId
+        }
+      }
+      return null
+    },
+    [parkingAssignments],
+  )
+
+  const isParkingSpotAssigned = useCallback(
+    (parkingSpotId: string): boolean => {
+      return getParkingSpotUnit(parkingSpotId) !== null
+    },
+    [getParkingSpotUnit],
+  )
+
   // Get owner for a specific unit
   const getOwner = useCallback(
     (unitId: string) => {
@@ -251,8 +417,10 @@ export function useUnitStorage(projectName: string) {
 
     localStorage.removeItem(`${projectName}-owners`)
     localStorage.removeItem(`${projectName}-statuses`)
+    localStorage.removeItem(`${projectName}-parking`)
     setUnitOwners({})
     setUnitStatuses({})
+    setParkingAssignments({})
 
     if (token) {
       try {
@@ -262,7 +430,7 @@ export function useUnitStorage(projectName: string) {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ owners: {}, statuses: {} }),
+          body: JSON.stringify({ owners: {}, statuses: {}, parkingAssignments: {} }),
         })
       } catch (err) {
         console.error("Error clearing data:", err)
@@ -276,10 +444,11 @@ export function useUnitStorage(projectName: string) {
       project: projectName,
       owners: unitOwners,
       statuses: unitStatuses,
+      parkingAssignments: parkingAssignments,
       exportedAt: new Date().toISOString(),
     }
     return JSON.stringify(data, null, 2)
-  }, [projectName, unitOwners, unitStatuses])
+  }, [projectName, unitOwners, unitStatuses, parkingAssignments])
 
   // Manual refresh
   const refresh = useCallback(() => {
@@ -290,9 +459,17 @@ export function useUnitStorage(projectName: string) {
   return {
     unitOwners,
     unitStatuses,
+    parkingAssignments, // Expose parking assignments
     addOwner,
     removeOwner,
     updateStatus,
+    assignParking,
+    addParkingSpot,
+    removeParkingSpot,
+    removeAllParking,
+    getUnitParking,
+    getParkingSpotUnit,
+    isParkingSpotAssigned,
     getOwner,
     getStatus,
     clearData,
