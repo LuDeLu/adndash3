@@ -1546,7 +1546,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                                 <div className="flex items-center space-x-3">
                                   <Checkbox
                                     checked={isSelected}
-                                    disabled={isAssignedToOther}
+                                    disabled={!!isAssignedToOther}
                                     onCheckedChange={(checked) => {
                                       if (!isAssignedToOther) {
                                         setSelectedParkingsForAssignment((prev) => ({
