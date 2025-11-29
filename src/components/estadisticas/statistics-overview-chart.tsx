@@ -39,9 +39,6 @@ export function StatisticsOverviewChart({ data }: StatisticsOverviewChartProps) 
               <span className="w-2 h-2 rounded-full bg-blue-500 mr-1" />
               Sueldos
             </Badge>
-            <Badge variant="secondary" className="text-xs">
-              9 Month
-            </Badge>
           </div>
         </div>
       </CardHeader>
