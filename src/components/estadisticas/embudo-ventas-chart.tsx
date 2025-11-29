@@ -15,30 +15,30 @@ interface EmbudoVentasChartProps {
 
 export function EmbudoVentasChart({ data }: EmbudoVentasChartProps) {
   const funnelSteps = [
-    { label: "Atracción de Leads", value: data.leadsGenerados, color: "#06b6d4", percentage: 100 },
+    { label: "Atracción de Leads", value: data.leadsGenerados, color: "#006474ff", percentage: 100 },
     {
       label: "Captación de Leads",
       value: data.enSeguimiento,
-      color: "#22d3ee",
-      percentage: (data.enSeguimiento / data.leadsGenerados) * 100,
+      color: "#006474ff",
+      percentage:  80,
     },
     {
       label: "Nutrición de Leads 1ra conversación",
       value: data.reunionAgendada,
-      color: "#a855f7",
-      percentage: (data.reunionAgendada / data.leadsGenerados) * 100,
+      color: "#753caaff",
+      percentage: 70,
     },
     {
       label: "2da Conversación",
       value: Math.floor(data.reunionAgendada * 0.7),
-      color: "#ec4899",
-      percentage: ((data.reunionAgendada * 0.7) / data.leadsGenerados) * 100,
+      color: "#753caaff",
+      percentage: 60,
     },
     {
       label: "Desenlace/visita",
       value: data.conversionFinal,
       color: "#f43f5e",
-      percentage: (data.conversionFinal / data.leadsGenerados) * 100,
+      percentage: 30,
     },
   ]
 

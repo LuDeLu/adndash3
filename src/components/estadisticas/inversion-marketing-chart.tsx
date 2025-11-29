@@ -65,9 +65,9 @@ export function InversionMarketingChart({ data }: InversionMarketingChartProps) 
                 type="monotone"
                 dataKey="inversion"
                 name="Inversión"
-                stroke="#06b6d4"
+                stroke="#3b82f6"
                 strokeWidth={2}
-                dot={{ fill: "#06b6d4", strokeWidth: 0, r: 4 }}
+                dot={{ fill: "#3b82f6", strokeWidth: 0, r: 4 }}
                 activeDot={{ r: 6 }}
               />
               <Line

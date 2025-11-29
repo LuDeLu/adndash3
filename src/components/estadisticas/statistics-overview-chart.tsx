@@ -60,7 +60,7 @@ export function StatisticsOverviewChart({ data }: StatisticsOverviewChartProps) 
                 tickFormatter={(value) => `${value / 1000}k`}
               />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--accent))", opacity: 0.1 }} />
-              <Bar dataKey="ventas" name="Ventas" fill="#06b6d4" radius={[4, 4, 0, 0]} maxBarSize={20} />
+              <Bar dataKey="ventas" name="Ventas" fill="#a855f7" radius={[4, 4, 0, 0]} maxBarSize={20} />
               <Bar dataKey="sueldos" name="Sueldos" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={20} />
             </BarChart>
           </ResponsiveContainer>

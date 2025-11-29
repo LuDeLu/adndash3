@@ -14,7 +14,7 @@ export function VentasStockChart({ data }: VentasStockChartProps) {
     { name: "Stock", value: data.stock, percentage: ((data.stock / total) * 100).toFixed(1) },
   ]
 
-  const COLORS = ["#06b6d4", "#1e3a5f"]
+  const COLORS = ["#d88a04ff", "#1e3a5f"]
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
