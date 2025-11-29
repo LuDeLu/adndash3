@@ -6,7 +6,7 @@ import Login from "@/components/usuarios/login"
 import { Navigation } from "@/components/Navigation"
 import UserMenu from "@/components/UserMenu"
 import { useEffect, useState } from "react"
-import { Building2 } from "lucide-react"
+import Image from "next/image"
 
 // Hook para detectar móvil
 function useIsMobile() {
@@ -47,10 +47,17 @@ function LoadingScreen() {
       <div className="text-center space-y-6">
         {/* Logo animado */}
         <div className="relative">
-          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl">
-            <Building2 className="w-10 h-10 text-white" />
+          <div className="w-24 h-24 mx-auto rounded-2xl flex items-center justify-center shadow-2xl overflow-hidden">
+            <Image src="/images/logo/adn-developers-logo-big.png" alt="ADN Developers" width={80} height={80} className="object-contain" />
           </div>
-          <div className="absolute inset-0 w-20 h-20 mx-auto border-4 border-blue-500/30 rounded-2xl animate-spin"></div>
+          <div
+            className="absolute inset-0 w-24 h-24 mx-auto border-4 border-cyan-500/30 rounded-2xl animate-spin"
+            style={{ animationDuration: "3s" }}
+          ></div>
+          <div
+            className="absolute inset-0 w-24 h-24 mx-auto border-4 border-indigo-500/20 rounded-2xl animate-spin"
+            style={{ animationDuration: "4s", animationDirection: "reverse" }}
+          ></div>
         </div>
 
         {/* Texto de carga */}
@@ -61,14 +68,14 @@ function LoadingScreen() {
 
         {/* Barra de progreso animada */}
         <div className="w-64 h-2 bg-gray-800 rounded-full mx-auto overflow-hidden">
-          <div className="h-full bg-gradient-to-r from-blue-500 to-purple-600 rounded-full animate-pulse w-3/4"></div>
+          <div className="h-full bg-gradient-to-r from-cyan-500 to-indigo-600 rounded-full animate-pulse w-3/4"></div>
         </div>
 
         {/* Puntos de carga */}
         <div className="flex justify-center space-x-2">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+          <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"></div>
+          <div className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
+          <div className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
         </div>
       </div>
     </div>
@@ -113,7 +120,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
             <div className="px-4 py-6 space-y-6 max-w-full overflow-x-hidden">{children}</div>
           </div>
         </main>
-
       </div>
     )
   }
@@ -138,8 +144,6 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
         {/* Contenido scrolleable - ocupa el resto del espacio */}
         <div className="flex-1 overflow-auto p-6">{children}</div>
       </main>
-
-
     </div>
   )
 }

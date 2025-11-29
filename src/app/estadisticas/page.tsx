@@ -1,12 +1,12 @@
 "use client"
 
-import Dashboard from "@/components/estadisticas/estadisticas"
+import { EstadisticasDashboard } from "@/components/estadisticas/estadisticas-dashboard"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export default function EstadisticasPage() {
   return (
     <>
-      <Dashboard />
+      <EstadisticasDashboard />
       <SpeedInsights />
     </>
   )

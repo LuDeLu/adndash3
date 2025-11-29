@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -192,7 +193,7 @@ function UserDropdown() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user?.avatarUrl} alt={user?.name || "Usuario"} />
+            <AvatarImage src={user?.avatarUrl || "/placeholder.svg"} alt={user?.name || "Usuario"} />
             <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white text-xs font-semibold">
               {getUserInitials(user?.name || "Usuario")}
             </AvatarFallback>
@@ -306,11 +307,10 @@ function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
 
   return (
     <div className="flex flex-col h-full bg-background">
-      {/* Header del sidebar */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-            <Building2 className="h-5 w-5 text-white" />
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
+            <Image src="/images/logo/adn-developers-logo-big.png" alt="ADN Developers" width={44} height={44} className="object-contain" />
           </div>
           <div className="flex-1 min-w-0">
             <h2 className="font-bold text-lg text-foreground truncate">ADN Developers</h2>
@@ -323,7 +323,7 @@ function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
       <div className="p-4 border-b border-border">
         <div className="flex items-center space-x-3">
           <Avatar className="h-10 w-10">
-            <AvatarImage src={user?.avatarUrl} alt={user?.name || "Usuario"} />
+            <AvatarImage src={user?.avatarUrl || "/placeholder.svg"} alt={user?.name || "Usuario"} />
             <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold">
               {getUserInitials(user?.name || "Usuario")}
             </AvatarFallback>
@@ -429,18 +429,48 @@ function DesktopNavigation() {
         isCollapsed ? "w-16 min-w-16" : "w-64 min-w-64",
       )}
     >
-      {/* Header del sidebar */}
-      <div className="flex h-14 items-center border-b border-gray-800 px-4 flex-shrink-0">
-        {!isCollapsed && <span className="text-lg font-semibold truncate">ADN Developers</span>}
+      <div className="flex h-16 items-center border-b border-gray-800 px-3 flex-shrink-0">
+        {!isCollapsed ? (
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+              <Image
+                src="/images/logo/adn-developers-logo-big.png"
+                alt="ADN Developers"
+                width={36}
+                height={36}
+                className="object-contain"
+              />
+            </div>
+            <span className="text-lg font-semibold truncate">ADN Developers</span>
+          </div>
+        ) : (
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden mx-auto">
+            <Image src="/images/logo/adn-developers-logo-big.png" alt="ADN" width={36} height={36} className="object-contain" />
+          </div>
+        )}
         <Button
           variant="ghost"
           size="icon"
-          className={cn("ml-auto text-gray-400 hover:text-white shrink-0", isCollapsed && "mx-auto")}
+          className={cn("text-gray-400 hover:text-white shrink-0", isCollapsed ? "hidden" : "ml-auto")}
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
           {isCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
         </Button>
       </div>
+
+      {/* Collapse button for collapsed state */}
+      {isCollapsed && (
+        <div className="flex justify-center py-2 border-b border-gray-800">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-gray-400 hover:text-white"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      )}
 
       {/* Navegación - con flex-1 para ocupar todo el espacio disponible */}
       <nav className="flex-1 overflow-auto py-4">

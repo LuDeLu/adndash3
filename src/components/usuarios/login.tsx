@@ -5,13 +5,13 @@ import type React from "react"
 import { useState } from "react"
 import { useGoogleLogin } from "@react-oauth/google"
 import { Button } from "@/components/ui/button"
-import { cn } from "@/lib/utils"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useAuth } from "../../app/auth/auth-context"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import Image from "next/image"
 
 export default function Login() {
   const [email, setEmail] = useState("")
@@ -111,11 +111,20 @@ export default function Login() {
   })
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-background">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>ADN Developers Dashboard</CardTitle>
-          <CardDescription>Accede a tu cuenta para gestionar el Dashboard</CardDescription>
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 relative">
+      {/* Background effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-indigo-500/10 rounded-full blur-3xl"></div>
+      </div>
+
+      <Card className="w-full max-w-md bg-zinc-900/90 border-zinc-800 backdrop-blur-xl relative z-10">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden mb-4">
+            <Image src="/images/logo/adn-developers-logo-big.png" alt="ADN Developers" width={72} height={72} className="object-contain" />
+          </div>
+          <CardTitle className="text-white">ADN Developers Dashboard</CardTitle>
+          <CardDescription className="text-zinc-400">Accede a tu cuenta para gestionar el Dashboard</CardDescription>
         </CardHeader>
         <CardContent>
           {error && (
@@ -126,7 +135,9 @@ export default function Login() {
           )}
           <form onSubmit={handleEmailLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Correo electrónico</Label>
+              <Label htmlFor="email" className="text-zinc-300">
+                Correo electrónico
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -134,24 +145,25 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-cyan-500"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Contraseña</Label>
+              <Label htmlFor="password" className="text-zinc-300">
+                Contraseña
+              </Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-cyan-500"
               />
             </div>
             <Button
               type="submit"
-              className={cn(
-                "w-full",
-                "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border bg-background h-10 px-4 py-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-gray-100 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50",
-              )}
+              className="w-full bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold"
               disabled={loading}
             >
               {loading ? "Iniciando sesión..." : "Iniciar sesión"}
@@ -161,22 +173,19 @@ export default function Login() {
         <CardFooter className="flex flex-col">
           <div className="relative w-full mb-4">
             <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-gray-700"></span>
+              <span className="w-full border-t border-zinc-700"></span>
             </div>
             <div className="relative flex justify-center text-xs">
-              <span className="bg-background px-2 text-muted-foreground">O continuar con</span>
+              <span className="bg-zinc-900 px-2 text-zinc-500">O continuar con</span>
             </div>
           </div>
           <Button
             onClick={() => googleLogin()}
             variant="outline"
-            className={cn(
-              "w-full",
-              "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 border bg-background h-10 px-4 py-2 border-gray-700 text-gray-300 hover:bg-gray-800 hover:text-gray-100 transition-all duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50",
-            )}
+            className="w-full border-zinc-700 text-zinc-300 hover:bg-zinc-800 hover:text-white"
             disabled={loading}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" className="h-5 w-5">
+            <svg xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 0 24 24" width="24" className="h-5 w-5 mr-2">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
                 fill="#4285F4"
@@ -197,6 +206,9 @@ export default function Login() {
             </svg>
             Iniciar sesión con Google
           </Button>
+          <p className="text-xs text-zinc-500 text-center mt-6">
+            © 2025 ADN Developers. Todos los derechos reservados.
+          </p>
         </CardFooter>
       </Card>
     </div>
