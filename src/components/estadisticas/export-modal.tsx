@@ -1259,7 +1259,6 @@ export function ExportModal({ open, onOpenChange, data, periodLabel }: ExportMod
                   <span className="text-xs bg-cyan-500/10 text-cyan-600 px-2.5 py-1 rounded-full font-medium">
                     1 página
                   </span>
-                  <span className="text-xs text-muted-foreground">Ideal para presentaciones</span>
                 </div>
               </div>
             </div>
@@ -1285,7 +1284,6 @@ export function ExportModal({ open, onOpenChange, data, periodLabel }: ExportMod
                   <span className="text-xs bg-indigo-500/10 text-indigo-600 px-2.5 py-1 rounded-full font-medium">
                     5 páginas
                   </span>
-                  <span className="text-xs text-muted-foreground">Análisis completo</span>
                 </div>
               </div>
             </div>
