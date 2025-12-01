@@ -291,6 +291,8 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     getUnitParking,
     isParkingSpotAssigned,
     getParkingSpotUnit,
+    updateStatus,
+    unitStatuses,
   } = useUnitStorage("beruti")
 
   const handleAssignOwner = async () => {
@@ -392,6 +394,14 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
       const success = updateBerutiApartmentStatus(selectedUnit.id, newStatus)
 
       if (success) {
+        await updateStatus(selectedUnit.unitNumber, {
+          id: selectedUnit.id,
+          status: newStatus,
+          changedAt: new Date().toISOString(),
+          changedBy: user.name || user.email,
+          notes: formData.note || undefined,
+        })
+
         if (notyf) {
           switch (action) {
             case "block":
@@ -730,6 +740,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -853,7 +864,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                     </div>
                   </div>
                 </div>
-
 
                 {/* Owner Section */}
                 <div className="p-4 bg-zinc-800 rounded-lg">

@@ -35,6 +35,7 @@ import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 // Assuming API_BASE_URL is defined elsewhere, e.g., in an environment file or constants
@@ -118,7 +119,18 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const [currentGarageLevel, setCurrentGarageLevel] = useState<GarageLevel>(1)
-  const [action, setAction] = useState<string | null>(null)
+  const [action, setAction] = useState<
+    | "block"
+    | "reserve"
+    | "sell"
+    | "unblock"
+    | "directReserve"
+    | "cancelReservation"
+    | "release"
+    | "addOwner"
+    | "assignParking"
+    | null
+  >(null)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -149,8 +161,19 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     estado: "ACTIVO",
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
-  // Use hook de almacenamiento local
-  const { unitOwners, addOwner } = useUnitStorage("resi")
+
+  const {
+    unitOwners,
+    addOwner,
+    parkingAssignments,
+    assignParking,
+    getUnitParking,
+    isParkingSpotAssigned,
+    getParkingSpotUnit,
+  } = useUnitStorage("resi")
+
+  const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
+  const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState<GarageLevel>(1)
 
   // Initialize Notyf
   useEffect(() => {
@@ -337,19 +360,70 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     setConfirmRelease(false)
   }
 
-  const handleActionClick = (actionType: string) => {
-    setAction(actionType)
-    if (
-      actionType === "reserve" &&
+  const handleActionClick = (newAction: typeof action) => {
+    setAction(newAction)
+    if (newAction === "assignParking" && selectedApartment) {
+      const currentParkings = getUnitParking(selectedApartment)
+      const initialSelection: { [key: string]: boolean } = {}
+      currentParkings.forEach((parkingId) => {
+        initialSelection[parkingId] = true
+      })
+      setSelectedParkingsForAssignment(initialSelection)
+      setParkingAssignmentLevel(1)
+    } else if (
+      newAction === "reserve" &&
       ((selectedApartment && floorData?.apartments[selectedApartment]?.status === "blocked") ||
         (selectedParkingSpot && parkingSpots.find((spot) => spot.id === selectedParkingSpot)?.status === "blocked"))
     ) {
       setConfirmReservation(true)
-    } else if (actionType === "cancelReservation") {
+    } else if (newAction === "cancelReservation") {
       setConfirmCancelReservation(true)
-    } else if (actionType === "release") {
+    } else if (newAction === "release") {
       setConfirmRelease(true)
     }
+  }
+
+  const handleConfirmParkingAssignment = async () => {
+    if (!selectedApartment) return
+
+    try {
+      const parkingSpotIds = Object.entries(selectedParkingsForAssignment)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([parkingId]) => parkingId)
+
+      await assignParking(selectedApartment, parkingSpotIds)
+
+      if (notyf) {
+        if (parkingSpotIds.length > 0) {
+          notyf.success(`Cocheras asignadas a la unidad ${selectedApartment}: ${parkingSpotIds.join(", ")}`)
+        } else {
+          notyf.success(`Se removieron las cocheras de la unidad ${selectedApartment}`)
+        }
+      }
+
+      const timestamp = new Date().toLocaleString()
+      const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedApartment}`
+      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
+      setAction(null)
+      setSelectedParkingsForAssignment({})
+    } catch (error) {
+      console.error("Error al asignar cocheras:", error)
+      if (notyf) notyf.error("Error al asignar cocheras")
+    }
+  }
+
+  const getParkingInfo = (parkingId: string) => {
+    return domePalermoData.parkingSpots.find((p) => p.id === parkingId)
+  }
+
+  const getAvailableParkingForLevel = (level: GarageLevel) => {
+    const spots = domePalermoData.getParkingSpotsByLevel(level)
+    return spots.filter((parking) => {
+      const assignedToUnit = getParkingSpotUnit(parking.id)
+      const isAvailable = !assignedToUnit || (selectedApartment && assignedToUnit === selectedApartment)
+      return isAvailable
+    })
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -696,9 +770,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -810,7 +881,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     </div>
                   </div>
                   <div>
-                    <Label className="text-zinc-400">Superficie</Label>
+                    <Label className="text-zinc-400">Superficie Total</Label>
                     <p className="font-semibold">{floorData.apartments[selectedApartment].surface}</p>
                   </div>
                   <div>
@@ -853,31 +924,33 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   </div>
                 )}
 
-                {unitOwners[selectedApartment] && (
-                  <div className="space-y-2 p-4 bg-zinc-800 rounded-lg">
-                    <h4 className="font-semibold text-green-400 flex items-center">
-                      <User className="w-4 h-4 mr-2" />
-                      Propietario Actual
-                    </h4>
-                    <div className="grid grid-cols-1 gap-2 text-sm">
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2 text-zinc-400" />
-                        <span>{unitOwners[selectedApartment].name}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Mail className="w-4 h-4 mr-2 text-zinc-400" />
-                        <span>{unitOwners[selectedApartment].email}</span>
-                      </div>
-                      <div className="flex items-center">
-                        <Phone className="w-4 h-4 mr-2 text-zinc-400" />
-                        <span>{unitOwners[selectedApartment].phone}</span>
-                      </div>
-                      <Badge variant="secondary" className="mt-2 w-fit">
+                <div className="p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold text-green-400 mb-2 flex items-center">
+                    <User className="w-4 h-4 mr-2" />
+                    Propietario Actual
+                  </h4>
+                  {unitOwners[selectedApartment] ? (
+                    <div className="space-y-1 text-sm">
+                      <p className="flex items-center">
+                        <User className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedApartment].name}
+                      </p>
+                      <p className="flex items-center">
+                        <Mail className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedApartment].email}
+                      </p>
+                      <p className="flex items-center">
+                        <Phone className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedApartment].phone}
+                      </p>
+                      <Badge variant="secondary" className="mt-2">
                         {unitOwners[selectedApartment].type}
                       </Badge>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-zinc-400">Sin asignar</p>
+                  )}
+                </div>
 
                 {!action && (
                   <div className="space-y-2">
@@ -889,7 +962,16 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       {unitOwners[selectedApartment] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
-                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                    {/* Agregar botón para asignar cocheras */}
+                    <Button
+                      onClick={() => handleActionClick("assignParking")}
+                      className="w-full bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Car className="mr-2 h-4 w-4" />
+                      Asignar/Modificar Cocheras
+                    </Button>
+
+                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                       <Download className="mr-2 h-4 w-4" />
                       Descargar plano
                     </Button>
@@ -898,7 +980,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
-                          className="w-full bg-purple-600 hover:bg-purple-700"
+                          className="w-full bg-orange-600 hover:bg-orange-700"
                         >
                           Bloquear
                         </Button>
@@ -947,7 +1029,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
                     {floorData.apartments[selectedApartment]?.status === "sold" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
                         </Button>
                         <Button
@@ -958,6 +1040,339 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                         </Button>
                       </>
                     )}
+                  </div>
+                )}
+
+                {/* Add Owner Action */}
+                {action === "addOwner" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Seleccionar Propietario</h4>
+                      <Button
+                        onClick={() => setShowCreateClient(!showCreateClient)}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Crear Cliente
+                      </Button>
+                    </div>
+
+                    {!showCreateClient ? (
+                      <>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                          <Input
+                            placeholder="Buscar cliente..."
+                            value={searchTerm}
+                            onChange={(e) => handleSearchClientes(e.target.value)}
+                            className="pl-10 text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {isLoadingClientes ? (
+                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                          ) : filteredClientes.length === 0 ? (
+                            <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                onClick={() => setSelectedCliente(cliente)}
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  selectedCliente?.id === cliente.id
+                                    ? "border-indigo-500 bg-indigo-500/20"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium text-white">
+                                      {cliente.nombre} {cliente.apellido}
+                                    </p>
+                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {cliente.tipo}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {selectedCliente && (
+                          <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                            Asignar como Propietario
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="newNombre" className="text-white">
+                              Nombre
+                            </Label>
+                            <Input
+                              id="newNombre"
+                              value={newClienteData.nombre}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newApellido" className="text-white">
+                              Apellido
+                            </Label>
+                            <Input
+                              id="newApellido"
+                              value={newClienteData.apellido}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newTelefono" className="text-white">
+                            Teléfono
+                          </Label>
+                          <Input
+                            id="newTelefono"
+                            type="tel"
+                            value={newClienteData.telefono}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newEmail" className="text-white">
+                            Email
+                          </Label>
+                          <Input
+                            id="newEmail"
+                            type="email"
+                            value={newClienteData.email}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <Button onClick={createNewCliente} className="flex-1 bg-green-600 hover:bg-green-700">
+                            Crear Cliente
+                          </Button>
+                          <Button
+                            onClick={() => setShowCreateClient(false)}
+                            variant="outline"
+                            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actualizar lógica para asignación de cocheras */}
+                {action === "assignParking" && selectedApartment && (
+                  <div className="space-y-4">
+                    <h4 className="font-semibold">Seleccionar Cocheras para {selectedApartment}</h4>
+                    <div className="flex justify-center space-x-4 mb-4">
+                      {garageLevels.map((level) => (
+                        <Button
+                          key={level}
+                          onClick={() => setParkingAssignmentLevel(level as GarageLevel)}
+                          variant={parkingAssignmentLevel === level ? "default" : "outline"}
+                          className={parkingAssignmentLevel === level ? "bg-blue-600" : ""}
+                        >
+                          Nivel {level}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <div className="max-h-60 overflow-y-auto space-y-2 border border-zinc-700 rounded-lg p-3">
+                      {getAvailableParkingForLevel(parkingAssignmentLevel).length > 0 ? (
+                        getAvailableParkingForLevel(parkingAssignmentLevel).map((spot) => (
+                          <div
+                            key={spot.id}
+                            className="flex items-center space-x-2 p-2 rounded bg-zinc-800 hover:bg-zinc-700 cursor-pointer"
+                            onClick={() =>
+                              setSelectedParkingsForAssignment((prev) => ({
+                                ...prev,
+                                [spot.id]: !prev[spot.id],
+                              }))
+                            }
+                          >
+                            <Checkbox
+                              id={spot.id}
+                              checked={!!selectedParkingsForAssignment[spot.id]}
+                              onCheckedChange={(checked) =>
+                                setSelectedParkingsForAssignment((prev) => ({ ...prev, [spot.id]: !!checked }))
+                              }
+                            />
+                            <Label htmlFor={spot.id} className="text-white font-medium">
+                              {spot.id}
+                            </Label>
+                            {isParkingSpotAssigned(spot.id) && getParkingSpotUnit(spot.id) !== selectedApartment && (
+                              <Badge variant="destructive" className="ml-auto">
+                                Asignada
+                              </Badge>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-4 text-zinc-400">No hay cocheras disponibles en este nivel</div>
+                      )}
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={handleConfirmParkingAssignment}
+                        className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                      >
+                        Confirmar Asignación
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setAction(null)
+                          setSelectedParkingsForAssignment({})
+                        }}
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Block/Reserve/Sell Forms */}
+                {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    {action !== "sell" && (
+                      <>
+                        <div>
+                          <Label htmlFor="name" className="text-white">
+                            Nombre
+                          </Label>
+                          <Input
+                            id="name"
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="phone" className="text-white">
+                            Teléfono
+                          </Label>
+                          <Input
+                            id="phone"
+                            type="tel"
+                            value={formData.phone}
+                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div>
+                      <Label htmlFor="price" className="text-white">
+                        Precio
+                      </Label>
+                      <Input
+                        id="price"
+                        type="text"
+                        value={formData.price || floorData.apartments[selectedApartment].price}
+                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    {action === "sell" && (
+                      <div>
+                        <Label htmlFor="reservationOrder" className="text-white">
+                          Contrato de Venta
+                        </Label>
+                        <Input
+                          id="reservationOrder"
+                          type="file"
+                          onChange={handleFileChange}
+                          required
+                          className="text-white bg-zinc-800 border-zinc-700"
+                          ref={fileInputRef}
+                        />
+                      </div>
+                    )}
+                    <Button type="submit" className="bg-green-600 hover:bg-green-700 w-full">
+                      {action === "block"
+                        ? "Confirmar Bloqueo"
+                        : action === "reserve" || action === "directReserve"
+                          ? "Confirmar Reserva"
+                          : "Confirmar Venta"}
+                    </Button>
+                  </form>
+                )}
+
+                {/* Unblock/Cancel/Release Forms */}
+                {(action === "unblock" || action === "cancelReservation" || action === "release") && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="note" className="text-white">
+                        Nota (Obligatoria)
+                      </Label>
+                      <Textarea
+                        id="note"
+                        value={formData.note}
+                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                        required
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+                    <Button type="submit" className="bg-red-600 hover:bg-red-700 w-full">
+                      {action === "unblock"
+                        ? "Confirmar Liberación"
+                        : action === "cancelReservation"
+                          ? "Confirmar Cancelación"
+                          : "Confirmar Liberación"}
+                    </Button>
+                  </form>
+                )}
+
+                {/* Confirmation Dialogs */}
+                {(confirmReservation || confirmCancelReservation || confirmRelease) && (
+                  <div className="space-y-4">
+                    <p className="text-yellow-400">
+                      {confirmReservation
+                        ? "¿Confirmar reserva del departamento?"
+                        : confirmCancelReservation
+                          ? "¿Confirmar cancelación de la reserva?"
+                          : "¿Confirmar liberación del departamento?"}
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
+                        Confirmar
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setConfirmReservation(false)
+                          setConfirmCancelReservation(false)
+                          setConfirmRelease(false)
+                          setAction(null)
+                        }}
+                        className="bg-red-600 hover:bg-red-700 flex-1"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1003,7 +1418,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
                 {!action && (
                   <div className="space-y-2">
-                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                       <Download className="mr-2 h-4 w-4" />
                       Descargar plano cochera
                     </Button>
@@ -1012,7 +1427,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
-                          className="w-full bg-purple-600 hover:bg-purple-700"
+                          className="w-full bg-orange-600 hover:bg-orange-700"
                         >
                           Bloquear
                         </Button>
@@ -1061,7 +1476,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
                     {selectedSpot.status === "sold" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-blue-600 hover:bg-blue-700">
+                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
                         </Button>
                         <Button
@@ -1076,309 +1491,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                 )}
               </div>
             )}
-
-            {action === "addOwner" && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold">Seleccionar Propietario</h4>
-                  <Button
-                    onClick={() => setShowCreateClient(!showCreateClient)}
-                    size="sm"
-                    variant="outline"
-                    className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                  >
-                    <Plus className="mr-1 h-3 w-3" />
-                    Crear Cliente
-                  </Button>
-                </div>
-
-                {!showCreateClient ? (
-                  <>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                      <Input
-                        placeholder="Buscar cliente por nombre, email o teléfono..."
-                        value={searchTerm}
-                        onChange={(e) => handleSearchClientes(e.target.value)}
-                        className="pl-10 text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-
-                    <div className="max-h-60 overflow-y-auto space-y-2">
-                      {isLoadingClientes ? (
-                        <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
-                      ) : filteredClientes.length === 0 ? (
-                        <div className="text-center py-4 text-zinc-400">
-                          {searchTerm ? "No se encontraron clientes" : "No hay clientes disponibles"}
-                        </div>
-                      ) : (
-                        filteredClientes.map((cliente) => (
-                          <div
-                            key={cliente.id}
-                            onClick={() => setSelectedCliente(cliente)}
-                            className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                              selectedCliente?.id === cliente.id
-                                ? "border-indigo-500 bg-indigo-500/20"
-                                : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-                            }`}
-                          >
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <p className="font-medium text-white">
-                                  {cliente.nombre} {cliente.apellido}
-                                </p>
-                                <p className="text-sm text-zinc-400">{cliente.email}</p>
-                                <p className="text-sm text-zinc-400">{cliente.telefono}</p>
-                              </div>
-                              <Badge variant="outline" className="text-xs">
-                                {cliente.tipo}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-
-                    {selectedCliente && (
-                      <div className="space-y-3">
-                        <div className="p-3 bg-indigo-500/20 border border-indigo-500 rounded-lg">
-                          <p className="text-sm text-indigo-300">Cliente seleccionado:</p>
-                          <p className="font-medium text-white">
-                            {selectedCliente.nombre} {selectedCliente.apellido}
-                          </p>
-                        </div>
-                        <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
-                          Asignar como Propietario
-                        </Button>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="space-y-4">
-                    <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <Label htmlFor="newNombre" className="text-white">
-                          Nombre *
-                        </Label>
-                        <Input
-                          id="newNombre"
-                          value={newClienteData.nombre}
-                          onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
-                          required
-                          className="text-white bg-zinc-800 border-zinc-700"
-                        />
-                      </div>
-                      <div>
-                        <Label htmlFor="newApellido" className="text-white">
-                          Apellido *
-                        </Label>
-                        <Input
-                          id="newApellido"
-                          value={newClienteData.apellido}
-                          onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
-                          required
-                          className="text-white bg-zinc-800 border-zinc-700"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <Label htmlFor="newTelefono" className="text-white">
-                        Teléfono *
-                      </Label>
-                      <Input
-                        id="newTelefono"
-                        type="tel"
-                        value={newClienteData.telefono}
-                        onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
-                        required
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-
-                    <div>
-                      <Label htmlFor="newEmail" className="text-white">
-                        Email *
-                      </Label>
-                      <Input
-                        id="newEmail"
-                        type="email"
-                        value={newClienteData.email}
-                        onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
-                        required
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <Button
-                        onClick={createNewCliente}
-                        disabled={
-                          !newClienteData.nombre ||
-                          !newClienteData.apellido ||
-                          !newClienteData.telefono ||
-                          !newClienteData.email
-                        }
-                        className="flex-1 bg-green-600 hover:bg-green-700"
-                      >
-                        Crear Cliente
-                      </Button>
-                      <Button
-                        onClick={() => setShowCreateClient(false)}
-                        variant="outline"
-                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                {action !== "sell" && (
-                  <>
-                    <div>
-                      <Label htmlFor="name" className="text-white">
-                        Nombre
-                      </Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        required
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="phone" className="text-white">
-                        Teléfono
-                      </Label>
-                      <Input
-                        id="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="email" className="text-white">
-                        Email
-                      </Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
-                  </>
-                )}
-                <div>
-                  <Label htmlFor="price" className="text-white">
-                    Precio
-                  </Label>
-                  <Input
-                    id="price"
-                    value={
-                      formData.price ||
-                      (selectedApartment && floorData?.apartments[selectedApartment]?.price) ||
-                      "$15,000"
-                    }
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="text-white bg-zinc-800 border-zinc-700"
-                  />
-                </div>
-                {action === "sell" && (
-                  <div>
-                    <Label htmlFor="reservationOrder" className="text-white">
-                      Contrato de Venta
-                    </Label>
-                    <Input
-                      id="reservationOrder"
-                      type="file"
-                      onChange={handleFileChange}
-                      required
-                      className="text-white bg-zinc-800 border-zinc-700"
-                      ref={fileInputRef}
-                    />
-                  </div>
-                )}
-                <div>
-                  <Label htmlFor="note" className="text-white">
-                    Notas
-                  </Label>
-                  <Textarea
-                    id="note"
-                    value={formData.note}
-                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    className="text-white bg-zinc-800 border-zinc-700"
-                  />
-                </div>
-                <Button type="submit" disabled={loading} className="w-full bg-green-600 hover:bg-green-700">
-                  {loading
-                    ? "Procesando..."
-                    : `Confirmar ${action === "block" ? "Bloqueo" : action === "reserve" || action === "directReserve" ? "Reserva" : "Venta"}`}
-                </Button>
-              </form>
-            )}
-
-            {(action === "unblock" || action === "cancelReservation" || action === "release") && (
-              <form onSubmit={handleFormSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="note" className="text-white">
-                    Nota (Obligatoria)
-                  </Label>
-                  <Textarea
-                    id="note"
-                    value={formData.note}
-                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    required
-                    className="text-white bg-zinc-800 border-zinc-700"
-                  />
-                </div>
-                <Button type="submit" disabled={loading} className="w-full bg-red-600 hover:bg-red-700">
-                  {loading
-                    ? "Procesando..."
-                    : `Confirmar ${action === "unblock" ? "Liberación" : action === "cancelReservation" ? "Cancelación" : "Liberación"}`}
-                </Button>
-              </form>
-            )}
-
-            {(confirmReservation || confirmCancelReservation || confirmRelease) && (
-              <div className="space-y-4">
-                <p className="text-yellow-400">
-                  {confirmReservation
-                    ? `¿Confirmar reserva ${selectedApartment ? "del departamento" : "de la cochera"}?`
-                    : confirmCancelReservation
-                      ? "¿Confirmar cancelación de la reserva?"
-                      : `¿Confirmar liberación ${selectedApartment ? "del departamento" : "de la cochera"}?`}
-                </p>
-                <div className="flex space-x-2">
-                  <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
-                    Confirmar
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setConfirmReservation(false)
-                      setConfirmCancelReservation(false)
-                      setConfirmRelease(false)
-                      setAction(null)
-                    }}
-                    className="bg-red-600 hover:bg-red-700 flex-1"
-                  >
-                    Cancelar
-                  </Button>
-                </div>
-              </div>
-            )}
-
             <DialogFooter>
               <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar

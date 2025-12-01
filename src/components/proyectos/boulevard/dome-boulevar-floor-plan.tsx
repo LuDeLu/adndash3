@@ -103,7 +103,16 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
-    "block" | "reserve" | "sell" | "unblock" | "directReserve" | "cancelReservation" | "release" | "addOwner" | null
+    | "block"
+    | "reserve"
+    | "sell"
+    | "unblock"
+    | "directReserve"
+    | "cancelReservation"
+    | "release"
+    | "addOwner"
+    | "assignParking"
+    | null
   >(null)
   const [formData, setFormData] = useState({
     name: "",
@@ -139,7 +148,19 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     estado: "ACTIVO",
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
-  const { unitOwners, addOwner } = useUnitStorage("boulevard")
+
+  const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
+  const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState(1)
+
+  const {
+    unitOwners,
+    addOwner,
+    parkingAssignments,
+    assignParking,
+    getUnitParking,
+    isParkingSpotAssigned,
+    getParkingSpotUnit,
+  } = useUnitStorage("boulevard")
 
   // Initialize Notyf
   useEffect(() => {
@@ -264,21 +285,18 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     setIsModalOpen(false)
   }
 
-  const handleActionClick = (
-    actionType:
-      | "block"
-      | "reserve"
-      | "sell"
-      | "unblock"
-      | "directReserve"
-      | "cancelReservation"
-      | "release"
-      | "addOwner",
-  ) => {
-    setAction(actionType)
-    setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
-    setConfirmCancelReservation(actionType === "cancelReservation")
-    setConfirmRelease(actionType === "release")
+  const handleActionClick = (newAction: typeof action) => {
+    setAction(newAction)
+    if (newAction === "assignParking" && selectedUnit) {
+      // Initialize with current assignments
+      const currentParkings = getUnitParking(selectedUnit.unitNumber)
+      const initialSelection: { [key: string]: boolean } = {}
+      currentParkings.forEach((parkingId) => {
+        initialSelection[parkingId] = true
+      })
+      setSelectedParkingsForAssignment(initialSelection)
+      setParkingAssignmentLevel(1)
+    }
   }
 
   const handleSearchClientes = useCallback(
@@ -324,6 +342,54 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       if (notyf) notyf.error("Error al asignar propietario")
     }
   }, [selectedCliente, selectedUnit, addOwner])
+
+  const handleConfirmParkingAssignment = async () => {
+    if (!selectedUnit) return
+
+    try {
+      const parkingSpotIds = Object.entries(selectedParkingsForAssignment)
+        .filter(([_, isSelected]) => isSelected)
+        .map(([parkingId]) => parkingId)
+
+      await assignParking(selectedUnit.unitNumber, parkingSpotIds)
+
+      if (notyf) {
+        if (parkingSpotIds.length > 0) {
+          notyf.success(`Cocheras asignadas a la unidad ${selectedUnit.unitNumber}: ${parkingSpotIds.join(", ")}`)
+        } else {
+          notyf.success(`Se removieron las cocheras de la unidad ${selectedUnit.unitNumber}`)
+        }
+      }
+
+      const timestamp = new Date().toLocaleString()
+      const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedUnit.unitNumber}`
+      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
+      setAction(null)
+      setSelectedParkingsForAssignment({})
+    } catch (error) {
+      console.error("Error al asignar cocheras:", error)
+      if (notyf) notyf.error("Error al asignar cocheras")
+    }
+  }
+
+  const getParkingInfo = (parkingId: string) => {
+    const allSpots = [...getBoulevardGarageSpotsByLevel(1), ...getBoulevardGarageSpotsByLevel(3)]
+    return allSpots.find((p) => p.id === parkingId)
+  }
+
+  const getAvailableParkingForLevel = (level: number) => {
+    const spots = getBoulevardGarageSpotsByLevel(level)
+    return spots.filter((parking) => {
+      const assignedToUnit = getParkingSpotUnit(parking.id)
+      const isAvailable = !assignedToUnit || (selectedUnit && assignedToUnit === selectedUnit.unitNumber)
+      return isAvailable
+    })
+  }
+
+  const formatBoulevardPrice = (price: number) => {
+    return `USD ${price.toLocaleString()}`
+  }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -639,6 +705,8 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
                       "/placeholder.svg" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -698,60 +766,87 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
         {/* Unit Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white overflow-y-auto max-h-[90vh]">
+          <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
-                {selectedUnit ? `Detalles de la unidad ${selectedUnit.unitNumber}` : "Detalles"}
-              </DialogTitle>
+              <DialogTitle>Unidad {selectedUnit?.unitNumber}</DialogTitle>
             </DialogHeader>
+
             {selectedUnit && (
               <div className="space-y-4">
-                <DialogDescription className="text-zinc-300 space-y-2">
-                  <p>
-                    <strong>Estado:</strong> {getStatusLabel(selectedUnit.status)}
-                  </p>
-                  <p>
-                    <strong>Precio:</strong> USD {selectedUnit.saleValue.toLocaleString()}
-                  </p>
-                  <p>
-                    <strong>Superficie:</strong> {selectedUnit.totalArea}m²
-                  </p>
-                  <p>
-                    <strong>Descripción:</strong> {selectedUnit.description}
-                  </p>
-                  <p>
-                    <strong>Orientación:</strong> {selectedUnit.orientation}
-                  </p>
-                  <p>
-                    <strong>Piso:</strong> {selectedUnit.floor}
-                  </p>
-
-                  {unitOwners[selectedUnit.id] && (
-                    <div className="mt-4 p-3 bg-zinc-800 rounded-lg">
-                      <h4 className="font-semibold text-green-400 mb-2 flex items-center">
-                        <User className="w-4 h-4 mr-2" />
-                        Propietario Actual
-                      </h4>
-                      <div className="space-y-1 text-sm">
-                        <p className="flex items-center">
-                          <User className="w-3 h-3 mr-2" />
-                          {unitOwners[selectedUnit.id].name}
-                        </p>
-                        <p className="flex items-center">
-                          <Mail className="w-3 h-3 mr-2" />
-                          {unitOwners[selectedUnit.id].email}
-                        </p>
-                        <p className="flex items-center">
-                          <Phone className="w-3 h-3 mr-2" />
-                          {unitOwners[selectedUnit.id].phone}
-                        </p>
-                        <Badge variant="secondary" className="mt-2">
-                          {unitOwners[selectedUnit.id].type}
-                        </Badge>
-                      </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-zinc-400">Estado</Label>
+                    <div className="flex items-center mt-1">
+                      <div
+                        className="w-3 h-3 rounded-full mr-2"
+                        style={{ backgroundColor: getStatusColor(selectedUnit.status) }}
+                      />
+                      <Badge variant="outline" className="capitalize">
+                        {getStatusLabel(selectedUnit.status)}
+                      </Badge>
                     </div>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Superficie Total</Label>
+                    <p className="font-semibold">{selectedUnit.totalArea}m²</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Precio</Label>
+                    <p className="font-semibold text-green-400">USD {selectedUnit.saleValue.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Precio por m²</Label>
+                    <p className="font-semibold">
+                      USD {Math.round(selectedUnit.saleValue / selectedUnit.totalArea).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold">Detalles de la Unidad</h4>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Descripción:</span>
+                      <span>{selectedUnit.description}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Orientación:</span>
+                      <span>{selectedUnit.orientation}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Piso:</span>
+                      <span>{selectedUnit.floor}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold text-green-400 mb-2 flex items-center">
+                    <User className="w-4 h-4 mr-2" />
+                    Propietario Actual
+                  </h4>
+                  {unitOwners[selectedUnit.id] ? (
+                    <div className="space-y-1 text-sm">
+                      <p className="flex items-center">
+                        <User className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.id].name}
+                      </p>
+                      <p className="flex items-center">
+                        <Mail className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.id].email}
+                      </p>
+                      <p className="flex items-center">
+                        <Phone className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.id].phone}
+                      </p>
+                      <Badge variant="secondary" className="mt-2">
+                        {unitOwners[selectedUnit.id].type}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <p className="text-zinc-400">Sin asignar</p>
                   )}
-                </DialogDescription>
+                </div>
 
                 {!action && (
                   <div className="space-y-2">
@@ -763,65 +858,79 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       {unitOwners[selectedUnit.id] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
+                    {/* Agregar botón para asignar cocheras */}
+                    <Button
+                      onClick={() => handleActionClick("assignParking")}
+                      className="bg-indigo-600 hover:bg-indigo-700 w-full"
+                    >
+                      <Car className="mr-2 h-4 w-4" />
+                      Asignar Cocheras
+                    </Button>
+
+                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
+                      <Download className="mr-2 h-4 w-4" />
+                      Descargar plano
+                    </Button>
+
                     {selectedUnit.status === "DISPONIBLE" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
-                          <Download className="mr-2 h-4 w-4" /> Descargar plano
-                        </Button>
                         <Button
                           onClick={() => handleActionClick("block")}
-                          className="bg-blue-600 hover:bg-blue-700 w-full"
+                          className="w-full bg-orange-600 hover:bg-orange-700"
                         >
                           Bloquear
                         </Button>
                         <Button
                           onClick={() => handleActionClick("directReserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
                         >
                           Reservar
                         </Button>
                       </>
                     )}
+
                     {selectedUnit.status === "BLOQUEADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
+                          className="w-full bg-green-600 hover:bg-green-700"
                         >
                           Reservar
                         </Button>
                         <Button
                           onClick={() => handleActionClick("unblock")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
+                          className="w-full bg-red-600 hover:bg-red-700"
                         >
                           Liberar Bloqueo
                         </Button>
                       </>
                     )}
+
                     {selectedUnit.status === "RESERVADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
+                          className="w-full bg-green-600 hover:bg-green-700"
                         >
                           Vender
                         </Button>
                         <Button
                           onClick={() => handleActionClick("cancelReservation")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
+                          className="w-full bg-red-600 hover:bg-red-700"
                         >
                           Cancelar Reserva
                         </Button>
                       </>
                     )}
+
                     {selectedUnit.status === "VENDIDO" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="bg-blue-600 hover:bg-blue-700 w-full">
+                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
                         </Button>
                         <Button
                           onClick={() => handleActionClick("release")}
-                          className="bg-yellow-600 hover:bg-yellow-700 w-full"
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
                         >
                           Liberar unidad
                         </Button>
@@ -830,6 +939,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </div>
                 )}
 
+                {/* Add Owner Action */}
                 {action === "addOwner" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -850,7 +960,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                         <div className="relative">
                           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
                           <Input
-                            placeholder="Buscar cliente por nombre, email o teléfono..."
+                            placeholder="Buscar cliente..."
                             value={searchTerm}
                             onChange={(e) => handleSearchClientes(e.target.value)}
                             className="pl-10 text-white bg-zinc-800 border-zinc-700"
@@ -861,9 +971,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                           {isLoadingClientes ? (
                             <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
                           ) : filteredClientes.length === 0 ? (
-                            <div className="text-center py-4 text-zinc-400">
-                              {searchTerm ? "No se encontraron clientes" : "No hay clientes disponibles"}
-                            </div>
+                            <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
                           ) : (
                             filteredClientes.map((cliente) => (
                               <div
@@ -881,7 +989,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                                       {cliente.nombre} {cliente.apellido}
                                     </p>
                                     <p className="text-sm text-zinc-400">{cliente.email}</p>
-                                    <p className="text-sm text-zinc-400">{cliente.telefono}</p>
                                   </div>
                                   <Badge variant="outline" className="text-xs">
                                     {cliente.tipo}
@@ -893,17 +1000,9 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                         </div>
 
                         {selectedCliente && (
-                          <div className="space-y-3">
-                            <div className="p-3 bg-indigo-500/20 border border-indigo-500 rounded-lg">
-                              <p className="text-sm text-indigo-300">Cliente seleccionado:</p>
-                              <p className="font-medium text-white">
-                                {selectedCliente.nombre} {selectedCliente.apellido}
-                              </p>
-                            </div>
-                            <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
-                              Asignar como Propietario
-                            </Button>
-                          </div>
+                          <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                            Asignar como Propietario
+                          </Button>
                         )}
                       </>
                     ) : (
@@ -913,25 +1012,23 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label htmlFor="newNombre" className="text-white">
-                              Nombre *
+                              Nombre
                             </Label>
                             <Input
                               id="newNombre"
                               value={newClienteData.nombre}
                               onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
-                              required
                               className="text-white bg-zinc-800 border-zinc-700"
                             />
                           </div>
                           <div>
                             <Label htmlFor="newApellido" className="text-white">
-                              Apellido *
+                              Apellido
                             </Label>
                             <Input
                               id="newApellido"
                               value={newClienteData.apellido}
                               onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
-                              required
                               className="text-white bg-zinc-800 border-zinc-700"
                             />
                           </div>
@@ -939,43 +1036,32 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
                         <div>
                           <Label htmlFor="newTelefono" className="text-white">
-                            Teléfono *
+                            Teléfono
                           </Label>
                           <Input
                             id="newTelefono"
                             type="tel"
                             value={newClienteData.telefono}
                             onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
-                            required
                             className="text-white bg-zinc-800 border-zinc-700"
                           />
                         </div>
 
                         <div>
                           <Label htmlFor="newEmail" className="text-white">
-                            Email *
+                            Email
                           </Label>
                           <Input
                             id="newEmail"
                             type="email"
                             value={newClienteData.email}
                             onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
-                            required
                             className="text-white bg-zinc-800 border-zinc-700"
                           />
                         </div>
 
                         <div className="flex space-x-2">
-                          <Button
-                            onClick={createNewCliente}
-                            disabled={
-                              !newClienteData.nombre ||
-                              !newClienteData.apellido ||
-                              !newClienteData.telefono ||
-                              !newClienteData.email
-                            }
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                          >
+                          <Button onClick={createNewCliente} className="flex-1 bg-green-600 hover:bg-green-700">
                             Crear Cliente
                           </Button>
                           <Button
@@ -991,6 +1077,73 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </div>
                 )}
 
+                {/* Assign Parking Action */}
+                {/* Agregar UI para la asignación de cocheras */}
+                {action === "assignParking" && selectedUnit && (
+                  <div className="space-y-4">
+                    <h4 className="font-semibold">Asignar Cocheras a la Unidad {selectedUnit.unitNumber}</h4>
+
+                    <Tabs
+                      value={String(parkingAssignmentLevel)}
+                      onValueChange={(value) => setParkingAssignmentLevel(Number(value))}
+                      className="mb-4"
+                    >
+                      <TabsList className="grid w-full grid-cols-2 bg-zinc-800">
+                        {garageLevels.map((level) => (
+                          <TabsTrigger key={level} value={String(level)} className="data-[state=active]:bg-zinc-700">
+                            Nivel {level}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+
+                      {garageLevels.map((level) => (
+                        <TabsContent key={level} value={String(level)}>
+                          <div className="max-h-60 overflow-y-auto p-3 bg-zinc-800 rounded-lg border border-zinc-700">
+                            {getAvailableParkingForLevel(level).length > 0 ? (
+                              getAvailableParkingForLevel(level).map((parking) => (
+                                <div
+                                  key={parking.id}
+                                  className={`p-3 mb-2 rounded-lg border flex items-center justify-between cursor-pointer transition-colors ${
+                                    selectedParkingsForAssignment[parking.id]
+                                      ? "border-indigo-500 bg-indigo-500/20"
+                                      : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                  }`}
+                                  onClick={() =>
+                                    setSelectedParkingsForAssignment((prev) => ({
+                                      ...prev,
+                                      [parking.id]: !prev[parking.id],
+                                    }))
+                                  }
+                                >
+                                  <span>{parking.spotNumber}</span>
+                                  <Badge variant="outline">
+                                    {isParkingSpotAssigned(parking.id) &&
+                                    getParkingSpotUnit(parking.id) !== selectedUnit.unitNumber
+                                      ? "Ocupado"
+                                      : "Disponible"}
+                                  </Badge>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-center text-zinc-400 py-4">
+                                No hay cocheras disponibles en este nivel.
+                              </p>
+                            )}
+                          </div>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+
+                    <Button
+                      onClick={handleConfirmParkingAssignment}
+                      className="w-full bg-indigo-600 hover:bg-indigo-700"
+                    >
+                      Confirmar Asignación de Cocheras
+                    </Button>
+                  </div>
+                )}
+
+                {/* Block/Reserve/Sell Forms */}
                 {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
                     {action !== "sell" && (
@@ -1058,6 +1211,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </form>
                 )}
 
+                {/* Unblock/Cancel/Release Forms */}
                 {(action === "unblock" || action === "cancelReservation" || action === "release") && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
                     <div>
@@ -1082,6 +1236,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </form>
                 )}
 
+                {/* Confirmation Dialogs */}
                 {(confirmReservation || confirmCancelReservation || confirmRelease) && (
                   <div className="space-y-4">
                     <p className="text-yellow-400">
@@ -1111,7 +1266,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                 )}
               </div>
             )}
-
             <DialogFooter>
               <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar

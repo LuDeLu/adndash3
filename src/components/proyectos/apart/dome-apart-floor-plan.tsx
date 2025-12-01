@@ -654,7 +654,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const handleDownloadFloorPlan = () => {
     if (!selectedUnit) return
 
-    const filePath = "/general/planosgenerales/Planos_DOME-Palermo-Apartaments.pdf"
+    const filePath = "/general/planosgenerales/Plano_DOME-Palermo-Apartaments.pdf"
     const link = document.createElement("a")
     link.href = filePath
     link.download = "Plano_Apart_Palermo.pdf"
@@ -674,7 +674,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
         filePath = "/general/precios/Lista_DOME-Palermo-Apartaments.pdf"
         break
       case "Plano del edificio":
-        filePath = "/general/planosgenerales/Planos_DOME-Palermo-Apartaments.pdf"
+        filePath = "/general/planosgenerales/Plano_DOME-Palermo-Apartaments.pdf"
         break
       case "Plano de la cochera":
         filePath = "/general/cocheras/Cochera_DOME-Palermo-Apartaments.pdf"
@@ -927,6 +927,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -1012,8 +1013,8 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     <p className="font-semibold text-green-400">{formatApartPrice(selectedUnit.saleValue)}</p>
                   </div>
                   <div>
-                    <Label className="text-zinc-400">Piso</Label>
-                    <p className="font-semibold">{selectedUnit.floor}</p>
+                    <Label className="text-zinc-400">Precio por m²</Label>
+                    <p className="font-semibold">{formatApartPrice(selectedUnit.pricePerSqm)}</p>
                   </div>
                 </div>
 
@@ -1029,7 +1030,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <span>{selectedUnit.orientation}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-400">Superficie cubierta:</span>
+                      <span className="text-zinc-400">Superficie Cubierta:</span>
                       <span>{formatApartArea(selectedUnit.coveredArea)}</span>
                     </div>
                     <div className="flex justify-between">
@@ -1043,75 +1044,74 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       </div>
                     )}
                     <div className="flex justify-between">
-                      <span className="text-zinc-400">Precio por m²:</span>
-                      <span>{formatApartPrice(selectedUnit.pricePerSqm)}</span>
-                    </div>
-                    <div className="border-t border-zinc-700 pt-2 mt-2">
-                      {/* Owner Info */}
-                      <div className="mb-3">
-                        <h5 className="font-semibold text-green-400 mb-2 flex items-center">
-                          <User className="w-4 h-4 mr-2" />
-                          Propietario Actual
-                        </h5>
-                        {unitOwners[selectedUnit.unitNumber] ? (
-                          <div className="space-y-1 text-sm">
-                            <p className="flex items-center">
-                              <User className="w-3 h-3 mr-2" />
-                              {unitOwners[selectedUnit.unitNumber].name}
-                            </p>
-                            <p className="flex items-center">
-                              <Mail className="w-3 h-3 mr-2" />
-                              {unitOwners[selectedUnit.unitNumber].email}
-                            </p>
-                            <p className="flex items-center">
-                              <Phone className="w-3 h-3 mr-2" />
-                              {unitOwners[selectedUnit.unitNumber].phone}
-                            </p>
-                            <Badge variant="secondary" className="mt-2">
-                              {unitOwners[selectedUnit.unitNumber].type}
-                            </Badge>
-                          </div>
-                        ) : (
-                          <p className="text-zinc-400">Sin asignar</p>
-                        )}
-                      </div>
-
-                      <div className="mb-3 border-t border-zinc-700 pt-3">
-                        <h5 className="font-semibold text-blue-400 mb-2 flex items-center">
-                          <Car className="w-4 h-4 mr-2" />
-                          Cocheras Asignadas
-                        </h5>
-                        {(() => {
-                          const assignedParkings = getUnitParking(selectedUnit.unitNumber)
-                          if (assignedParkings.length > 0) {
-                            return (
-                              <div className="space-y-2">
-                                {assignedParkings.map((parkingId) => {
-                                  const parkingInfo = getParkingInfo(parkingId)
-                                  return (
-                                    <div
-                                      key={parkingId}
-                                      className="flex items-center justify-between bg-zinc-700/50 p-2 rounded"
-                                    >
-                                      <div>
-                                        <span className="font-medium">{parkingId.toUpperCase()}</span>
-                                        {parkingInfo && (
-                                          <span className="text-zinc-400 text-xs ml-2">
-                                            {parkingInfo.level} - {formatApartPrice(parkingInfo.price)}
-                                          </span>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            )
-                          }
-                          return <p className="text-zinc-400">Sin cocheras asignadas</p>
-                        })()}
-                      </div>
+                      <span className="text-zinc-400">Con Amenities:</span>
+                      <span>{formatApartArea(selectedUnit.totalAreaWithAmenities)}</span>
                     </div>
                   </div>
+                </div>
+
+                <div className="p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold text-green-400 mb-2 flex items-center">
+                    <User className="w-4 h-4 mr-2" />
+                    Propietario Actual
+                  </h4>
+                  {unitOwners[selectedUnit.unitNumber] ? (
+                    <div className="space-y-1 text-sm">
+                      <p className="flex items-center">
+                        <User className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.unitNumber].name}
+                      </p>
+                      <p className="flex items-center">
+                        <Mail className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.unitNumber].email}
+                      </p>
+                      <p className="flex items-center">
+                        <Phone className="w-3 h-3 mr-2" />
+                        {unitOwners[selectedUnit.unitNumber].phone}
+                      </p>
+                      <Badge variant="secondary" className="mt-2">
+                        {unitOwners[selectedUnit.unitNumber].type}
+                      </Badge>
+                    </div>
+                  ) : (
+                    <p className="text-zinc-400">Sin asignar</p>
+                  )}
+                </div>
+
+                <div className="p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
+                    <Car className="w-4 h-4 mr-2" />
+                    Cocheras Asignadas
+                  </h4>
+                  {(() => {
+                    const assignedParkings = getUnitParking(selectedUnit.unitNumber)
+                    if (assignedParkings.length > 0) {
+                      return (
+                        <div className="space-y-2">
+                          {assignedParkings.map((parkingId) => {
+                            const parkingInfo = getParkingInfo(parkingId)
+                            return (
+                              <div
+                                key={parkingId}
+                                className="flex items-center justify-between bg-zinc-700/50 p-2 rounded"
+                              >
+                                <div>
+                                  <span className="font-medium">{parkingId}</span>
+                                  {parkingInfo && (
+                                    <span className="text-zinc-400 text-xs ml-2">
+                                      Nivel {parkingInfo.id.charAt(0).toUpperCase()} -{" "}
+                                      {formatApartPrice(parkingInfo.price)}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    }
+                    return <p className="text-zinc-400">Sin cocheras asignadas</p>
+                  })()}
                 </div>
 
                 {!action && (
@@ -1132,20 +1132,22 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       {getUnitParking(selectedUnit.unitNumber).length > 0 ? "Gestionar Cocheras" : "Asignar Cocheras"}
                     </Button>
 
+                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
+                      <Download className="mr-2 h-4 w-4" />
+                      Descargar plano
+                    </Button>
+
                     {selectedUnit.status === "DISPONIBLE" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="bg-slate-600 hover:bg-slate-700 w-full">
-                          <Download className="mr-2 h-4 w-4" /> Descargar plano
-                        </Button>
                         <Button
                           onClick={() => handleActionClick("block")}
-                          className="bg-orange-600 hover:bg-orange-700 w-full"
+                          className="w-full bg-orange-600 hover:bg-orange-700"
                         >
                           Bloquear
                         </Button>
                         <Button
                           onClick={() => handleActionClick("directReserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
                         >
                           Reservar
                         </Button>
@@ -1156,13 +1158,13 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
+                          className="w-full bg-green-600 hover:bg-green-700"
                         >
                           Reservar
                         </Button>
                         <Button
                           onClick={() => handleActionClick("unblock")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
+                          className="w-full bg-red-600 hover:bg-red-700"
                         >
                           Liberar Bloqueo
                         </Button>
@@ -1173,13 +1175,13 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
-                          className="bg-green-600 hover:bg-green-700 w-full"
+                          className="w-full bg-green-600 hover:bg-green-700"
                         >
                           Vender
                         </Button>
                         <Button
                           onClick={() => handleActionClick("cancelReservation")}
-                          className="bg-red-600 hover:bg-red-700 w-full"
+                          className="w-full bg-red-600 hover:bg-red-700"
                         >
                           Cancelar Reserva
                         </Button>
@@ -1188,17 +1190,268 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
 
                     {selectedUnit.status === "VENDIDO" && (
                       <>
-                        <Button onClick={handleDownloadFloorPlan} className="bg-slate-600 hover:bg-slate-700 w-full">
+                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
                         </Button>
                         <Button
                           onClick={() => handleActionClick("release")}
-                          className="bg-yellow-600 hover:bg-yellow-700 w-full"
+                          className="w-full bg-yellow-600 hover:bg-yellow-700"
                         >
                           Liberar unidad
                         </Button>
                       </>
                     )}
+                  </div>
+                )}
+
+                {action === "addOwner" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold">Seleccionar Propietario</h4>
+                      <Button
+                        onClick={() => setShowCreateClient(!showCreateClient)}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        <Plus className="mr-1 h-3 w-3" />
+                        Crear Cliente
+                      </Button>
+                    </div>
+
+                    {!showCreateClient ? (
+                      <>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                          <Input
+                            placeholder="Buscar cliente..."
+                            value={searchTerm}
+                            onChange={(e) => handleSearchClientes(e.target.value)}
+                            className="pl-10 text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="max-h-60 overflow-y-auto space-y-2">
+                          {isLoadingClientes ? (
+                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                          ) : filteredClientes.length === 0 ? (
+                            <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
+                          ) : (
+                            filteredClientes.map((cliente) => (
+                              <div
+                                key={cliente.id}
+                                onClick={() => setSelectedCliente(cliente)}
+                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                  selectedCliente?.id === cliente.id
+                                    ? "border-indigo-500 bg-indigo-500/20"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                }`}
+                              >
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium text-white">
+                                      {cliente.nombre} {cliente.apellido}
+                                    </p>
+                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                  </div>
+                                  <Badge variant="outline" className="text-xs">
+                                    {cliente.tipo}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {selectedCliente && (
+                          <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                            Asignar como Propietario
+                          </Button>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-4">
+                        <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <Label htmlFor="newNombre" className="text-white">
+                              Nombre
+                            </Label>
+                            <Input
+                              id="newNombre"
+                              value={newClienteData.nombre}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                          <div>
+                            <Label htmlFor="newApellido" className="text-white">
+                              Apellido
+                            </Label>
+                            <Input
+                              id="newApellido"
+                              value={newClienteData.apellido}
+                              onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
+                              className="text-white bg-zinc-800 border-zinc-700"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newTelefono" className="text-white">
+                            Teléfono
+                          </Label>
+                          <Input
+                            id="newTelefono"
+                            type="tel"
+                            value={newClienteData.telefono}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div>
+                          <Label htmlFor="newEmail" className="text-white">
+                            Email
+                          </Label>
+                          <Input
+                            id="newEmail"
+                            type="email"
+                            value={newClienteData.email}
+                            onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
+
+                        <div className="flex space-x-2">
+                          <Button onClick={createNewCliente} className="flex-1 bg-green-600 hover:bg-green-700">
+                            Crear Cliente
+                          </Button>
+                          <Button
+                            onClick={() => setShowCreateClient(false)}
+                            variant="outline"
+                            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                          >
+                            Cancelar
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {action === "assignParking" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold flex items-center">
+                        <Car className="w-4 h-4 mr-2" />
+                        Asignar Cocheras a Unidad {selectedUnit.unitNumber}
+                      </h4>
+                    </div>
+
+                    {/* Level selector */}
+                    <div className="flex justify-center space-x-2">
+                      {garageLevels.map((level) => (
+                        <Button
+                          key={level}
+                          onClick={() => setParkingAssignmentLevel(level)}
+                          variant={parkingAssignmentLevel === level ? "default" : "outline"}
+                          size="sm"
+                          className={parkingAssignmentLevel === level ? "bg-blue-600" : "border-zinc-600"}
+                        >
+                          Nivel {level}
+                        </Button>
+                      ))}
+                    </div>
+
+                    {/* Parking spots list */}
+                    <ScrollArea className="h-60">
+                      <div className="space-y-2">
+                        {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
+                          const isSelected = selectedParkingsForAssignment[parking.id] || false
+                          const assignedTo = getParkingSpotUnit(parking.id)
+                          const isAssignedToOther = assignedTo && assignedTo !== selectedUnit.unitNumber
+
+                          return (
+                            <div
+                              key={parking.id}
+                              onClick={() => {
+                                if (!isAssignedToOther) {
+                                  setSelectedParkingsForAssignment((prev) => ({
+                                    ...prev,
+                                    [parking.id]: !prev[parking.id],
+                                  }))
+                                }
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer transition-colors",
+                                isSelected
+                                  ? "border-blue-500 bg-blue-500/20"
+                                  : isAssignedToOther
+                                    ? "border-zinc-700 bg-zinc-800/50 opacity-50 cursor-not-allowed"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700",
+                              )}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    disabled={!!isAssignedToOther}
+                                    onCheckedChange={(checked) => {
+                                      if (!isAssignedToOther) {
+                                        setSelectedParkingsForAssignment((prev) => ({
+                                          ...prev,
+                                          [parking.id]: !!checked,
+                                        }))
+                                      }
+                                    }}
+                                  />
+                                  <div>
+                                    <p className="font-medium text-white">{parking.id}</p>
+                                    <p className="text-sm text-zinc-400">Nivel {parking.id.charAt(0).toUpperCase()}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-semibold text-green-400">{formatApartPrice(parking.price)}</p>
+                                  {isAssignedToOther && <p className="text-xs text-red-400">Asignada a {assignedTo}</p>}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Currently selected summary */}
+                    {Object.values(selectedParkingsForAssignment).some((v) => v) && (
+                      <div className="p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
+                        <p className="text-sm text-blue-300">Cocheras seleccionadas:</p>
+                        <p className="font-medium text-white">
+                          {Object.entries(selectedParkingsForAssignment)
+                            .filter(([_, isSelected]) => isSelected)
+                            .map(([parkingId]) => parkingId)
+                            .join(", ")}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex space-x-2">
+                      <Button onClick={handleConfirmParkingAssignment} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                        Guardar Asignaciones
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setAction(null)
+                          setSelectedParkingsForAssignment({})
+                        }}
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -1317,286 +1570,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                           setAction(null)
                         }}
                         className="bg-red-600 hover:bg-red-700 flex-1"
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Add Owner Action */}
-                {action === "addOwner" && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold">Seleccionar Propietario</h4>
-                      <Button
-                        onClick={() => setShowCreateClient(!showCreateClient)}
-                        size="sm"
-                        variant="outline"
-                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                      >
-                        <Plus className="mr-1 h-3 w-3" />
-                        Crear Cliente
-                      </Button>
-                    </div>
-
-                    {!showCreateClient ? (
-                      <>
-                        {/* Buscador de clientes */}
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
-                          <Input
-                            placeholder="Buscar cliente por nombre, email o teléfono..."
-                            value={searchTerm}
-                            onChange={(e) => handleSearchClientes(e.target.value)}
-                            className="pl-10 text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-
-                        {/* Lista de clientes */}
-                        <div className="max-h-60 overflow-y-auto space-y-2">
-                          {isLoadingClientes ? (
-                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
-                          ) : filteredClientes.length === 0 ? (
-                            <div className="text-center py-4 text-zinc-400">
-                              {searchTerm ? "No se encontraron clientes" : "No hay clientes disponibles"}
-                            </div>
-                          ) : (
-                            filteredClientes.map((cliente) => (
-                              <div
-                                key={cliente.id}
-                                onClick={() => setSelectedCliente(cliente)}
-                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                  selectedCliente?.id === cliente.id
-                                    ? "border-indigo-500 bg-indigo-500/20"
-                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-                                }`}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-medium text-white">
-                                      {cliente.nombre} {cliente.apellido}
-                                    </p>
-                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
-                                    <p className="text-sm text-zinc-400">{cliente.telefono}</p>
-                                  </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {cliente.tipo}
-                                  </Badge>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-
-                        {/* Botón para confirmar selección */}
-                        {selectedCliente && (
-                          <div className="space-y-3">
-                            <div className="p-3 bg-indigo-500/20 border border-indigo-500 rounded-lg">
-                              <p className="text-sm text-indigo-300">Cliente seleccionado:</p>
-                              <p className="font-medium text-white">
-                                {selectedCliente.nombre} {selectedCliente.apellido}
-                              </p>
-                            </div>
-                            <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
-                              Asignar como Propietario
-                            </Button>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      /* Formulario para crear nuevo cliente */
-                      <div className="space-y-4">
-                        <h5 className="font-medium text-white">Crear Nuevo Cliente</h5>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <Label htmlFor="newNombre" className="text-white">
-                              Nombre *
-                            </Label>
-                            <Input
-                              id="newNombre"
-                              value={newClienteData.nombre}
-                              onChange={(e) => setNewClienteData({ ...newClienteData, nombre: e.target.value })}
-                              required
-                              className="text-white bg-zinc-800 border-zinc-700"
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="newApellido" className="text-white">
-                              Apellido *
-                            </Label>
-                            <Input
-                              id="newApellido"
-                              value={newClienteData.apellido}
-                              onChange={(e) => setNewClienteData({ ...newClienteData, apellido: e.target.value })}
-                              required
-                              className="text-white bg-zinc-800 border-zinc-700"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <Label htmlFor="newTelefono" className="text-white">
-                            Teléfono *
-                          </Label>
-                          <Input
-                            id="newTelefono"
-                            type="tel"
-                            value={newClienteData.telefono}
-                            onChange={(e) => setNewClienteData({ ...newClienteData, telefono: e.target.value })}
-                            required
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-
-                        <div>
-                          <Label htmlFor="newEmail" className="text-white">
-                            Email *
-                          </Label>
-                          <Input
-                            id="newEmail"
-                            type="email"
-                            value={newClienteData.email}
-                            onChange={(e) => setNewClienteData({ ...newClienteData, email: e.target.value })}
-                            required
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-
-                        <div className="flex space-x-2">
-                          <Button
-                            onClick={createNewCliente}
-                            disabled={
-                              !newClienteData.nombre ||
-                              !newClienteData.apellido ||
-                              !newClienteData.telefono ||
-                              !newClienteData.email
-                            }
-                            className="flex-1 bg-green-600 hover:bg-green-700"
-                          >
-                            Crear Cliente
-                          </Button>
-                          <Button
-                            onClick={() => setShowCreateClient(false)}
-                            variant="outline"
-                            className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                          >
-                            Cancelar
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {action === "assignParking" && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-semibold flex items-center">
-                        <Car className="w-4 h-4 mr-2" />
-                        Asignar Cocheras a Unidad {selectedUnit.unitNumber}
-                      </h4>
-                    </div>
-
-                    {/* Level selector */}
-                    <div className="flex justify-center space-x-2">
-                      {garageLevels.map((level) => (
-                        <Button
-                          key={level}
-                          onClick={() => setParkingAssignmentLevel(level)}
-                          variant={parkingAssignmentLevel === level ? "default" : "outline"}
-                          size="sm"
-                          className={parkingAssignmentLevel === level ? "bg-blue-600" : "border-zinc-600"}
-                        >
-                          Nivel {level}
-                        </Button>
-                      ))}
-                    </div>
-
-                    {/* Parking spots list */}
-                    <ScrollArea className="h-60">
-                      <div className="space-y-2">
-                        {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
-                          const isSelected = selectedParkingsForAssignment[parking.id] || false
-                          const assignedTo = getParkingSpotUnit(parking.id)
-                          const isAssignedToOther = assignedTo && assignedTo !== selectedUnit.unitNumber
-
-                          return (
-                            <div
-                              key={parking.id}
-                              onClick={() => {
-                                if (!isAssignedToOther) {
-                                  setSelectedParkingsForAssignment((prev) => ({
-                                    ...prev,
-                                    [parking.id]: !prev[parking.id],
-                                  }))
-                                }
-                              }}
-                              className={cn(
-                                "p-3 rounded-lg border cursor-pointer transition-colors",
-                                isSelected
-                                  ? "border-blue-500 bg-blue-500/20"
-                                  : isAssignedToOther
-                                    ? "border-zinc-700 bg-zinc-800/50 opacity-50 cursor-not-allowed"
-                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700",
-                              )}
-                            >
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center space-x-3">
-                                  <Checkbox
-                                    checked={isSelected}
-                                    disabled={!!isAssignedToOther}
-                                    onCheckedChange={(checked) => {
-                                      if (!isAssignedToOther) {
-                                        setSelectedParkingsForAssignment((prev) => ({
-                                          ...prev,
-                                          [parking.id]: !!checked,
-                                        }))
-                                      }
-                                    }}
-                                  />
-                                  <div>
-                                    <p className="font-medium text-white">{parking.id.toUpperCase()}</p>
-                                    <p className="text-sm text-zinc-400">{parking.level}</p>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <p className="font-semibold text-green-400">{formatApartPrice(parking.price)}</p>
-                                  {isAssignedToOther && <p className="text-xs text-red-400">Asignada a {assignedTo}</p>}
-                                </div>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </ScrollArea>
-
-                    {/* Currently selected summary */}
-                    {Object.values(selectedParkingsForAssignment).some((v) => v) && (
-                      <div className="p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
-                        <p className="text-sm text-blue-300">Cocheras seleccionadas:</p>
-                        <p className="font-medium text-white">
-                          {Object.entries(selectedParkingsForAssignment)
-                            .filter(([_, isSelected]) => isSelected)
-                            .map(([parkingId]) => parkingId.toUpperCase())
-                            .join(", ")}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Action buttons */}
-                    <div className="flex space-x-2">
-                      <Button onClick={handleConfirmParkingAssignment} className="flex-1 bg-blue-600 hover:bg-blue-700">
-                        Guardar Asignaciones
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setAction(null)
-                          setSelectedParkingsForAssignment({})
-                        }}
-                        variant="outline"
-                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
                       >
                         Cancelar
                       </Button>

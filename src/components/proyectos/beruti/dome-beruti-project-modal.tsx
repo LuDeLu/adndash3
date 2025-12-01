@@ -12,14 +12,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   berutiProjectInfo,
-  getBerutiProjectStats,
   berutiFloorsData,
   getBerutiStatusColor,
   berutiAmenities,
   berutiUnitTypes,
   berutiFinancialOptions,
   berutiMapConfig,
+  type BerutiApartmentStatus,
 } from "@/lib/dome-beruti-data"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 interface DomeBerutiProjectModalProps {
   isOpen: boolean
@@ -63,17 +64,60 @@ export function DomeBerutiProjectModal({
   const [refreshing, setRefreshing] = useState(false)
   const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold" | "blocked">("all")
 
-  const stats = getBerutiProjectStats()
+  const { unitStatuses, refresh: refreshStorage, isLoading } = useUnitStorage("beruti")
 
-  // Crear datos de pisos para la visualización
+  const getUnitStatus = useCallback(
+    (unitNumber: string, defaultStatus: BerutiApartmentStatus): BerutiApartmentStatus => {
+      const backendStatus = unitStatuses[unitNumber]
+      if (backendStatus && backendStatus.status) {
+        return backendStatus.status
+      }
+      return defaultStatus
+    },
+    [unitStatuses],
+  )
+
+  const stats = useMemo(() => {
+    let totalUnits = 0
+    let availableUnits = 0
+    let reservedUnits = 0
+    let soldUnits = 0
+    let blockedUnits = 0
+
+    berutiFloorsData.forEach((floor) => {
+      floor.apartments.forEach((apt) => {
+        totalUnits++
+        const currentStatus = getUnitStatus(apt.unitNumber, apt.status)
+        switch (currentStatus) {
+          case "DISPONIBLE":
+            availableUnits++
+            break
+          case "RESERVADO":
+            reservedUnits++
+            break
+          case "VENDIDO":
+            soldUnits++
+            break
+          case "BLOQUEADO":
+            blockedUnits++
+            break
+        }
+      })
+    })
+
+    return { totalUnits, availableUnits, reservedUnits, soldUnits, blockedUnits }
+  }, [getUnitStatus])
+
   const floors: Floor[] = useMemo(() => {
     return berutiFloorsData.map((floor, index) => {
       const floorStats = floor.apartments.reduce(
         (acc, apt) => {
-          if (apt.status === "DISPONIBLE") acc.available++
-          else if (apt.status === "RESERVADO") acc.reserved++
-          else if (apt.status === "VENDIDO") acc.sold++
-          else if (apt.status === "BLOQUEADO") acc.blocked++
+          // Obtener el estado real de la unidad (backend o estático)
+          const currentStatus = getUnitStatus(apt.unitNumber, apt.status)
+          if (currentStatus === "DISPONIBLE") acc.available++
+          else if (currentStatus === "RESERVADO") acc.reserved++
+          else if (currentStatus === "VENDIDO") acc.sold++
+          else if (currentStatus === "BLOQUEADO") acc.blocked++
           return acc
         },
         { available: 0, reserved: 0, sold: 0, blocked: 0 },
@@ -89,13 +133,14 @@ export function DomeBerutiProjectModal({
         y: 680 - index * 45,
       }
     })
-  }, [])
+  }, [getUnitStatus])
 
   const refreshData = useCallback(async () => {
     setRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await refreshStorage()
+    await new Promise((resolve) => setTimeout(resolve, 500))
     setRefreshing(false)
-  }, [])
+  }, [refreshStorage])
 
   const handleBrochureClick = () => {
     if (berutiProjectInfo.brochure) {
@@ -138,7 +183,7 @@ export function DomeBerutiProjectModal({
 
                 {/* SVG Overlay para pisos */}
                 <svg
-                  viewBox="-120 100 1000 800"
+                  viewBox="-162 100 1000 800"
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
@@ -149,7 +194,7 @@ export function DomeBerutiProjectModal({
                           floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
                         if (totalUnits === 0) return null
 
-                        const floorWidth = 300
+                        const floorWidth = 260
                         const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
                         const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
                         const blockedWidth = totalUnits > 0 ? (floor.blockedUnits / totalUnits) * floorWidth : 0
@@ -279,13 +324,13 @@ export function DomeBerutiProjectModal({
                 <div className="absolute top-4 right-4">
                   <Button
                     onClick={refreshData}
-                    disabled={refreshing}
+                    disabled={refreshing || isLoading}
                     size="sm"
                     variant="outline"
                     className="bg-black bg-opacity-50 text-white border-white hover:bg-opacity-75"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
-                    {refreshing ? "Actualizando..." : "Actualizar"}
+                    {refreshing || isLoading ? "Actualizando..." : "Actualizar"}
                   </Button>
                 </div>
               </div>

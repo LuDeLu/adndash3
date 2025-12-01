@@ -1407,7 +1407,6 @@ export const getBerutiApartmentById = (id: string): BerutiApartment | null => {
   return null
 }
 
-// Función para actualizar estado de apartamento
 export const updateBerutiApartmentStatus = (id: string, newStatus: BerutiApartmentStatus): boolean => {
   for (const floor of berutiFloorsData) {
     const aptIndex = floor.apartments.findIndex((apt) => apt.id === id)
@@ -1417,6 +1416,64 @@ export const updateBerutiApartmentStatus = (id: string, newStatus: BerutiApartme
     }
   }
   return false
+}
+
+export const getBerutiApartmentStatusWithOverride = (
+  id: string,
+  statusOverrides: { [key: string]: { status: BerutiApartmentStatus } },
+): BerutiApartmentStatus | null => {
+  const apartment = getBerutiApartmentById(id)
+  if (!apartment) return null
+
+  // Verificar si hay un override del backend
+  const override = statusOverrides[apartment.unitNumber]
+  if (override && override.status) {
+    return override.status
+  }
+
+  return apartment.status
+}
+
+export const getBerutiProjectStatsWithOverrides = (statusOverrides: {
+  [key: string]: { status: BerutiApartmentStatus }
+}): {
+  totalUnits: number
+  availableUnits: number
+  reservedUnits: number
+  soldUnits: number
+  blockedUnits: number
+} => {
+  let totalUnits = 0
+  let availableUnits = 0
+  let reservedUnits = 0
+  let soldUnits = 0
+  let blockedUnits = 0
+
+  berutiFloorsData.forEach((floor) => {
+    floor.apartments.forEach((apt) => {
+      totalUnits++
+      // Obtener estado del backend si existe, si no usar el estático
+      const override = statusOverrides[apt.unitNumber]
+      const currentStatus = override?.status || apt.status
+
+      switch (currentStatus) {
+        case "DISPONIBLE":
+          availableUnits++
+          break
+        case "RESERVADO":
+          reservedUnits++
+          break
+        case "VENDIDO":
+          soldUnits++
+          break
+        case "BLOQUEADO":
+          blockedUnits++
+          break
+      }
+    })
+  })
+
+  return { totalUnits, availableUnits, reservedUnits, soldUnits, blockedUnits }
 }
 
 // Función para obtener datos del piso
