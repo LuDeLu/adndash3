@@ -1,3 +1,5 @@
+export type SuitesApartmentStatus = "DISPONIBLE" | "VENDIDO" | "RESERVADO" | "BLOQUEADO"
+
 // Datos para Suites & Residence
 export interface SuitesApartment {
   id: string
@@ -12,7 +14,7 @@ export interface SuitesApartment {
   totalWithAmenities: number
   saleValue: number
   pricePerM2: number
-  status: "DISPONIBLE" | "VENDIDO" | "RESERVADO" | "BLOQUEADO"
+  status: SuitesApartmentStatus
   coordinates?: string
 }
 

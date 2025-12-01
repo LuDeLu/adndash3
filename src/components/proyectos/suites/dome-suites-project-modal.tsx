@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
+import { suitesFloorsData, type SuitesApartment, type SuitesApartmentStatus } from "@/lib/dome-suites-data"
 
 interface DomeSuitesProjectModalProps {
   isOpen: boolean
@@ -24,11 +26,12 @@ type Floor = {
   availableUnits: number
   reservedUnits: number
   soldUnits: number
+  blockedUnits: number
   x: number
   y: number
 }
 
-const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved" | "sold") => {
+const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved" | "sold" | "blocked") => {
   switch (filter) {
     case "available":
       return floor.availableUnits
@@ -36,8 +39,10 @@ const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved"
       return floor.reservedUnits
     case "sold":
       return floor.soldUnits
+    case "blocked":
+      return floor.blockedUnits
     default:
-      return floor.availableUnits + floor.reservedUnits + floor.soldUnits
+      return floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
   }
 }
 
@@ -50,96 +55,90 @@ export function DomeSuitesProjectModal({
 }: DomeSuitesProjectModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "units" | "features" | "financial" | "location">("overview")
   const [refreshing, setRefreshing] = useState(false)
-  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
+  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold" | "blocked">("all")
 
-  // Datos reales del proyecto basados en el PDF
-  const projectData = {
-    name: "DOME Suites & Residences",
-    location: "Paraguay & Humboldt",
-    image: "/images/edificio/suitesedi.png",
-    description: "Exclusivo desarrollo de suites y residencias en el corazón de Palermo con amenities de primer nivel.",
-    totalUnits: 361,
-    availableUnits: 89,
-    reservedUnits: 4,
-    soldUnits: 268,
-  }
+  const { unitStatuses, refresh } = useUnitStorage("suites")
 
-  // Crear datos de pisos para la visualización basados en datos reales
+  const getRealStatus = useCallback(
+    (apartment: SuitesApartment): SuitesApartmentStatus => {
+      const override = unitStatuses[apartment.unitNumber]
+      if (override && override.status) {
+        return override.status as SuitesApartmentStatus
+      }
+      return apartment.status
+    },
+    [unitStatuses],
+  )
+
   const floors: Floor[] = useMemo(() => {
-    const floorData = []
+    return suitesFloorsData.map((floorData, index) => {
+      const stats = floorData.apartments.reduce(
+        (acc, apt) => {
+          const realStatus = getRealStatus(apt)
+          switch (realStatus) {
+            case "DISPONIBLE":
+              acc.available++
+              break
+            case "RESERVADO":
+              acc.reserved++
+              break
+            case "VENDIDO":
+              acc.sold++
+              break
+            case "BLOQUEADO":
+              acc.blocked++
+              break
+          }
+          return acc
+        },
+        { available: 0, reserved: 0, sold: 0, blocked: 0 },
+      )
 
-    // Piso 1: 17 unidades
-    floorData.push({
-      number: 1,
-      availableUnits: 2,
-      reservedUnits: 1,
-      soldUnits: 14,
-      x: 448,
-      y: 680,
-    })
-
-    // Pisos 2-6: ~24 unidades cada uno
-    for (let i = 2; i <= 6; i++) {
-      floorData.push({
-        number: i,
-        availableUnits: i === 2 ? 2 : i === 3 ? 8 : i === 4 ? 10 : i === 5 ? 12 : 8,
-        reservedUnits: 0,
-        soldUnits: i === 2 ? 22 : i === 3 ? 16 : i === 4 ? 14 : i === 5 ? 12 : 16,
+      return {
+        number: floorData.level,
+        availableUnits: stats.available,
+        reservedUnits: stats.reserved,
+        soldUnits: stats.sold,
+        blockedUnits: stats.blocked,
         x: 448,
-        y: 680 - (i - 1) * 70,
-      })
+        y: 680 - index * 55,
+      }
+    })
+  }, [getRealStatus])
+
+  const projectData = useMemo(() => {
+    const totals = floors.reduce(
+      (acc, floor) => {
+        acc.total += floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
+        acc.available += floor.availableUnits
+        acc.reserved += floor.reservedUnits
+        acc.sold += floor.soldUnits
+        acc.blocked += floor.blockedUnits
+        return acc
+      },
+      { total: 0, available: 0, reserved: 0, sold: 0, blocked: 0 },
+    )
+
+    return {
+      name: "DOME Suites & Residences",
+      location: "Paraguay & Humboldt",
+      image: "/images/edificio/suitesedi.png",
+      description:
+        "Exclusivo desarrollo de suites y residencias en el corazón de Palermo con amenities de primer nivel.",
+      totalUnits: totals.total,
+      availableUnits: totals.available,
+      reservedUnits: totals.reserved,
+      soldUnits: totals.sold,
+      blockedUnits: totals.blocked,
     }
-
-    // Pisos 7-9: ~16-17 unidades cada uno
-    for (let i = 7; i <= 9; i++) {
-      floorData.push({
-        number: i,
-        availableUnits: i === 7 ? 4 : i === 8 ? 6 : 8,
-        reservedUnits: i === 7 ? 1 : i === 9 ? 2 : 0,
-        soldUnits: i === 7 ? 12 : i === 8 ? 11 : 7,
-        x: 448,
-        y: 680 - (i - 1) * 70,
-      })
-    }
-
-    // Piso 10: 17 unidades
-    floorData.push({
-      number: 10,
-      availableUnits: 15,
-      reservedUnits: 1,
-      soldUnits: 1,
-      x: 448,
-      y: 680 - 9 * 70,
-    })
-
-    // Piso 11: 13 unidades
-    floorData.push({
-      number: 11,
-      availableUnits: 11,
-      reservedUnits: 0,
-      soldUnits: 2,
-      x: 448,
-      y: 680 - 10 * 70,
-    })
-
-    // Piso 12: 7 unidades
-    floorData.push({
-      number: 12,
-      availableUnits: 7,
-      reservedUnits: 0,
-      soldUnits: 0,
-      x: 448,
-      y: 680 - 11 * 70,
-    })
-
-    return floorData
-  }, [])
+  }, [floors])
 
   const refreshData = useCallback(async () => {
     setRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await refresh()
+    await new Promise((resolve) => setTimeout(resolve, 500))
     setRefreshing(false)
-  }, [])
+  }, [refresh])
 
   const handleBrochureClick = () => {
     console.log("Downloading brochure...")
@@ -149,7 +148,7 @@ export function DomeSuitesProjectModal({
     onViewPlanes(floorNumber)
   }
 
-  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold") => {
+  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold" | "blocked") => {
     setCurrentFilter(filter)
   }, [])
 
@@ -179,7 +178,7 @@ export function DomeSuitesProjectModal({
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
 
-                {/* SVG Overlay para pisos */}
+                {/* SVG Overlay para pisos - Updated to use real data */}
                 <svg
                   viewBox="-300 -100 1800 1000"
                   className="absolute top-0 left-0 w-full h-full"
@@ -188,13 +187,15 @@ export function DomeSuitesProjectModal({
                   <g transform="scale(1, 1) translate(-200, 100)">
                     <AnimatePresence>
                       {floors.map((floor) => {
-                        const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
+                        const totalUnits =
+                          floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
                         if (totalUnits === 0) return null
 
                         const floorWidth = 850
                         const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
                         const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
-                        const availableWidth = floorWidth - soldWidth - reservedWidth
+                        const blockedWidth = totalUnits > 0 ? (floor.blockedUnits / totalUnits) * floorWidth : 0
+                        const availableWidth = floorWidth - soldWidth - reservedWidth - blockedWidth
 
                         return (
                           <g
@@ -233,6 +234,20 @@ export function DomeSuitesProjectModal({
                             <motion.rect
                               x={floor.x + soldWidth + reservedWidth}
                               y={floor.y}
+                              width={blockedWidth}
+                              height="25"
+                              fill="#60a5fa"
+                              stroke="white"
+                              strokeWidth="1"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 0.8 }}
+                              exit={{ opacity: 0 }}
+                              whileHover={{ opacity: 1 }}
+                              transition={{ duration: 0.2 }}
+                            />
+                            <motion.rect
+                              x={floor.x + soldWidth + reservedWidth + blockedWidth}
+                              y={floor.y}
                               width={availableWidth}
                               height="25"
                               fill="#87f5af"
@@ -261,7 +276,7 @@ export function DomeSuitesProjectModal({
                   </g>
                 </svg>
 
-                {/* Leyenda de estados */}
+                {/* Leyenda de estados - Added blocked status */}
                 <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 p-2 rounded">
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 mr-2"></div>
@@ -270,6 +285,10 @@ export function DomeSuitesProjectModal({
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 mr-2"></div>
                     <span className="text-white text-xs sm:text-sm">Reservado</span>
+                  </div>
+                  <div className="flex items-center mb-1">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-400 mr-2"></div>
+                    <span className="text-white text-xs sm:text-sm">Bloqueado</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 mr-2"></div>
@@ -364,7 +383,7 @@ export function DomeSuitesProjectModal({
                           </h4>
                           <Progress
                             value={totalUnits > 0 ? (projectData.availableUnits / totalUnits) * 100 : 0}
-                            className="w-full"
+                            className="w-full [&>div]:bg-green-500"
                           />
                         </div>
 
@@ -374,7 +393,17 @@ export function DomeSuitesProjectModal({
                           </h4>
                           <Progress
                             value={totalUnits > 0 ? (projectData.reservedUnits / totalUnits) * 100 : 0}
-                            className="w-full"
+                            className="w-full [&>div]:bg-yellow-500"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm sm:text-base">
+                            Unidades bloqueadas: {projectData.blockedUnits}
+                          </h4>
+                          <Progress
+                            value={totalUnits > 0 ? (projectData.blockedUnits / totalUnits) * 100 : 0}
+                            className="w-full [&>div]:bg-blue-500"
                           />
                         </div>
 
@@ -384,14 +413,14 @@ export function DomeSuitesProjectModal({
                           </h4>
                           <Progress
                             value={totalUnits > 0 ? (projectData.soldUnits / totalUnits) * 100 : 0}
-                            className="w-full"
+                            className="w-full [&>div]:bg-red-500"
                           />
                         </div>
 
                         <div className="mt-6 bg-card p-4 rounded-lg border">
                           <h4 className="font-medium mb-4 text-base sm:text-lg">Unidades por piso:</h4>
                           <div className="mb-4 flex flex-wrap gap-1 sm:gap-2">
-                            {["all", "available", "reserved", "sold"].map((filterType) => (
+                            {["all", "available", "reserved", "blocked", "sold"].map((filterType) => (
                               <Button
                                 key={filterType}
                                 variant={currentFilter === filterType ? "default" : "outline"}
@@ -404,7 +433,9 @@ export function DomeSuitesProjectModal({
                                     ? "Disponibles"
                                     : filterType === "reserved"
                                       ? "Reservadas"
-                                      : "Vendidas"}
+                                      : filterType === "blocked"
+                                        ? "Bloqueadas"
+                                        : "Vendidas"}
                               </Button>
                             ))}
                           </div>
@@ -425,7 +456,9 @@ export function DomeSuitesProjectModal({
                                       ? "Libre"
                                       : currentFilter === "reserved"
                                         ? "Reserv."
-                                        : "Vend."}
+                                        : currentFilter === "blocked"
+                                          ? "Bloq."
+                                          : "Vend."}
                                 </span>
                               </Button>
                             ))}
@@ -475,21 +508,23 @@ export function DomeSuitesProjectModal({
 
                     <TabsContent value="financial" className="mt-2">
                       <div className="space-y-4 mt-4">
-                        <h4 className="font-medium text-base sm:text-lg">Opciones de Financiamiento</h4>
+                        <h4 className="font-medium text-base sm:text-lg">Plan de Financiamiento</h4>
                         <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Financiamiento Directo</h5>
-                          <p className="text-sm text-muted-foreground">
-                            Planes de financiamiento directo con la desarrolladora
-                          </p>
+                          <h5 className="font-medium">Anticipo</h5>
+                          <p className="text-sm text-muted-foreground">30% al momento de la reserva</p>
                         </div>
                         <div className="bg-muted p-4 rounded-lg">
-                          <h5 className="font-medium">Crédito Hipotecario</h5>
-                          <p className="text-sm text-muted-foreground">Asistencia para obtener créditos hipotecarios</p>
+                          <h5 className="font-medium">Cuotas</h5>
+                          <p className="text-sm text-muted-foreground">40% durante la construcción (24 cuotas)</p>
+                        </div>
+                        <div className="bg-muted p-4 rounded-lg">
+                          <h5 className="font-medium">Entrega</h5>
+                          <p className="text-sm text-muted-foreground">30% contra entrega de llaves</p>
                         </div>
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="location" className="mt-2">
+<TabsContent value="location" className="mt-2">
                       <div className="space-y-6 mt-4">
                         <h4 className="font-medium text-xl">Ubicación del Proyecto</h4>
 
@@ -534,7 +569,7 @@ export function DomeSuitesProjectModal({
                   </Tabs>
                 </ScrollArea>
 
-                {/* Botones de acción */}
+{/* Botones de acción */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 p-2 sm:p-4 bg-background border-t">
                   <Button onClick={() => onViewPlanes()} className="w-full py-3 sm:py-6 text-xs sm:text-base">
                     Ver planos
@@ -558,5 +593,3 @@ export function DomeSuitesProjectModal({
     </AnimatePresence>
   )
 }
-
-export default DomeSuitesProjectModal

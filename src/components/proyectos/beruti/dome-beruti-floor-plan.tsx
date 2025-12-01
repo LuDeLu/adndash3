@@ -563,16 +563,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
               <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
               {refreshing ? "Actualizando..." : "Actualizar"}
             </Button>
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="autoRefresh"
-                checked={autoRefresh}
-                onCheckedChange={(checked) => setAutoRefresh(checked === true)}
-              />
-              <Label htmlFor="autoRefresh" className="text-sm">
-                Auto-actualizar
-              </Label>
-            </div>
           </div>
         </div>
 
