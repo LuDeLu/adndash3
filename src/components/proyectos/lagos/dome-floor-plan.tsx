@@ -113,12 +113,13 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     unitOwners,
     unitStatuses,
     addOwner,
-    removeOwner, // Added removeOwner from hook
+    removeOwner,
     assignParking,
     getUnitParking,
     isParkingSpotAssigned,
     getParkingSpotUnit,
-    updateStatus, // Added updateStatus from hook
+    updateStatus,
+    refresh, // Added refresh function
   } = useUnitStorage("lagos")
 
   const [action, setAction] = useState<
@@ -169,7 +170,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     (apartment: DomeApartment): DomeApartment["status"] => {
       if (unitStatuses && unitStatuses[apartment.unitNumber]) {
         const storedStatus = unitStatuses[apartment.unitNumber].status
-        // Map backend status format to local status format
+        // Map backend status format (uppercase) to local status format
         const statusMap: { [key: string]: DomeApartment["status"] } = {
           DISPONIBLE: "DISPONIBLE",
           RESERVADO: "reservado",
@@ -443,22 +444,27 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
 
     try {
       let newStatus: DomeApartment["status"] = getRealStatus(selectedApartment)
+      let backendStatus: "DISPONIBLE" | "RESERVADO" | "VENDIDO" | "BLOQUEADO" = "DISPONIBLE"
 
       switch (action) {
         case "block":
           newStatus = "bloqueado"
+          backendStatus = "BLOQUEADO"
           break
         case "reserve":
         case "directReserve":
           newStatus = "reservado"
+          backendStatus = "RESERVADO"
           break
         case "sell":
           newStatus = "VENDIDO"
+          backendStatus = "VENDIDO"
           break
         case "unblock":
         case "cancelReservation":
         case "release":
           newStatus = "DISPONIBLE"
+          backendStatus = "DISPONIBLE"
           break
       }
 
@@ -467,7 +473,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
       if (success) {
         await updateStatus(selectedApartment.unitNumber, {
           id: selectedApartment.id,
-          status: newStatus.toUpperCase() as "DISPONIBLE" | "RESERVADO" | "VENDIDO" | "BLOQUEADO",
+          status: backendStatus,
           changedAt: new Date().toISOString(),
           changedBy: user.name || user.email,
           notes: formData.note || undefined,
@@ -578,7 +584,8 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
 
   const refreshData = async () => {
     setRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await refresh()
+    await new Promise((resolve) => setTimeout(resolve, 500))
     setRefreshing(false)
     if (notyf) notyf.success("Datos actualizados")
   }
@@ -803,28 +810,26 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                 <p className="text-zinc-400 text-sm">Selecciona los departamentos para ver su estado.</p>
               </div>
               <div className="grid grid-cols-4 gap-2 mb-4">
-                  <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-2 text-center">
-                    <p className="text-xs text-green-400">Disponibles</p>
-                    <p className="text-lg font-bold text-green-400">{unitStats.available}</p>
-                  </div>
-                  <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2 text-center">
-                    <p className="text-xs text-yellow-400">Reservados</p>
-                    <p className="text-lg font-bold text-yellow-400">{unitStats.reserved}</p>
-                  </div>
-                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2 text-center">
-                    <p className="text-xs text-red-400">Vendidos</p>
-                    <p className="text-lg font-bold text-red-400">{unitStats.sold}</p>
-                  </div>
-                  <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-2 text-center">
-                    <p className="text-xs text-blue-400">Bloqueados</p>
-                    <p className="text-lg font-bold text-blue-400">{unitStats.blocked}</p>
-                  </div>
+                <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-2 text-center">
+                  <p className="text-xs text-green-400">Disponibles</p>
+                  <p className="text-lg font-bold text-green-400">{unitStats.available}</p>
                 </div>
+                <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2 text-center">
+                  <p className="text-xs text-yellow-400">Reservados</p>
+                  <p className="text-lg font-bold text-yellow-400">{unitStats.reserved}</p>
+                </div>
+                <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2 text-center">
+                  <p className="text-xs text-red-400">Vendidos</p>
+                  <p className="text-lg font-bold text-red-400">{unitStats.sold}</p>
+                </div>
+                <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-2 text-center">
+                  <p className="text-xs text-blue-400">Bloqueados</p>
+                  <p className="text-lg font-bold text-blue-400">{unitStats.blocked}</p>
+                </div>
+              </div>
             </div>
-            
           </TabsContent>
         </Tabs>
-
 
         {/* Apartment Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>

@@ -57,16 +57,18 @@ export function DomeProjectModal({
   const [refreshing, setRefreshing] = useState(false)
   const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold" | "blocked">("all")
 
-  const { unitStatuses } = useUnitStorage("lagos")
+  const { unitStatuses, refresh } = useUnitStorage("lagos")
 
   const stats = getDomeProjectStats()
 
   const getRealStatus = useCallback(
-    (unitNumber: string, originalStatus: string) => {
+    (unitNumber: string, originalStatus: string): string => {
       if (unitStatuses && unitStatuses[unitNumber]) {
-        return unitStatuses[unitNumber]
+        // Return the backend status directly (already in uppercase)
+        return unitStatuses[unitNumber].status
       }
-      return originalStatus
+      // Convert original status to uppercase for consistency
+      return originalStatus.toUpperCase()
     },
     [unitStatuses],
   )
@@ -79,9 +81,9 @@ export function DomeProjectModal({
       (acc, apt) => {
         const realStatus = getRealStatus(apt.unitNumber, apt.status)
         if (realStatus === "DISPONIBLE") acc.available++
-        else if (realStatus === "reservado") acc.reserved++
+        else if (realStatus === "RESERVADO") acc.reserved++
         else if (realStatus === "VENDIDO") acc.sold++
-        else if (realStatus === "bloqueado") acc.blocked++
+        else if (realStatus === "BLOQUEADO") acc.blocked++
         return acc
       },
       { available: 0, reserved: 0, sold: 0, blocked: 0 },
@@ -105,9 +107,9 @@ export function DomeProjectModal({
         (acc, apt) => {
           const realStatus = getRealStatus(apt.unitNumber, apt.status)
           if (realStatus === "DISPONIBLE") acc.available++
-          else if (realStatus === "reservado") acc.reserved++
+          else if (realStatus === "RESERVADO") acc.reserved++
           else if (realStatus === "VENDIDO") acc.sold++
-          else if (realStatus === "bloqueado") acc.blocked++
+          else if (realStatus === "BLOQUEADO") acc.blocked++
           return acc
         },
         { available: 0, reserved: 0, sold: 0, blocked: 0 },
@@ -144,9 +146,9 @@ export function DomeProjectModal({
 
   const refreshData = useCallback(async () => {
     setRefreshing(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    await refresh()
     setRefreshing(false)
-  }, [])
+  }, [refresh])
 
   const handleBrochureClick = () => {
     if (domeProjectInfo.brochure) {
