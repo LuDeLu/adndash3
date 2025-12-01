@@ -46,6 +46,7 @@ import {
   type BerutiApartment,
   berutiParkingSpots,
   type BerutiParkingSpot,
+  type BerutiApartmentStatus,
 } from "@/lib/dome-beruti-data"
 import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
@@ -150,6 +151,29 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     }
   }, [])
 
+  const {
+    unitOwners,
+    addOwner,
+    parkingAssignments,
+    assignParking,
+    getUnitParking,
+    isParkingSpotAssigned,
+    getParkingSpotUnit,
+    updateStatus,
+    unitStatuses,
+  } = useUnitStorage("beruti")
+
+  const getRealStatus = useCallback(
+    (apartment: BerutiApartment): BerutiApartmentStatus => {
+      const override = unitStatuses[apartment.unitNumber]
+      if (override && override.status) {
+        return override.status
+      }
+      return apartment.status
+    },
+    [unitStatuses],
+  )
+
   const currentFloorData = getBerutiFloorData(currentFloor)
 
   const handleUnitClick = useCallback((unit: BerutiApartment) => {
@@ -189,7 +213,9 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
       | "assignParking",
   ) => {
     setAction(actionType)
-    setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
+    setConfirmReservation(
+      actionType === "reserve" && selectedUnit !== null && getRealStatus(selectedUnit) === "BLOQUEADO",
+    )
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
 
@@ -282,18 +308,6 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
       loadClientes()
     }
   }, [action])
-
-  const {
-    unitOwners,
-    addOwner,
-    parkingAssignments,
-    assignParking,
-    getUnitParking,
-    isParkingSpotAssigned,
-    getParkingSpotUnit,
-    updateStatus,
-    unitStatuses,
-  } = useUnitStorage("beruti")
 
   const handleAssignOwner = async () => {
     if (!selectedCliente || !selectedUnit) return
@@ -510,16 +524,16 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     if (notyf) notyf.success("Datos actualizados")
   }
 
-  const getUnitStats = () => {
+  const getUnitStats = useCallback(() => {
     if (!currentFloorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
     const apartments = currentFloorData.apartments
     return {
-      available: apartments.filter((apt) => apt.status === "DISPONIBLE").length,
-      reserved: apartments.filter((apt) => apt.status === "RESERVADO").length,
-      sold: apartments.filter((apt) => apt.status === "VENDIDO").length,
-      blocked: apartments.filter((apt) => apt.status === "BLOQUEADO").length,
+      available: apartments.filter((apt) => getRealStatus(apt) === "DISPONIBLE").length,
+      reserved: apartments.filter((apt) => getRealStatus(apt) === "RESERVADO").length,
+      sold: apartments.filter((apt) => getRealStatus(apt) === "VENDIDO").length,
+      blocked: apartments.filter((apt) => getRealStatus(apt) === "BLOQUEADO").length,
     }
-  }
+  }, [currentFloorData, getRealStatus])
 
   const stats = getUnitStats()
 
@@ -639,11 +653,13 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                           points.push(`${coords[i]},${coords[i + 1]}`)
                         }
 
+                        const realStatus = getRealStatus(apartment)
+
                         return (
                           <polygon
                             key={apartment.id}
                             points={points.join(" ")}
-                            fill={getBerutiStatusColor(apartment.status)}
+                            fill={getBerutiStatusColor(realStatus)}
                             stroke="white"
                             strokeWidth="2"
                             opacity="0.7"
@@ -814,10 +830,10 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getBerutiStatusColor(selectedUnit.status) }}
+                        style={{ backgroundColor: getBerutiStatusColor(getRealStatus(selectedUnit)) }}
                       />
                       <Badge variant="outline" className="capitalize">
-                        {getBerutiStatusLabel(selectedUnit.status)}
+                        {getBerutiStatusLabel(getRealStatus(selectedUnit))}
                       </Badge>
                     </div>
                   </div>
@@ -952,7 +968,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       Descargar plano
                     </Button>
 
-                    {selectedUnit.status === "DISPONIBLE" && (
+                    {getRealStatus(selectedUnit) === "DISPONIBLE" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
@@ -969,7 +985,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       </>
                     )}
 
-                    {selectedUnit.status === "BLOQUEADO" && (
+                    {getRealStatus(selectedUnit) === "BLOQUEADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
@@ -986,7 +1002,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       </>
                     )}
 
-                    {selectedUnit.status === "RESERVADO" && (
+                    {getRealStatus(selectedUnit) === "RESERVADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
@@ -1003,7 +1019,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       </>
                     )}
 
-                    {selectedUnit.status === "VENDIDO" && (
+                    {getRealStatus(selectedUnit) === "VENDIDO" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato

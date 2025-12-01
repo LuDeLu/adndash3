@@ -1025,7 +1025,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
 
   // Nivel 2 (2do subsuelo) - 16 cocheras
   {
-    id: "A18",
+    id: "B18",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1034,7 +1034,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "114,534,167,639",
   },
   {
-    id: "A19",
+    id: "B19",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1043,7 +1043,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "175,532,228,639",
   },
   {
-    id: "A20",
+    id: "B20",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1052,7 +1052,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "238,532,289,639",
   },
   {
-    id: "A21",
+    id: "B21",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1061,7 +1061,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "297,533,349,639",
   },
   {
-    id: "A22",
+    id: "B22",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1070,7 +1070,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "351,533,403,639",
   },
   {
-    id: "A23",
+    id: "B23",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1079,7 +1079,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "412,532,464,639",
   },
   {
-    id: "A24",
+    id: "B24",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1088,7 +1088,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "473,532,525,640",
   },
   {
-    id: "A25",
+    id: "B25",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1097,7 +1097,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "526,533,578,640",
   },
   {
-    id: "A26",
+    id: "B26",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1106,7 +1106,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "586,534,639,639",
   },
   {
-    id: "A27",
+    id: "B27",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1115,7 +1115,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "650,533,699,640",
   },
   {
-    id: "A28",
+    id: "B28",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1124,7 +1124,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "708,534,761,638",
   },
   {
-    id: "A29",
+    id: "B29",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1133,7 +1133,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "764,534,814,639",
   },
   {
-    id: "A30",
+    id: "B30",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1142,7 +1142,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "818,533,871,640",
   },
   {
-    id: "A31",
+    id: "B31",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1151,7 +1151,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "781,317,833,426",
   },
   {
-    id: "A32",
+    id: "B32",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1160,7 +1160,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "605,316,657,426",
   },
   {
-    id: "A33",
+    id: "B33",
     level: 2 as BerutiGarageLevel,
     type: "B" as const,
     price: 50000,
@@ -1171,7 +1171,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
 
   // Nivel 3 (3er subsuelo) - 18 cocheras
   {
-    id: "A34",
+    id: "C34",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1180,7 +1180,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "111,420,220,470",
   },
   {
-    id: "A35",
+    id: "C35",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1189,7 +1189,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "113,473,219,521",
   },
   {
-    id: "A36",
+    id: "C36",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1198,7 +1198,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "247,524,299,628",
   },
   {
-    id: "A37",
+    id: "C37",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1207,7 +1207,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "307,524,358,627",
   },
   {
-    id: "A38",
+    id: "C38",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1216,7 +1216,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "360,524,413,628",
   },
   {
-    id: "A39",
+    id: "C39",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1225,7 +1225,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "421,523,472,629",
   },
   {
-    id: "A40",
+    id: "C40",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1234,7 +1234,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "482,524,531,629",
   },
   {
-    id: "A41",
+    id: "C41",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1243,7 +1243,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "534,525,585,628",
   },
   {
-    id: "A42",
+    id: "C42",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1252,7 +1252,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "594,524,646,629",
   },
   {
-    id: "A43",
+    id: "C43",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1261,7 +1261,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "653,523,706,629",
   },
   {
-    id: "A44",
+    id: "C44",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1270,7 +1270,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "714,524,764,628",
   },
   {
-    id: "A45",
+    id: "C45",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1279,7 +1279,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "768,524,818,629",
   },
   {
-    id: "A46",
+    id: "C46",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1288,7 +1288,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "822,524,873,628",
   },
   {
-    id: "A47",
+    id: "C47",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1297,7 +1297,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "786,311,837,418",
   },
   {
-    id: "A48",
+    id: "C48",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1306,7 +1306,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "611,312,663,417",
   },
   {
-    id: "A49",
+    id: "C49",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1315,7 +1315,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "552,312,604,417",
   },
   {
-    id: "A50",
+    id: "C50",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
@@ -1324,7 +1324,7 @@ export const berutiParkingSpots: BerutiParkingSpot[] = [
     coordinates: "552,259,666,310",
   },
   {
-    id: "A51",
+    id: "C51",
     level: 3 as BerutiGarageLevel,
     type: "C" as const,
     price: 45000,
