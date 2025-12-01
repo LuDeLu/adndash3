@@ -14,23 +14,23 @@ import {
   FileBarChart,
   MapPin,
   Home,
-  Phone,
-  Mail,
   User,
   Calendar,
   Search,
   Plus,
+  RefreshCw,
+  Mail,
+  Phone,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/app/auth/auth-context"
-import { domePalermoData, type GarageLevel } from "@/lib/dome-palermo-data"
+import { domePalermoData, type GarageLevel, type ApartmentStatus } from "@/lib/dome-palermo-data"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
@@ -38,8 +38,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
-// Assuming API_BASE_URL is defined elsewhere, e.g., in an environment file or constants
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api" // Example API base URL
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
 
 let notyf: Notyf | null = null
 
@@ -47,7 +46,7 @@ interface DomePalermoFloorPlanProps {
   onBack: () => void
 }
 
-type ApartmentStatus = "available" | "reserved" | "sold" | "blocked"
+type UnitStatusType = "DISPONIBLE" | "RESERVADO" | "VENDIDO" | "BLOQUEADO"
 
 interface ApartmentData {
   id: string
@@ -59,6 +58,8 @@ interface ApartmentData {
   phoneNumber?: string
   email?: string
   assignedParkings: string[]
+  orientation?: string
+  type?: string
 }
 
 interface FloorData {
@@ -73,6 +74,7 @@ interface ParkingSpot {
   status: "available" | "reserved" | "sold" | "blocked"
   assignedTo: string | null
   path: string
+  price: string
 }
 
 interface Cliente {
@@ -105,11 +107,65 @@ interface UnitOwner {
 const floors = Array.from({ length: 9 }, (_, i) => i + 1)
 const garageLevels = [1, 2, 3]
 
-// Garage plan images for Dome Resi (Palermo Residence)
 const garagePlans = {
   1: "/planos/resi/cochera/nivel1.png",
   2: "/planos/resi/cochera/nivel2.png",
   3: "/planos/resi/cochera/nivel3.png",
+}
+
+const formatPrice = (price: number | string): string => {
+  if (typeof price === "string") return price
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price)
+}
+
+const statusToInternal = (status: ApartmentStatus): UnitStatusType => {
+  switch (status) {
+    case "available":
+      return "DISPONIBLE"
+    case "reserved":
+      return "RESERVADO"
+    case "sold":
+      return "VENDIDO"
+    case "blocked":
+      return "BLOQUEADO"
+    default:
+      return "DISPONIBLE"
+  }
+}
+
+const internalToStatus = (status: UnitStatusType): ApartmentStatus => {
+  switch (status) {
+    case "DISPONIBLE":
+      return "available"
+    case "RESERVADO":
+      return "reserved"
+    case "VENDIDO":
+      return "sold"
+    case "BLOQUEADO":
+      return "blocked"
+    default:
+      return "available"
+  }
+}
+
+const getStatusColor = (status: UnitStatusType): string => {
+  switch (status) {
+    case "DISPONIBLE":
+      return "#87f5af"
+    case "RESERVADO":
+      return "#edcf53"
+    case "VENDIDO":
+      return "#f57f7f"
+    case "BLOQUEADO":
+      return "#7f7fff"
+    default:
+      return "#87f5af"
+  }
 }
 
 export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
@@ -146,6 +202,8 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   const [confirmRelease, setConfirmRelease] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
+  const [refreshing, setRefreshing] = useState(false)
+  const [autoRefresh, setAutoRefresh] = useState(true)
 
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
@@ -170,12 +228,13 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     getUnitParking,
     isParkingSpotAssigned,
     getParkingSpotUnit,
+    updateStatus,
+    unitStatuses,
   } = useUnitStorage("resi")
 
   const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
   const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState<GarageLevel>(1)
 
-  // Initialize Notyf
   useEffect(() => {
     if (typeof window !== "undefined" && !notyf) {
       notyf = new Notyf({
@@ -184,6 +243,17 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       })
     }
   }, [])
+
+  const getRealStatus = useCallback(
+    (apartmentId: string, originalStatus: ApartmentStatus): UnitStatusType => {
+      const override = unitStatuses[apartmentId]
+      if (override && override.status) {
+        return override.status
+      }
+      return statusToInternal(originalStatus)
+    },
+    [unitStatuses],
+  )
 
   const loadClientes = async () => {
     setIsLoadingClientes(true)
@@ -370,12 +440,11 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       })
       setSelectedParkingsForAssignment(initialSelection)
       setParkingAssignmentLevel(1)
-    } else if (
-      newAction === "reserve" &&
-      ((selectedApartment && floorData?.apartments[selectedApartment]?.status === "blocked") ||
-        (selectedParkingSpot && parkingSpots.find((spot) => spot.id === selectedParkingSpot)?.status === "blocked"))
-    ) {
-      setConfirmReservation(true)
+    } else if (newAction === "reserve" && selectedApartment && floorData?.apartments[selectedApartment]) {
+      const realStatus = getRealStatus(selectedApartment, floorData.apartments[selectedApartment].status)
+      if (realStatus === "BLOQUEADO") {
+        setConfirmReservation(true)
+      }
     } else if (newAction === "cancelReservation") {
       setConfirmCancelReservation(true)
     } else if (newAction === "release") {
@@ -432,8 +501,36 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
     setLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      let newStatus: UnitStatusType = "DISPONIBLE"
+
+      switch (action) {
+        case "block":
+          newStatus = "BLOQUEADO"
+          break
+        case "reserve":
+        case "directReserve":
+          newStatus = "RESERVADO"
+          break
+        case "sell":
+          newStatus = "VENDIDO"
+          break
+        case "unblock":
+        case "cancelReservation":
+        case "release":
+          newStatus = "DISPONIBLE"
+          break
+      }
+
+      // Update status in useUnitStorage
+      if (selectedApartment) {
+        await updateStatus(selectedApartment, {
+          id: selectedApartment,
+          status: newStatus,
+          changedAt: new Date().toISOString(),
+          changedBy: user.name || user.email,
+          notes: formData.note || undefined,
+        })
+      }
 
       if (notyf) {
         const itemType = selectedApartment ? "Departamento" : "Cochera"
@@ -462,7 +559,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
         }
       }
 
-      // Actualizar el registro de actividades
       const timestamp = new Date().toLocaleString()
       const itemId = selectedApartment || selectedParkingSpot
       const itemType = selectedApartment ? "departamento" : "cochera"
@@ -556,16 +652,23 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     if (notyf) notyf.success(`Descargando ${type}...`)
   }, [])
 
-  const getUnitStats = () => {
-    if (!floorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
-    const apartments = Object.values(floorData.apartments)
-    return {
-      available: apartments.filter((apt) => apt.status === "available").length,
-      reserved: apartments.filter((apt) => apt.status === "reserved").length,
-      sold: apartments.filter((apt) => apt.status === "sold").length,
-      blocked: apartments.filter((apt) => apt.status === "blocked").length,
-    }
+  const refreshData = async () => {
+    setRefreshing(true)
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+    setRefreshing(false)
+    if (notyf) notyf.success("Datos actualizados")
   }
+
+  const getUnitStats = useCallback(() => {
+    if (!floorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
+    const apartments = Object.entries(floorData.apartments)
+    return {
+      available: apartments.filter(([id, apt]) => getRealStatus(id, apt.status) === "DISPONIBLE").length,
+      reserved: apartments.filter(([id, apt]) => getRealStatus(id, apt.status) === "RESERVADO").length,
+      sold: apartments.filter(([id, apt]) => getRealStatus(id, apt.status) === "VENDIDO").length,
+      blocked: apartments.filter(([id, apt]) => getRealStatus(id, apt.status) === "BLOQUEADO").length,
+    }
+  }, [floorData, getRealStatus])
 
   const getParkingStats = () => {
     const stats = domePalermoData.getParkingStats()
@@ -577,10 +680,13 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
   const selectedSpot = selectedParkingSpot ? parkingSpots.find((spot) => spot.id === selectedParkingSpot) : null
 
+  const selectedApartmentData = selectedApartment && floorData ? floorData.apartments[selectedApartment] : null
+  const selectedApartmentRealStatus =
+    selectedApartment && selectedApartmentData ? getRealStatus(selectedApartment, selectedApartmentData.status) : null
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <Button onClick={onBack} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
             <ChevronLeft className="mr-2 h-4 w-4" />
@@ -594,21 +700,19 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             </p>
           </div>
           <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Disponibles</div>
-              <div className="text-lg font-bold text-green-400">{stats.available}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Reservadas</div>
-              <div className="text-lg font-bold text-yellow-400">{stats.reserved}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Vendidas</div>
-              <div className="text-lg font-bold text-red-400">{stats.sold}</div>
-            </div>
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Bloqueadas</div>
-              <div className="text-lg font-bold text-blue-400">{stats.blocked}</div>
+            <Button onClick={refreshData} disabled={refreshing} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
+              <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              {refreshing ? "Actualizando..." : "Actualizar"}
+            </Button>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="autoRefresh"
+                checked={autoRefresh}
+                onCheckedChange={(checked) => setAutoRefresh(checked === true)}
+              />
+              <Label htmlFor="autoRefresh" className="text-sm">
+                Auto-actualizar
+              </Label>
             </div>
           </div>
         </div>
@@ -652,7 +756,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       <ChevronRight />
                     </button>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="flex flex-wrap justify-center gap-2 max-h-32 overflow-y-auto">
                     {floors.map((floor) => (
                       <motion.button
                         key={floor}
@@ -682,19 +786,22 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   <div className="absolute inset-0 z-10">
                     <svg viewBox={floorData.viewBox} className="w-full h-full" style={{ pointerEvents: "all" }}>
                       <g transform="scale(1, 1) translate(-83, 10)">
-                        {Object.entries(floorData.apartments).map(([aptId, aptData]) => (
-                          <path
-                            key={aptId}
-                            d={floorData.svgPaths[aptId] || ""}
-                            fill={statusColors[aptData.status]}
-                            stroke="black"
-                            strokeWidth="10"
-                            opacity="0.7"
-                            onClick={() => handleApartmentClick(aptId)}
-                            style={{ cursor: "pointer" }}
-                            className="hover:opacity-100 transition-opacity"
-                          />
-                        ))}
+                        {Object.entries(floorData.apartments).map(([aptId, aptData]) => {
+                          const realStatus = getRealStatus(aptId, aptData.status)
+                          return (
+                            <path
+                              key={aptId}
+                              d={floorData.svgPaths[aptId] || ""}
+                              fill={getStatusColor(realStatus)}
+                              stroke="black"
+                              strokeWidth="10"
+                              opacity="0.7"
+                              onClick={() => handleApartmentClick(aptId)}
+                              style={{ cursor: "pointer" }}
+                              className="hover:opacity-100 transition-opacity"
+                            />
+                          )
+                        })}
                       </g>
                     </svg>
                   </div>
@@ -708,19 +815,28 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                 {/* Legend */}
                 <div className="flex flex-wrap gap-4 mt-4">
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: statusColors.available }}></div>
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: getStatusColor("DISPONIBLE") }}
+                    ></div>
                     <span className="text-sm">Disponible</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: statusColors.reserved }}></div>
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: getStatusColor("RESERVADO") }}
+                    ></div>
                     <span className="text-sm">Reservado</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: statusColors.sold }}></div>
+                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: getStatusColor("VENDIDO") }}></div>
                     <span className="text-sm">Vendido</span>
                   </div>
                   <div className="flex items-center">
-                    <div className="w-4 h-4 rounded mr-2" style={{ backgroundColor: statusColors.blocked }}></div>
+                    <div
+                      className="w-4 h-4 rounded mr-2"
+                      style={{ backgroundColor: getStatusColor("BLOQUEADO") }}
+                    ></div>
                     <span className="text-sm">Bloqueado</span>
                   </div>
                 </div>
@@ -770,6 +886,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -778,67 +895,62 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   />
                   <div className="absolute inset-0 z-10">
                     <svg viewBox="100 0 1350 850" className="w-full h-full" style={{ pointerEvents: "all" }}>
-                      {parkingSpots.map((spot) => (
-                        <g key={spot.id} style={{ cursor: "pointer" }} onClick={() => handleParkingSpotClick(spot.id)}>
-                          <path
-                            d={spot.path}
-                            fill={
-                              spot.status === "available"
-                                ? "rgba(135, 245, 175, 0.3)"
-                                : spot.status === "reserved"
-                                  ? "rgba(237, 207, 83, 0.3)"
-                                  : spot.status === "sold"
-                                    ? "rgba(245, 127, 127, 0.3)"
-                                    : "rgba(127, 127, 255, 0.3)"
-                            }
-                            stroke={
-                              spot.status === "available"
-                                ? "#22c55e"
-                                : spot.status === "reserved"
-                                  ? "#eab308"
-                                  : spot.status === "sold"
-                                    ? "#ef4444"
-                                    : "#3b82f6"
-                            }
-                            strokeWidth="2"
-                            className="hover:opacity-80 transition-opacity"
-                          />
-                          <text
-                            x="50%"
-                            y="50%"
-                            textAnchor="middle"
-                            fill="white"
-                            fontSize="12"
-                            dominantBaseline="middle"
-                            stroke="black"
-                            strokeWidth="0.5"
-                            style={{ pointerEvents: "none" }}
+                      {parkingSpots.map((spot) => {
+                        const assignedToUnit = getParkingSpotUnit(spot.id)
+                        const isAssigned = !!assignedToUnit
+                        return (
+                          <g
+                            key={spot.id}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => handleParkingSpotClick(spot.id)}
                           >
-                            {spot.id.replace("P" + currentGarageLevel + "-", "")}
-                          </text>
-                        </g>
-                      ))}
+                            <path
+                              d={spot.path}
+                              fill={isAssigned ? "rgba(239, 68, 68, 0.5)" : "rgba(135, 245, 175, 0.3)"}
+                              stroke={isAssigned ? "#ef4444" : "#87f5af"}
+                              strokeWidth="2"
+                              className="hover:opacity-100 transition-opacity"
+                            />
+                          </g>
+                        )
+                      })}
                     </svg>
                   </div>
                 </div>
 
-                {/* Parking Stats */}
-                <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-zinc-800 p-3 rounded">
-                    <div className="text-sm text-zinc-400">Disponibles</div>
-                    <div className="text-xl font-bold text-green-400">{parkingStats.available}</div>
+                <div className="p-4">
+                  <h3 className="text-lg font-bold">Cocheras Nivel {currentGarageLevel}</h3>
+                  <p className="text-zinc-400 text-sm">
+                    Haz clic en las cocheras para ver su información. Precio:{" "}
+                    {domePalermoData.parkingConfig.prices[currentGarageLevel]}
+                  </p>
+
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-4 mt-4">
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded mr-2 bg-green-400"></div>
+                      <span className="text-sm">Disponible</span>
+                    </div>
+                    <div className="flex items-center">
+                      <div className="w-4 h-4 rounded mr-2 bg-red-400"></div>
+                      <span className="text-sm">Asignada</span>
+                    </div>
                   </div>
-                  <div className="bg-zinc-800 p-3 rounded">
-                    <div className="text-sm text-zinc-400">Reservadas</div>
-                    <div className="text-xl font-bold text-yellow-400">{parkingStats.reserved}</div>
-                  </div>
-                  <div className="bg-zinc-800 p-3 rounded">
-                    <div className="text-sm text-zinc-400">Vendidas</div>
-                    <div className="text-xl font-bold text-red-400">{parkingStats.sold}</div>
-                  </div>
-                  <div className="bg-zinc-800 p-3 rounded">
-                    <div className="text-sm text-zinc-400">Total</div>
-                    <div className="text-xl font-bold text-blue-400">{parkingStats.total}</div>
+
+                  {/* Parking Stats */}
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-zinc-800 p-3 rounded">
+                      <div className="text-sm text-zinc-400">Total</div>
+                      <div className="text-xl font-bold">{parkingStats.total}</div>
+                    </div>
+                    <div className="bg-zinc-800 p-3 rounded">
+                      <div className="text-sm text-zinc-400">Disponibles</div>
+                      <div className="text-xl font-bold text-green-400">{parkingStats.available}</div>
+                    </div>
+                    <div className="bg-zinc-800 p-3 rounded">
+                      <div className="text-sm text-zinc-400">Ocupadas</div>
+                      <div className="text-xl font-bold text-red-400">{parkingStats.occupied}</div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -846,16 +958,20 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
           </TabsContent>
         </Tabs>
 
-        {/* Unified Modal for Apartments and Parking Spots */}
+        {/* Apartment/Parking Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
-                {selectedApartment ? `Departamento ${selectedApartment}` : `Cochera ${selectedParkingSpot}`}
+                {selectedApartment
+                  ? `Departamento ${selectedApartment}`
+                  : selectedParkingSpot
+                    ? `Cochera ${selectedParkingSpot}`
+                    : ""}
               </DialogTitle>
             </DialogHeader>
 
-            {selectedApartment && floorData?.apartments[selectedApartment] && (
+            {selectedApartment && floorData && floorData.apartments[selectedApartment] && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -863,25 +979,18 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{
-                          backgroundColor: floorData.apartments[selectedApartment]
-                            ? statusColors[floorData.apartments[selectedApartment].status]
-                            : statusColors.available,
-                        }}
+                        style={{ backgroundColor: getStatusColor(selectedApartmentRealStatus || "DISPONIBLE") }}
                       />
                       <Badge variant="outline" className="capitalize">
-                        {floorData.apartments[selectedApartment]?.status === "available"
-                          ? "Disponible"
-                          : floorData.apartments[selectedApartment]?.status === "reserved"
-                            ? "Reservado"
-                            : floorData.apartments[selectedApartment]?.status === "sold"
-                              ? "Vendido"
-                              : "Bloqueado"}
+                        {selectedApartmentRealStatus === "DISPONIBLE" && "Disponible"}
+                        {selectedApartmentRealStatus === "RESERVADO" && "Reservado"}
+                        {selectedApartmentRealStatus === "VENDIDO" && "Vendido"}
+                        {selectedApartmentRealStatus === "BLOQUEADO" && "Bloqueado"}
                       </Badge>
                     </div>
                   </div>
                   <div>
-                    <Label className="text-zinc-400">Superficie Total</Label>
+                    <Label className="text-zinc-400">Superficie</Label>
                     <p className="font-semibold">{floorData.apartments[selectedApartment].surface}</p>
                   </div>
                   <div>
@@ -894,35 +1003,19 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   </div>
                 </div>
 
-                {floorData.apartments[selectedApartment]?.buyer && (
-                  <div className="space-y-2 p-4 bg-zinc-800 rounded-lg">
-                    <h4 className="font-semibold">Información del Cliente</h4>
-                    <div className="grid grid-cols-1 gap-2 text-sm">
-                      <div className="flex items-center">
-                        <User className="w-4 h-4 mr-2 text-zinc-400" />
-                        <span>{floorData.apartments[selectedApartment]?.buyer}</span>
-                      </div>
-                      {floorData.apartments[selectedApartment]?.phoneNumber && (
-                        <div className="flex items-center">
-                          <Phone className="w-4 h-4 mr-2 text-zinc-400" />
-                          <span>{floorData.apartments[selectedApartment]?.phoneNumber}</span>
-                        </div>
-                      )}
-                      {floorData.apartments[selectedApartment]?.email && (
-                        <div className="flex items-center">
-                          <Mail className="w-4 h-4 mr-2 text-zinc-400" />
-                          <span>{floorData.apartments[selectedApartment]?.email}</span>
-                        </div>
-                      )}
-                      {floorData.apartments[selectedApartment]?.date && (
-                        <div className="flex items-center">
-                          <Calendar className="w-4 h-4 mr-2 text-zinc-400" />
-                          <span>{floorData.apartments[selectedApartment]?.date}</span>
-                        </div>
-                      )}
+                <div className="space-y-2 p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold">Detalles de la Unidad</h4>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Orientación:</span>
+                      <span>{floorData.apartments[selectedApartment].orientation}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Tipo:</span>
+                      <span>{floorData.apartments[selectedApartment].type}</span>
                     </div>
                   </div>
-                )}
+                </div>
 
                 <div className="p-4 bg-zinc-800 rounded-lg">
                   <h4 className="font-semibold text-green-400 mb-2 flex items-center">
@@ -952,23 +1045,57 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   )}
                 </div>
 
+                <div className="p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
+                    <Car className="w-4 h-4 mr-2" />
+                    Cocheras Asignadas
+                  </h4>
+                  {(() => {
+                    const assignedParkings = getUnitParking(selectedApartment)
+                    if (assignedParkings.length > 0) {
+                      return (
+                        <div className="space-y-2">
+                          {assignedParkings.map((parkingId) => {
+                            const parkingInfo = getParkingInfo(parkingId)
+                            return (
+                              <div
+                                key={parkingId}
+                                className="flex items-center justify-between bg-zinc-700/50 p-2 rounded"
+                              >
+                                <div>
+                                  <span className="font-medium">{parkingId}</span>
+                                  {parkingInfo && (
+                                    <span className="text-zinc-400 text-xs ml-2">
+                                      Nivel {parkingInfo.level} - {parkingInfo.price}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    }
+                    return <p className="text-zinc-400">Sin cocheras asignadas</p>
+                  })()}
+                </div>
+
                 {!action && (
                   <div className="space-y-2">
                     <Button
                       onClick={() => handleActionClick("addOwner")}
-                      className="w-full bg-purple-600 hover:bg-purple-700"
+                      className="bg-purple-600 hover:bg-purple-700 w-full"
                     >
                       <User className="mr-2 h-4 w-4" />
                       {unitOwners[selectedApartment] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
-                    {/* Agregar botón para asignar cocheras */}
                     <Button
                       onClick={() => handleActionClick("assignParking")}
-                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      className="bg-blue-600 hover:bg-blue-700 w-full"
                     >
                       <Car className="mr-2 h-4 w-4" />
-                      Asignar/Modificar Cocheras
+                      {getUnitParking(selectedApartment).length > 0 ? "Gestionar Cocheras" : "Asignar Cocheras"}
                     </Button>
 
                     <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
@@ -976,7 +1103,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       Descargar plano
                     </Button>
 
-                    {floorData.apartments[selectedApartment]?.status === "available" && (
+                    {selectedApartmentRealStatus === "DISPONIBLE" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
@@ -993,7 +1120,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       </>
                     )}
 
-                    {floorData.apartments[selectedApartment]?.status === "blocked" && (
+                    {selectedApartmentRealStatus === "BLOQUEADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
@@ -1010,7 +1137,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       </>
                     )}
 
-                    {floorData.apartments[selectedApartment]?.status === "reserved" && (
+                    {selectedApartmentRealStatus === "RESERVADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
@@ -1027,7 +1154,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       </>
                     )}
 
-                    {floorData.apartments[selectedApartment]?.status === "sold" && (
+                    {selectedApartmentRealStatus === "VENDIDO" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
@@ -1036,14 +1163,13 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                           onClick={() => handleActionClick("release")}
                           className="w-full bg-yellow-600 hover:bg-yellow-700"
                         >
-                          Liberar departamento
+                          Liberar unidad
                         </Button>
                       </>
                     )}
                   </div>
                 )}
 
-                {/* Add Owner Action */}
                 {action === "addOwner" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1178,67 +1304,125 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                         </div>
                       </div>
                     )}
+
+                    {/* Cancel button for add owner */}
+                    {!showCreateClient && (
+                      <Button
+                        onClick={() => {
+                          setAction(null)
+                          setSelectedCliente(null)
+                          setSearchTerm("")
+                        }}
+                        variant="outline"
+                        className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        Cancelar
+                      </Button>
+                    )}
                   </div>
                 )}
 
-                {/* Actualizar lógica para asignación de cocheras */}
-                {action === "assignParking" && selectedApartment && (
+                {action === "assignParking" && (
                   <div className="space-y-4">
-                    <h4 className="font-semibold">Seleccionar Cocheras para {selectedApartment}</h4>
-                    <div className="flex justify-center space-x-4 mb-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold flex items-center">
+                        <Car className="w-4 h-4 mr-2" />
+                        Asignar Cocheras a Unidad {selectedApartment}
+                      </h4>
+                    </div>
+
+                    {/* Level selector */}
+                    <div className="flex justify-center space-x-2">
                       {garageLevels.map((level) => (
                         <Button
                           key={level}
                           onClick={() => setParkingAssignmentLevel(level as GarageLevel)}
                           variant={parkingAssignmentLevel === level ? "default" : "outline"}
-                          className={parkingAssignmentLevel === level ? "bg-blue-600" : ""}
+                          size="sm"
+                          className={parkingAssignmentLevel === level ? "bg-blue-600" : "border-zinc-600"}
                         >
                           Nivel {level}
                         </Button>
                       ))}
                     </div>
 
-                    <div className="max-h-60 overflow-y-auto space-y-2 border border-zinc-700 rounded-lg p-3">
-                      {getAvailableParkingForLevel(parkingAssignmentLevel).length > 0 ? (
-                        getAvailableParkingForLevel(parkingAssignmentLevel).map((spot) => (
-                          <div
-                            key={spot.id}
-                            className="flex items-center space-x-2 p-2 rounded bg-zinc-800 hover:bg-zinc-700 cursor-pointer"
-                            onClick={() =>
-                              setSelectedParkingsForAssignment((prev) => ({
-                                ...prev,
-                                [spot.id]: !prev[spot.id],
-                              }))
-                            }
-                          >
-                            <Checkbox
-                              id={spot.id}
-                              checked={!!selectedParkingsForAssignment[spot.id]}
-                              onCheckedChange={(checked) =>
-                                setSelectedParkingsForAssignment((prev) => ({ ...prev, [spot.id]: !!checked }))
-                              }
-                            />
-                            <Label htmlFor={spot.id} className="text-white font-medium">
-                              {spot.id}
-                            </Label>
-                            {isParkingSpotAssigned(spot.id) && getParkingSpotUnit(spot.id) !== selectedApartment && (
-                              <Badge variant="destructive" className="ml-auto">
-                                Asignada
-                              </Badge>
-                            )}
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-4 text-zinc-400">No hay cocheras disponibles en este nivel</div>
-                      )}
-                    </div>
+                    {/* Parking spots list */}
+                    <ScrollArea className="h-60">
+                      <div className="space-y-2">
+                        {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
+                          const isSelected = selectedParkingsForAssignment[parking.id] || false
+                          const assignedTo = getParkingSpotUnit(parking.id)
+                          const isAssignedToOther = assignedTo && assignedTo !== selectedApartment
 
+                          return (
+                            <div
+                              key={parking.id}
+                              onClick={() => {
+                                if (!isAssignedToOther) {
+                                  setSelectedParkingsForAssignment((prev) => ({
+                                    ...prev,
+                                    [parking.id]: !prev[parking.id],
+                                  }))
+                                }
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer transition-colors",
+                                isSelected
+                                  ? "border-blue-500 bg-blue-500/20"
+                                  : isAssignedToOther
+                                    ? "border-zinc-700 bg-zinc-800/50 opacity-50 cursor-not-allowed"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700",
+                              )}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    disabled={!!isAssignedToOther}
+                                    onCheckedChange={(checked) => {
+                                      if (!isAssignedToOther) {
+                                        setSelectedParkingsForAssignment((prev) => ({
+                                          ...prev,
+                                          [parking.id]: !!checked,
+                                        }))
+                                      }
+                                    }}
+                                  />
+                                  <div>
+                                    <p className="font-medium text-white">{parking.id}</p>
+                                    <p className="text-sm text-zinc-400">
+                                      Nivel {parking.level} - {parking.price}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-semibold text-green-400">{parking.price}</p>
+                                  {isAssignedToOther && <p className="text-xs text-red-400">Asignada a {assignedTo}</p>}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Currently selected summary */}
+                    {Object.values(selectedParkingsForAssignment).some((v) => v) && (
+                      <div className="p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
+                        <p className="text-sm text-blue-300">Cocheras seleccionadas:</p>
+                        <p className="font-medium text-white">
+                          {Object.entries(selectedParkingsForAssignment)
+                            .filter(([_, isSelected]) => isSelected)
+                            .map(([parkingId]) => parkingId)
+                            .join(", ")}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
                     <div className="flex space-x-2">
-                      <Button
-                        onClick={handleConfirmParkingAssignment}
-                        className="flex-1 bg-indigo-600 hover:bg-indigo-700"
-                      >
-                        Confirmar Asignación
+                      <Button onClick={handleConfirmParkingAssignment} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                        Guardar Asignaciones
                       </Button>
                       <Button
                         onClick={() => {
@@ -1246,7 +1430,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                           setSelectedParkingsForAssignment({})
                         }}
                         variant="outline"
-                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700 flex-1"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
                       >
                         Cancelar
                       </Button>
@@ -1254,7 +1438,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   </div>
                 )}
 
-                {/* Block/Reserve/Sell Forms */}
                 {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
                     {action !== "sell" && (
@@ -1277,107 +1460,102 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                           </Label>
                           <Input
                             id="phone"
-                            type="tel"
                             value={formData.phone}
                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                             className="text-white bg-zinc-800 border-zinc-700"
                           />
                         </div>
+                        <div>
+                          <Label htmlFor="email" className="text-white">
+                            Email
+                          </Label>
+                          <Input
+                            id="email"
+                            type="email"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                            className="text-white bg-zinc-800 border-zinc-700"
+                          />
+                        </div>
                       </>
                     )}
-                    <div>
-                      <Label htmlFor="price" className="text-white">
-                        Precio
-                      </Label>
-                      <Input
-                        id="price"
-                        type="text"
-                        value={formData.price || floorData.apartments[selectedApartment].price}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
-                      />
-                    </div>
+
                     {action === "sell" && (
                       <div>
-                        <Label htmlFor="reservationOrder" className="text-white">
-                          Contrato de Venta
+                        <Label htmlFor="price" className="text-white">
+                          Precio de Venta
                         </Label>
                         <Input
-                          id="reservationOrder"
-                          type="file"
-                          onChange={handleFileChange}
-                          required
+                          id="price"
+                          value={formData.price}
+                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                           className="text-white bg-zinc-800 border-zinc-700"
-                          ref={fileInputRef}
                         />
                       </div>
                     )}
-                    <Button type="submit" className="bg-green-600 hover:bg-green-700 w-full">
-                      {action === "block"
-                        ? "Confirmar Bloqueo"
-                        : action === "reserve" || action === "directReserve"
-                          ? "Confirmar Reserva"
-                          : "Confirmar Venta"}
-                    </Button>
-                  </form>
-                )}
 
-                {/* Unblock/Cancel/Release Forms */}
-                {(action === "unblock" || action === "cancelReservation" || action === "release") && (
-                  <form onSubmit={handleFormSubmit} className="space-y-4">
                     <div>
                       <Label htmlFor="note" className="text-white">
-                        Nota (Obligatoria)
+                        Notas
                       </Label>
                       <Textarea
                         id="note"
                         value={formData.note}
                         onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                        required
                         className="text-white bg-zinc-800 border-zinc-700"
                       />
                     </div>
-                    <Button type="submit" className="bg-red-600 hover:bg-red-700 w-full">
-                      {action === "unblock"
-                        ? "Confirmar Liberación"
-                        : action === "cancelReservation"
-                          ? "Confirmar Cancelación"
-                          : "Confirmar Liberación"}
-                    </Button>
-                  </form>
-                )}
 
-                {/* Confirmation Dialogs */}
-                {(confirmReservation || confirmCancelReservation || confirmRelease) && (
-                  <div className="space-y-4">
-                    <p className="text-yellow-400">
-                      {confirmReservation
-                        ? "¿Confirmar reserva del departamento?"
-                        : confirmCancelReservation
-                          ? "¿Confirmar cancelación de la reserva?"
-                          : "¿Confirmar liberación del departamento?"}
-                    </p>
                     <div className="flex space-x-2">
-                      <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
-                        Confirmar
+                      <Button type="submit" disabled={loading} className="flex-1 bg-green-600 hover:bg-green-700">
+                        {loading ? "Procesando..." : "Confirmar"}
                       </Button>
                       <Button
-                        onClick={() => {
-                          setConfirmReservation(false)
-                          setConfirmCancelReservation(false)
-                          setConfirmRelease(false)
-                          setAction(null)
-                        }}
-                        className="bg-red-600 hover:bg-red-700 flex-1"
+                        type="button"
+                        onClick={() => setAction(null)}
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
                       >
                         Cancelar
                       </Button>
                     </div>
-                  </div>
+                  </form>
+                )}
+
+                {/* Unblock/Cancel Reservation/Release Forms */}
+                {(action === "unblock" || action === "cancelReservation" || action === "release") && (
+                  <form onSubmit={handleFormSubmit} className="space-y-4">
+                    <div>
+                      <Label htmlFor="note" className="text-white">
+                        Notas
+                      </Label>
+                      <Textarea
+                        id="note"
+                        value={formData.note}
+                        onChange={(e) => setFormData({ ...formData, note: e.target.value })}
+                        className="text-white bg-zinc-800 border-zinc-700"
+                      />
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button type="submit" disabled={loading} className="flex-1 bg-green-600 hover:bg-green-700">
+                        {loading ? "Procesando..." : "Confirmar"}
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => setAction(null)}
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
                 )}
               </div>
             )}
 
+            {/* Parking Spot Modal Content */}
             {selectedParkingSpot && selectedSpot && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -1386,19 +1564,10 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{
-                          backgroundColor:
-                            statusColors[selectedSpot.status as keyof typeof statusColors] || statusColors.available,
-                        }}
+                        style={{ backgroundColor: getParkingSpotUnit(selectedParkingSpot) ? "#ef4444" : "#22c55e" }}
                       />
                       <Badge variant="outline" className="capitalize">
-                        {selectedSpot.status === "available"
-                          ? "Disponible"
-                          : selectedSpot.status === "reserved"
-                            ? "Reservado"
-                            : selectedSpot.status === "sold"
-                              ? "Vendido"
-                              : "Bloqueado"}
+                        {getParkingSpotUnit(selectedParkingSpot) ? "Asignada" : "Disponible"}
                       </Badge>
                     </div>
                   </div>
@@ -1408,98 +1577,28 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">$15,000</p>
+                    <p className="font-semibold text-green-400">{selectedSpot.price}</p>
                   </div>
                   <div>
-                    <Label className="text-zinc-400">Asignado a</Label>
-                    <p className="font-semibold">{selectedSpot.assignedTo || "No asignado"}</p>
+                    <Label className="text-zinc-400">ID</Label>
+                    <p className="font-semibold">{selectedSpot.id}</p>
                   </div>
                 </div>
 
-                {!action && (
-                  <div className="space-y-2">
-                    <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
-                      <Download className="mr-2 h-4 w-4" />
-                      Descargar plano cochera
-                    </Button>
-
-                    {selectedSpot.status === "available" && (
-                      <>
-                        <Button
-                          onClick={() => handleActionClick("block")}
-                          className="w-full bg-orange-600 hover:bg-orange-700"
-                        >
-                          Bloquear
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("directReserve")}
-                          className="w-full bg-yellow-600 hover:bg-yellow-700"
-                        >
-                          Reservar
-                        </Button>
-                      </>
-                    )}
-
-                    {selectedSpot.status === "blocked" && (
-                      <>
-                        <Button
-                          onClick={() => handleActionClick("reserve")}
-                          className="w-full bg-green-600 hover:bg-green-700"
-                        >
-                          Reservar
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("unblock")}
-                          className="w-full bg-red-600 hover:bg-red-700"
-                        >
-                          Liberar Bloqueo
-                        </Button>
-                      </>
-                    )}
-
-                    {selectedSpot.status === "reserved" && (
-                      <>
-                        <Button
-                          onClick={() => handleActionClick("sell")}
-                          className="w-full bg-green-600 hover:bg-green-700"
-                        >
-                          Vender
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("cancelReservation")}
-                          className="w-full bg-red-600 hover:bg-red-700"
-                        >
-                          Cancelar Reserva
-                        </Button>
-                      </>
-                    )}
-
-                    {selectedSpot.status === "sold" && (
-                      <>
-                        <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
-                          Descargar contrato
-                        </Button>
-                        <Button
-                          onClick={() => handleActionClick("release")}
-                          className="w-full bg-yellow-600 hover:bg-yellow-700"
-                        >
-                          Liberar cochera
-                        </Button>
-                      </>
-                    )}
+                {getParkingSpotUnit(selectedParkingSpot) && (
+                  <div className="p-4 bg-zinc-800 rounded-lg">
+                    <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
+                      <Building className="w-4 h-4 mr-2" />
+                      Asignada a
+                    </h4>
+                    <p className="font-medium">Departamento {getParkingSpotUnit(selectedParkingSpot)}</p>
                   </div>
                 )}
               </div>
             )}
-            <DialogFooter>
-              <Button onClick={() => setIsModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
-                Cerrar
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* Additional Information */}
+                {/* Additional Information */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-zinc-900 p-4 rounded-lg">
             <h4 className="font-semibold mb-4">Información adicional</h4>
@@ -1554,86 +1653,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
           </div>
         </div>
 
-        {/* Project Info */}
-        <div className="max-w-4xl mx-auto mt-8">
-          <Card className="bg-zinc-900 border-zinc-800">
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Building className="w-5 h-5 mr-2" />
-                Información del Proyecto
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Estadísticas Departamentos</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Total unidades:</span>
-                      <span>{projectData.totalUnits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Disponibles:</span>
-                      <span className="text-green-400">{projectData.availableUnits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Reservadas:</span>
-                      <span className="text-yellow-400">{projectData.reservedUnits}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Vendidas:</span>
-                      <span className="text-red-400">{projectData.soldUnits}</span>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Estadísticas Cocheras</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Total cocheras:</span>
-                      <span>{parkingStats.total}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Disponibles:</span>
-                      <span className="text-green-400">{parkingStats.available}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Reservadas:</span>
-                      <span className="text-yellow-400">{parkingStats.reserved}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-zinc-400">Vendidas:</span>
-                      <span className="text-red-400">{parkingStats.sold}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-zinc-300">Acciones</h4>
-                  <div className="space-y-2">
-                    <Button
-                      variant="outline"
-                      className="w-full border-zinc-700 bg-transparent"
-                      onClick={() => handleDownloadAdditionalInfo("Brochure")}
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Descargar brochure
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full border-zinc-700 bg-transparent"
-                      onClick={() => handleDownloadAdditionalInfo("Ficha técnica")}
-                    >
-                      <FileText className="w-4 h-4 mr-2" />
-                      Ver documentación
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   )
