@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { domeProjectInfo, getDomeProjectStats, domeFloorsData, domePlantaBajaData } from "@/lib/dome-puertos-data"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 type DomeProjectModalProps = {
   isOpen: boolean
@@ -24,12 +25,13 @@ type Floor = {
   availableUnits: number
   reservedUnits: number
   soldUnits: number
+  blockedUnits: number
   path: string
   x: number
   y: number
 }
 
-const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved" | "sold") => {
+const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved" | "sold" | "blocked") => {
   switch (filter) {
     case "available":
       return floor.availableUnits
@@ -37,8 +39,10 @@ const getFilteredUnits = (floor: Floor, filter: "all" | "available" | "reserved"
       return floor.reservedUnits
     case "sold":
       return floor.soldUnits
+    case "blocked":
+      return floor.blockedUnits
     default:
-      return floor.availableUnits + floor.reservedUnits + floor.soldUnits
+      return floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
   }
 }
 
@@ -51,23 +55,36 @@ export function DomeProjectModal({
 }: DomeProjectModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "units" | "features" | "financial" | "location">("overview")
   const [refreshing, setRefreshing] = useState(false)
-  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
+  const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold" | "blocked">("all")
+
+  const { unitStatuses } = useUnitStorage("lagos")
 
   const stats = getDomeProjectStats()
 
-  // Crear datos de pisos para la visualización
+  const getRealStatus = useCallback(
+    (unitNumber: string, originalStatus: string) => {
+      if (unitStatuses && unitStatuses[unitNumber]) {
+        return unitStatuses[unitNumber]
+      }
+      return originalStatus
+    },
+    [unitStatuses],
+  )
+
   const floors: Floor[] = useMemo(() => {
     const floorData = []
 
     // Planta Baja
     const pbStats = domePlantaBajaData.reduce(
       (acc, apt) => {
-        if (apt.status === "DISPONIBLE") acc.available++
-        else if (apt.status === "reservado") acc.reserved++
-        else if (apt.status === "VENDIDO") acc.sold++
+        const realStatus = getRealStatus(apt.unitNumber, apt.status)
+        if (realStatus === "DISPONIBLE") acc.available++
+        else if (realStatus === "reservado") acc.reserved++
+        else if (realStatus === "VENDIDO") acc.sold++
+        else if (realStatus === "bloqueado") acc.blocked++
         return acc
       },
-      { available: 0, reserved: 0, sold: 0 },
+      { available: 0, reserved: 0, sold: 0, blocked: 0 },
     )
 
     floorData.push({
@@ -75,6 +92,7 @@ export function DomeProjectModal({
       availableUnits: pbStats.available,
       reservedUnits: pbStats.reserved,
       soldUnits: pbStats.sold,
+      blockedUnits: pbStats.blocked,
       path: "",
       x: 448,
       y: 680,
@@ -85,12 +103,14 @@ export function DomeProjectModal({
       const allApartments = [...floor.sections.A, ...floor.sections.B, ...floor.sections.C]
       const floorStats = allApartments.reduce(
         (acc, apt) => {
-          if (apt.status === "DISPONIBLE") acc.available++
-          else if (apt.status === "reservado") acc.reserved++
-          else if (apt.status === "VENDIDO") acc.sold++
+          const realStatus = getRealStatus(apt.unitNumber, apt.status)
+          if (realStatus === "DISPONIBLE") acc.available++
+          else if (realStatus === "reservado") acc.reserved++
+          else if (realStatus === "VENDIDO") acc.sold++
+          else if (realStatus === "bloqueado") acc.blocked++
           return acc
         },
-        { available: 0, reserved: 0, sold: 0 },
+        { available: 0, reserved: 0, sold: 0, blocked: 0 },
       )
 
       floorData.push({
@@ -98,6 +118,7 @@ export function DomeProjectModal({
         availableUnits: floorStats.available,
         reservedUnits: floorStats.reserved,
         soldUnits: floorStats.sold,
+        blockedUnits: floorStats.blocked,
         path: "",
         x: 448,
         y: 680 - (floor.level - 1) * 80,
@@ -105,7 +126,21 @@ export function DomeProjectModal({
     })
 
     return floorData
-  }, [])
+  }, [getRealStatus])
+
+  const totalStats = useMemo(() => {
+    return floors.reduce(
+      (acc, floor) => {
+        acc.total += floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
+        acc.available += floor.availableUnits
+        acc.reserved += floor.reservedUnits
+        acc.sold += floor.soldUnits
+        acc.blocked += floor.blockedUnits
+        return acc
+      },
+      { total: 0, available: 0, reserved: 0, sold: 0, blocked: 0 },
+    )
+  }, [floors])
 
   const refreshData = useCallback(async () => {
     setRefreshing(true)
@@ -124,7 +159,7 @@ export function DomeProjectModal({
     onViewPlanes(floorNumber)
   }
 
-  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold") => {
+  const handleFilterChange = useCallback((filter: "all" | "available" | "reserved" | "sold" | "blocked") => {
     setCurrentFilter(filter)
   }, [])
 
@@ -148,7 +183,6 @@ export function DomeProjectModal({
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 />
 
-                {/* SVG Overlay para pisos */}
                 <svg
                   viewBox="850 93 3000 800"
                   className="absolute top-0 left-0 w-full h-full"
@@ -157,13 +191,15 @@ export function DomeProjectModal({
                   <g transform="scale(5.3, 0.8) translate(-200, 50)">
                     <AnimatePresence>
                       {floors.map((floor) => {
-                        const totalUnits = floor.availableUnits + floor.reservedUnits + floor.soldUnits
+                        const totalUnits =
+                          floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
                         if (totalUnits === 0) return null
 
                         const floorWidth = 400
                         const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
                         const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
-                        const availableWidth = floorWidth - soldWidth - reservedWidth
+                        const blockedWidth = totalUnits > 0 ? (floor.blockedUnits / totalUnits) * floorWidth : 0
+                        const availableWidth = floorWidth - soldWidth - reservedWidth - blockedWidth
 
                         return (
                           <g
@@ -206,6 +242,20 @@ export function DomeProjectModal({
                             <motion.rect
                               x={floor.x + soldWidth + reservedWidth}
                               y={floor.y}
+                              width={blockedWidth}
+                              height="40"
+                              fill="#60a5fa"
+                              stroke="white"
+                              strokeWidth="1"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 0.8 }}
+                              exit={{ opacity: 0 }}
+                              whileHover={{ opacity: 1 }}
+                              transition={{ duration: 0.2 }}
+                            />
+                            <motion.rect
+                              x={floor.x + soldWidth + reservedWidth + blockedWidth}
+                              y={floor.y}
                               width={availableWidth}
                               height="40"
                               fill="#87f5af"
@@ -224,7 +274,6 @@ export function DomeProjectModal({
                   </g>
                 </svg>
 
-                {/* Leyenda de estados */}
                 <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 p-2 rounded">
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 mr-2"></div>
@@ -233,6 +282,10 @@ export function DomeProjectModal({
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4 bg-yellow-500 mr-2"></div>
                     <span className="text-white text-xs sm:text-sm">Reservado</span>
+                  </div>
+                  <div className="flex items-center mb-1">
+                    <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-400 mr-2"></div>
+                    <span className="text-white text-xs sm:text-sm">Bloqueado</span>
                   </div>
                   <div className="flex items-center">
                     <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-500 mr-2"></div>
@@ -315,34 +368,44 @@ export function DomeProjectModal({
                         </div>
 
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm sm:text-base">Total de unidades: {stats.totalUnits}</h4>
+                          <h4 className="font-medium text-sm sm:text-base">Total de unidades: {totalStats.total}</h4>
                           <Progress value={100} className="w-full" />
                         </div>
 
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades disponibles: {stats.availableUnits}
+                            Unidades disponibles: {totalStats.available}
                           </h4>
                           <Progress
-                            value={stats.totalUnits > 0 ? (stats.availableUnits / stats.totalUnits) * 100 : 0}
+                            value={totalStats.total > 0 ? (totalStats.available / totalStats.total) * 100 : 0}
                             className="w-full"
                           />
                         </div>
 
                         <div className="space-y-2">
                           <h4 className="font-medium text-sm sm:text-base">
-                            Unidades reservadas: {stats.reservedUnits}
+                            Unidades reservadas: {totalStats.reserved}
                           </h4>
                           <Progress
-                            value={stats.totalUnits > 0 ? (stats.reservedUnits / stats.totalUnits) * 100 : 0}
+                            value={totalStats.total > 0 ? (totalStats.reserved / totalStats.total) * 100 : 0}
                             className="w-full"
                           />
                         </div>
 
                         <div className="space-y-2">
-                          <h4 className="font-medium text-sm sm:text-base">Unidades vendidas: {stats.soldUnits}</h4>
+                          <h4 className="font-medium text-sm sm:text-base">Unidades vendidas: {totalStats.sold}</h4>
                           <Progress
-                            value={stats.totalUnits > 0 ? (stats.soldUnits / stats.totalUnits) * 100 : 0}
+                            value={totalStats.total > 0 ? (totalStats.sold / totalStats.total) * 100 : 0}
+                            className="w-full"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <h4 className="font-medium text-sm sm:text-base">
+                            Unidades bloqueadas: {totalStats.blocked}
+                          </h4>
+                          <Progress
+                            value={totalStats.total > 0 ? (totalStats.blocked / totalStats.total) * 100 : 0}
                             className="w-full"
                           />
                         </div>
@@ -378,6 +441,13 @@ export function DomeProjectModal({
                             >
                               Vendidas
                             </Button>
+                            <Button
+                              variant={currentFilter === "blocked" ? "default" : "outline"}
+                              onClick={() => handleFilterChange("blocked")}
+                              className="text-xs sm:text-sm px-2 py-1 sm:px-3 sm:py-2"
+                            >
+                              Bloqueadas
+                            </Button>
                           </div>
                           <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-1 sm:gap-2">
                             {floors.map((floor) => (
@@ -402,7 +472,9 @@ export function DomeProjectModal({
                                       ? "Libre"
                                       : currentFilter === "reserved"
                                         ? "Reservadas"
-                                        : "Vendidas"}
+                                        : currentFilter === "blocked"
+                                          ? "Bloqueadas"
+                                          : "Vendidas"}
                                 </span>
                               </Button>
                             ))}

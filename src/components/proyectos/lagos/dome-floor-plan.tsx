@@ -48,12 +48,11 @@ import {
   formatArea,
   updateDomeApartmentStatus,
   getStatusColor,
-  type ParkingSpot, // Import ParkingSpot interface
-  getParkingSpotColor, // Import getParkingSpotColor function
-  getParkingSpotsByLevel, // Import getParkingSpotsByLevel function
+  type ParkingSpot,
+  getParkingSpotsByLevel,
 } from "@/lib/dome-puertos-data"
-import { Badge } from "@/components/ui/badge" // Import Badge
-import { useUnitStorage } from "@/lib/hooks/useUnitStorage" // Import useUnitStorage
+import { Badge } from "@/components/ui/badge"
+import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 let notyf: Notyf | null = null
 
@@ -76,14 +75,6 @@ interface NewClienteData {
   estado: string
 }
 
-interface UnitOwner {
-  name: string
-  email: string
-  phone: string
-  type: string
-  assignedAt: string
-}
-
 type DomeFloorPlanProps = {
   floorNumber?: number | null
   onReturnToProjectModal: () => void
@@ -92,7 +83,6 @@ type DomeFloorPlanProps = {
 const floors = [0, 1, 2, 3, 4, 5]
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
-// Garage plan images for Dome Lagos (Puertos)
 const garageLevels = [1]
 const garagePlans = {
   1: "/planos/lagos/cochera/nivel1.png",
@@ -119,15 +109,16 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
 
-  // CHANGE: Usar hook de almacenamiento local
   const {
     unitOwners,
+    unitStatuses,
     addOwner,
-    parkingAssignments,
+    removeOwner, // Added removeOwner from hook
     assignParking,
     getUnitParking,
     isParkingSpotAssigned,
     getParkingSpotUnit,
+    updateStatus, // Added updateStatus from hook
   } = useUnitStorage("lagos")
 
   const [action, setAction] = useState<
@@ -155,25 +146,16 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
   const [confirmRelease, setConfirmRelease] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedParking, setSelectedParking] = useState<string | null>(null)
   const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
-  const [parkingSpots, setParkingSpots] = useState<any[]>([])
-  const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
-  const [showParkingAssignment, setShowParkingAssignment] = useState(false)
-  const [selectedParkings, setSelectedParkings] = useState<{ [key: string]: boolean }>({})
-  const [isParkingInfoModalOpen, setIsParkingInfoModalOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Add state for parking spots after existing state declarations
   const [selectedParkingSpot, setSelectedParkingSpot] = useState<ParkingSpot | null>(null)
   const [isParkingSpotModalOpen, setIsParkingSpotModalOpen] = useState(false)
 
   const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
   const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState(1)
 
-  // Initialize Notyf
   useEffect(() => {
     if (typeof window !== "undefined" && !notyf) {
       notyf = new Notyf({
@@ -183,7 +165,32 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     }
   }, [])
 
-  // Obtener datos del piso seleccionado
+  const getRealStatus = useCallback(
+    (apartment: DomeApartment): DomeApartment["status"] => {
+      if (unitStatuses && unitStatuses[apartment.unitNumber]) {
+        const storedStatus = unitStatuses[apartment.unitNumber].status
+        // Map backend status format to local status format
+        const statusMap: { [key: string]: DomeApartment["status"] } = {
+          DISPONIBLE: "DISPONIBLE",
+          RESERVADO: "reservado",
+          VENDIDO: "VENDIDO",
+          BLOQUEADO: "bloqueado",
+        }
+        return statusMap[storedStatus] || apartment.status
+      }
+      return apartment.status
+    },
+    [unitStatuses],
+  )
+
+  const getRealStatusColor = useCallback(
+    (apartment: DomeApartment): string => {
+      const realStatus = getRealStatus(apartment)
+      return getStatusColor(realStatus)
+    },
+    [getRealStatus],
+  )
+
   const getCurrentFloorData = useCallback(() => {
     if (currentFloor === 0) {
       return {
@@ -206,6 +213,22 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
   }, [currentFloor])
 
   const currentFloorData = getCurrentFloorData()
+
+  const getUnitStats = useCallback(() => {
+    if (!currentFloorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
+
+    return currentFloorData.apartments.reduce(
+      (acc, apt) => {
+        const realStatus = getRealStatus(apt)
+        if (realStatus === "DISPONIBLE") acc.available++
+        else if (realStatus === "reservado") acc.reserved++
+        else if (realStatus === "VENDIDO") acc.sold++
+        else if (realStatus === "bloqueado") acc.blocked++
+        return acc
+      },
+      { available: 0, reserved: 0, sold: 0, blocked: 0 },
+    )
+  }, [currentFloorData, getRealStatus])
 
   const handleApartmentClick = useCallback((apartment: DomeApartment) => {
     setSelectedApartment(apartment)
@@ -326,7 +349,6 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     if (!selectedCliente || !selectedApartment) return
 
     try {
-      // CHANGE: Usar addOwner del hook para guardar en localStorage
       addOwner(selectedApartment.unitNumber, {
         name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
         email: selectedCliente.email,
@@ -369,7 +391,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
       newAction === "release"
     ) {
       setConfirmReservation(
-        newAction === "reserve" && selectedApartment !== null && selectedApartment.status === "bloqueado",
+        newAction === "reserve" && selectedApartment !== null && getRealStatus(selectedApartment) === "bloqueado",
       )
       setConfirmCancelReservation(newAction === "cancelReservation")
       setConfirmRelease(newAction === "release")
@@ -406,14 +428,6 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     }
   }
 
-  const getParkingInfo = (parkingId: string) => {
-    // Assuming getParkingSpotsByLevel returns all spots for a level.
-    // We might need a way to get a specific spot by its ID or number.
-    // For now, let's assume we can find it within level 1 spots.
-    const spots = getParkingSpotsByLevel(1) // Adjust level if needed
-    return spots.find((p) => p.id === parkingId || p.number === parkingId)
-  }
-
   const getAvailableParkingForLevel = (level: number) => {
     const spots = getParkingSpotsByLevel(level)
     return spots.filter((parking) => {
@@ -428,7 +442,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     if (!selectedApartment || !user) return
 
     try {
-      let newStatus: DomeApartment["status"] = selectedApartment.status
+      let newStatus: DomeApartment["status"] = getRealStatus(selectedApartment)
 
       switch (action) {
         case "block":
@@ -442,6 +456,8 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
           newStatus = "VENDIDO"
           break
         case "unblock":
+        case "cancelReservation":
+        case "release":
           newStatus = "DISPONIBLE"
           break
       }
@@ -449,6 +465,14 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
       const success = updateDomeApartmentStatus(selectedApartment.id, newStatus)
 
       if (success) {
+        await updateStatus(selectedApartment.unitNumber, {
+          id: selectedApartment.id,
+          status: newStatus.toUpperCase() as "DISPONIBLE" | "RESERVADO" | "VENDIDO" | "BLOQUEADO",
+          changedAt: new Date().toISOString(),
+          changedBy: user.name || user.email,
+          notes: formData.note || undefined,
+        })
+
         if (notyf) {
           switch (action) {
             case "block":
@@ -473,7 +497,6 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
           }
         }
 
-        // Actualizar el registro de actividades
         const timestamp = new Date().toLocaleString()
         const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} el departamento ${selectedApartment.unitNumber}`
         setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
@@ -506,7 +529,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
   const handleDownloadFloorPlan = () => {
     if (!selectedApartment) return
 
-    const filePath = "/general/planosgenerales/Planos_DOME-Puertos-Lagos.pdf"
+    const filePath = "/general/planosgenerales/Plano_DOME-Puertos-Lagos.pdf"
     const link = document.createElement("a")
     link.href = filePath
     link.download = "Plano_Puertos_Lagos.pdf"
@@ -526,7 +549,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
         filePath = "/general/precios/Lista_DOME-Puertos-Lagos.pdf"
         break
       case "Plano del edificio":
-        filePath = "/general/planosgenerales/Planos_DOME-Puertos-Lagos.pdf"
+        filePath = "/general/planosgenerales/Plano_DOME-Puertos-Lagos.pdf"
         break
       case "Plano de la cochera":
         filePath = "/general/cocheras/Cochera_DOME-Puertos-Lagos.pdf"
@@ -560,13 +583,11 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     if (notyf) notyf.success("Datos actualizados")
   }
 
-  // Obtener la imagen del plano para el piso actual
   const getFloorPlanImage = () => {
     const floorPlan = domeFloorPlans[currentFloor as keyof typeof domeFloorPlans]
     return floorPlan?.complete || "/planos/lagos/lagospb.jpg"
   }
 
-  // Add parking spot click handler
   const handleParkingSpotClick = useCallback((parkingSpot: ParkingSpot) => {
     setSelectedParkingSpot(parkingSpot)
     setIsParkingSpotModalOpen(true)
@@ -586,6 +607,8 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     )
   }
 
+  const unitStats = getUnitStats()
+
   return (
     <div className="min-h-screen bg-black text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -600,7 +623,16 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
               <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
               {refreshing ? "Actualizando..." : "Actualizar datos"}
             </Button>
-
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="autoRefresh"
+                checked={autoRefresh}
+                onCheckedChange={(checked) => setAutoRefresh(checked === true)}
+              />
+              <Label htmlFor="autoRefresh" className="text-sm">
+                Auto-actualizar
+              </Label>
+            </div>
           </div>
         </div>
 
@@ -637,27 +669,18 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                 </div>
                 <div className="relative aspect-video">
                   <Image
-                    src={
-                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
-                      "/placeholder.svg?height=600&width=800" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg"
-                    }
+                    src={garagePlans[currentGarageLevel as keyof typeof garagePlans] || "/placeholder.svg"}
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
                     fill
                     className="object-contain pointer-events-none"
                   />
 
-                  {/* SVG overlay for clickable parking spots */}
                   <div className="absolute inset-0 z-10">
                     <svg viewBox="0 120 1600 600" className="w-full h-full" style={{ pointerEvents: "all" }}>
                       {getParkingSpotsByLevel(currentGarageLevel).map((spot) => {
                         const coords = spot.coordinates.split(",").map(Number)
+                        const isAssigned = !!getParkingSpotUnit(spot.id)
                         if (coords.length === 4) {
-                          // Ensure it's a rectangle (x1,y1,x2,y2)
                           return (
                             <rect
                               key={spot.id}
@@ -665,7 +688,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                               y={coords[1]}
                               width={coords[2] - coords[0]}
                               height={coords[3] - coords[1]}
-                              fill={getParkingSpotColor(spot.status)}
+                              fill={isAssigned ? "#ef4444" : "#22c55e"}
                               stroke="white"
                               strokeWidth="2"
                               opacity="0.7"
@@ -678,6 +701,16 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                         return null
                       })}
                     </svg>
+                  </div>
+                </div>
+                <div className="flex justify-center gap-6 mt-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-green-500"></div>
+                    <span className="text-sm text-zinc-300">Libre</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded bg-red-500"></div>
+                    <span className="text-sm text-zinc-300">Asignada</span>
                   </div>
                 </div>
               </div>
@@ -736,7 +769,6 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                   className="pointer-events-none"
                 />
 
-                {/* SVG overlay for clickable areas */}
                 <div className="absolute inset-0 z-10">
                   <svg viewBox="0 0 1000 530" className="w-full h-full" style={{ pointerEvents: "all" }}>
                     {currentFloorData.apartments.map((apartment) => {
@@ -752,7 +784,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                         <polygon
                           key={apartment.id}
                           points={points.join(" ")}
-                          fill={getStatusColor(apartment.status)}
+                          fill={getRealStatusColor(apartment)}
                           stroke="white"
                           strokeWidth="2"
                           opacity="0.7"
@@ -770,33 +802,29 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                 <h3 className="text-lg font-bold">{currentFloorData.name}</h3>
                 <p className="text-zinc-400 text-sm">Selecciona los departamentos para ver su estado.</p>
               </div>
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                  <div className="bg-green-500/20 border border-green-500/50 rounded-lg p-2 text-center">
+                    <p className="text-xs text-green-400">Disponibles</p>
+                    <p className="text-lg font-bold text-green-400">{unitStats.available}</p>
+                  </div>
+                  <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-2 text-center">
+                    <p className="text-xs text-yellow-400">Reservados</p>
+                    <p className="text-lg font-bold text-yellow-400">{unitStats.reserved}</p>
+                  </div>
+                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-2 text-center">
+                    <p className="text-xs text-red-400">Vendidos</p>
+                    <p className="text-lg font-bold text-red-400">{unitStats.sold}</p>
+                  </div>
+                  <div className="bg-blue-500/20 border border-blue-500/50 rounded-lg p-2 text-center">
+                    <p className="text-xs text-blue-400">Bloqueados</p>
+                    <p className="text-lg font-bold text-blue-400">{unitStats.blocked}</p>
+                  </div>
+                </div>
             </div>
+            
           </TabsContent>
         </Tabs>
 
-        {/* Legend */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-zinc-900 p-4 rounded-lg">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-green-400 mr-2 rounded"></div>
-                <span className="text-sm">Disponible</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-yellow-400 mr-2 rounded"></div>
-                <span className="text-sm">Reservado</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-red-400 mr-2 rounded"></div>
-                <span className="text-sm">Vendido</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-blue-400 mr-2 rounded"></div>
-                <span className="text-sm">Bloqueado</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
         {/* Apartment Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -813,10 +841,10 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getStatusColor(selectedApartment.status) }}
+                        style={{ backgroundColor: getRealStatusColor(selectedApartment) }}
                       />
                       <Badge variant="outline" className="capitalize">
-                        {getStatusLabel(selectedApartment.status)}
+                        {getStatusLabel(getRealStatus(selectedApartment))}
                       </Badge>
                     </div>
                   </div>
@@ -852,6 +880,24 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                       <span>{selectedApartment.parkingSpots}</span>
                     </div>
                   </div>
+                </div>
+
+                <div className="p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
+                    <Car className="w-4 h-4 mr-2" />
+                    Cocheras Asignadas
+                  </h4>
+                  {getUnitParking(selectedApartment.unitNumber).length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {getUnitParking(selectedApartment.unitNumber).map((parkingId) => (
+                        <Badge key={parkingId} variant="secondary" className="bg-blue-600/20 text-blue-400">
+                          {parkingId}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-zinc-400 text-sm">Sin cocheras asignadas</p>
+                  )}
                 </div>
 
                 <div className="p-4 bg-zinc-800 rounded-lg">
@@ -892,12 +938,20 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                       {unitOwners[selectedApartment.unitNumber] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
+                    <Button
+                      onClick={() => handleActionClick("assignParking")}
+                      className="bg-blue-600 hover:bg-blue-700 w-full"
+                    >
+                      <Car className="mr-2 h-4 w-4" />
+                      Asignar Cochera
+                    </Button>
+
                     <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                       <Download className="mr-2 h-4 w-4" />
                       Descargar plano
                     </Button>
 
-                    {selectedApartment.status === "DISPONIBLE" && (
+                    {getRealStatus(selectedApartment) === "DISPONIBLE" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
@@ -914,7 +968,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                       </>
                     )}
 
-                    {selectedApartment.status === "bloqueado" && (
+                    {getRealStatus(selectedApartment) === "bloqueado" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
@@ -931,7 +985,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                       </>
                     )}
 
-                    {selectedApartment.status === "reservado" && (
+                    {getRealStatus(selectedApartment) === "reservado" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
@@ -948,7 +1002,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                       </>
                     )}
 
-                    {selectedApartment.status === "VENDIDO" && (
+                    {getRealStatus(selectedApartment) === "VENDIDO" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
@@ -1029,6 +1083,14 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                             Asignar como Propietario
                           </Button>
                         )}
+
+                        <Button
+                          onClick={() => setAction(null)}
+                          variant="outline"
+                          className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                        >
+                          Cancelar
+                        </Button>
                       </>
                     ) : (
                       <div className="space-y-4">
@@ -1167,6 +1229,14 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                           ? "Confirmar Reserva"
                           : "Confirmar Venta"}
                     </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setAction(null)}
+                      variant="outline"
+                      className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                    >
+                      Cancelar
+                    </Button>
                   </form>
                 )}
 
@@ -1192,6 +1262,14 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                           ? "Confirmar Cancelación"
                           : "Confirmar Liberación"}
                     </Button>
+                    <Button
+                      type="button"
+                      onClick={() => setAction(null)}
+                      variant="outline"
+                      className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                    >
+                      Cancelar
+                    </Button>
                   </form>
                 )}
 
@@ -1201,10 +1279,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                     <h4 className="font-semibold">Asignar Cocheras a {selectedApartment.unitNumber}</h4>
                     <Tabs
                       value={String(parkingAssignmentLevel)}
-                      onValueChange={(value) => {
-                        setParkingAssignmentLevel(Number(value))
-                        // Optionally reset selections for the new level if needed
-                      }}
+                      onValueChange={(value) => setParkingAssignmentLevel(Number(value))}
                       className="mb-4"
                     >
                       <TabsList className="grid w-full grid-cols-1 bg-zinc-800">
@@ -1257,6 +1332,13 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                     >
                       Confirmar Asignación de Cocheras
                     </Button>
+                    <Button
+                      onClick={() => setAction(null)}
+                      variant="outline"
+                      className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                    >
+                      Cancelar
+                    </Button>
                   </div>
                 )}
 
@@ -1298,7 +1380,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
           </DialogContent>
         </Dialog>
 
-        {/* parking spot modal */}
+        {/* Parking spot modal */}
         <Dialog open={isParkingSpotModalOpen} onOpenChange={setIsParkingSpotModalOpen}>
           <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
             <DialogHeader>
@@ -1312,55 +1394,19 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                   </p>
                   <p>
                     <strong>Estado:</strong>{" "}
-                    {selectedParkingSpot.status === "available"
-                      ? "Disponible"
-                      : selectedParkingSpot.status === "reserved"
-                        ? "Reservada"
-                        : "Vendida"}
+                    <span className={getParkingSpotUnit(selectedParkingSpot.id) ? "text-red-400" : "text-green-400"}>
+                      {getParkingSpotUnit(selectedParkingSpot.id) ? "Asignada" : "Libre"}
+                    </span>
                   </p>
                   <p>
                     <strong>Precio:</strong> {formatPrice(selectedParkingSpot.price)}
                   </p>
-                  {selectedParkingSpot.assignedTo && (
+                  {getParkingSpotUnit(selectedParkingSpot.id) && (
                     <p>
-                      <strong>Asignada a:</strong> {selectedParkingSpot.assignedTo}
+                      <strong>Asignada a:</strong> Unidad {getParkingSpotUnit(selectedParkingSpot.id)}
                     </p>
                   )}
                 </DialogDescription>
-
-                {selectedParkingSpot.status === "available" && (
-                  <div className="space-y-2">
-                    <Button
-                      className="bg-green-600 hover:bg-green-700 w-full"
-                      onClick={() => {
-                        // Logic to navigate to assign parking action for this spot
-                        // This would likely involve setting selectedParkingSpot and then calling handleActionClick("assignParking")
-                        // For now, we'll just close the modal or navigate to the assignment view.
-                        // A more integrated approach might be needed here.
-                        if (selectedApartment) {
-                          // Ensure an apartment is selected to assign to
-                          handleActionClick("assignParking")
-                          setIsParkingSpotModalOpen(false)
-                        } else {
-                          // Optionally prompt user to select an apartment first
-                          if (notyf) notyf.error("Por favor, selecciona un departamento primero.")
-                        }
-                      }}
-                    >
-                      Asignar Cochera
-                    </Button>
-                  </div>
-                )}
-                {selectedParkingSpot.status === "reserved" && (
-                  <div className="space-y-2">
-                    <Button className="bg-yellow-600 hover:bg-yellow-700 w-full">Gestionar Reserva</Button>
-                  </div>
-                )}
-                {selectedParkingSpot.status === "sold" && (
-                  <div className="space-y-2">
-                    <Button className="bg-red-600 hover:bg-red-700 w-full">Ver Detalles de Venta</Button>
-                  </div>
-                )}
               </div>
             )}
             <DialogFooter>

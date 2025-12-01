@@ -130,7 +130,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "A101",
         sector: "A",
-        unitNumber: "101",
+        unitNumber: "A101",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin - Esquinero",
         coveredArea: 86.49,
@@ -153,7 +153,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "A102",
         sector: "A",
-        unitNumber: "102",
+        unitNumber: "A102",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -176,7 +176,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "A103",
         sector: "A",
-        unitNumber: "103",
+        unitNumber: "A103",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -199,7 +199,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "A104",
         sector: "A",
-        unitNumber: "104",
+        unitNumber: "A104",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -222,7 +222,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "A105",
         sector: "A",
-        unitNumber: "105",
+        unitNumber: "A105",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -245,7 +245,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "A106",
         sector: "A",
-        unitNumber: "106",
+        unitNumber: "A106",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -268,7 +268,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "A107",
         sector: "A",
-        unitNumber: "107",
+        unitNumber: "A107",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -293,7 +293,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "B101",
         sector: "B",
-        unitNumber: "101",
+        unitNumber: "B101",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -316,7 +316,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "B102",
         sector: "B",
-        unitNumber: "102",
+        unitNumber: "B102",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 71.69,
@@ -339,7 +339,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "B103",
         sector: "B",
-        unitNumber: "103",
+        unitNumber: "B103",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 51.0,
@@ -362,7 +362,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "B104",
         sector: "B",
-        unitNumber: "104",
+        unitNumber: "B104",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -385,7 +385,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "B105",
         sector: "B",
-        unitNumber: "105",
+        unitNumber: "B105",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -408,7 +408,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "B106",
         sector: "B",
-        unitNumber: "106",
+        unitNumber: "B106",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -433,7 +433,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "C101",
         sector: "C",
-        unitNumber: "101",
+        unitNumber: "C101",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -457,7 +457,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "C102",
         sector: "C",
-        unitNumber: "102",
+        unitNumber: "C102",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -480,7 +480,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "C103",
         sector: "C",
-        unitNumber: "103",
+        unitNumber: "C103",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -503,7 +503,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "C104",
         sector: "C",
-        unitNumber: "104",
+        unitNumber: "C104",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 66.99,
@@ -526,7 +526,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "C105",
         sector: "C",
-        unitNumber: "105",
+        unitNumber: "C105",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 49.32,
@@ -549,7 +549,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "C106",
         sector: "C",
-        unitNumber: "106",
+        unitNumber: "C106",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -572,7 +572,7 @@ const nivel1Data: DomeFloor = {
       {
         id: "C107",
         sector: "C",
-        unitNumber: "107",
+        unitNumber: "C107",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -605,7 +605,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "A201",
         sector: "A",
-        unitNumber: "201",
+        unitNumber: "A201",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin - Esquinero",
         coveredArea: 86.49,
@@ -628,7 +628,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "A202",
         sector: "A",
-        unitNumber: "202",
+        unitNumber: "A202",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -651,7 +651,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "A203",
         sector: "A",
-        unitNumber: "203",
+        unitNumber: "A203",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -674,7 +674,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "A204",
         sector: "A",
-        unitNumber: "204",
+        unitNumber: "A204",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -697,7 +697,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "A205",
         sector: "A",
-        unitNumber: "205",
+        unitNumber: "A205",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -720,7 +720,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "A206",
         sector: "A",
-        unitNumber: "206",
+        unitNumber: "A206",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -743,7 +743,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "A207",
         sector: "A",
-        unitNumber: "207",
+        unitNumber: "A207",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -768,7 +768,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "B201",
         sector: "B",
-        unitNumber: "201",
+        unitNumber: "B201",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -791,7 +791,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "B202",
         sector: "B",
-        unitNumber: "202",
+        unitNumber: "B202",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 71.69,
@@ -814,7 +814,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "B203",
         sector: "B",
-        unitNumber: "203",
+        unitNumber: "B203",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 51.0,
@@ -837,7 +837,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "B204",
         sector: "B",
-        unitNumber: "204",
+        unitNumber: "B204",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -860,7 +860,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "B205",
         sector: "B",
-        unitNumber: "205",
+        unitNumber: "B205",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 83.26,
@@ -883,7 +883,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "B206",
         sector: "B",
-        unitNumber: "206",
+        unitNumber: "B206",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -906,7 +906,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "B207",
         sector: "B",
-        unitNumber: "207",
+        unitNumber: "B207",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -931,7 +931,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C201",
         sector: "C",
-        unitNumber: "201",
+        unitNumber: "C201",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 83.26,
@@ -954,7 +954,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C202",
         sector: "C",
-        unitNumber: "202",
+        unitNumber: "C202",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -977,7 +977,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C203",
         sector: "C",
-        unitNumber: "203",
+        unitNumber: "C203",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1000,7 +1000,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C204",
         sector: "C",
-        unitNumber: "204",
+        unitNumber: "C204",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1023,7 +1023,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C205",
         sector: "C",
-        unitNumber: "205",
+        unitNumber: "C205",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 66.99,
@@ -1046,7 +1046,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C206",
         sector: "C",
-        unitNumber: "206",
+        unitNumber: "C206",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 49.32,
@@ -1069,7 +1069,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C207",
         sector: "C",
-        unitNumber: "207",
+        unitNumber: "C207",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1092,7 +1092,7 @@ const nivel2Data: DomeFloor = {
       {
         id: "C208",
         sector: "C",
-        unitNumber: "208",
+        unitNumber: "C208",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1125,7 +1125,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "A301",
         sector: "A",
-        unitNumber: "301",
+        unitNumber: "A301",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin - Esquinero",
         coveredArea: 86.49,
@@ -1148,7 +1148,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "A302",
         sector: "A",
-        unitNumber: "302",
+        unitNumber: "A302",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1171,7 +1171,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "A303",
         sector: "A",
-        unitNumber: "303",
+        unitNumber: "A303",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1194,7 +1194,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "A304",
         sector: "A",
-        unitNumber: "304",
+        unitNumber: "A304",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1217,7 +1217,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "A305",
         sector: "A",
-        unitNumber: "305",
+        unitNumber: "A305",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -1240,7 +1240,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "A306",
         sector: "A",
-        unitNumber: "306",
+        unitNumber: "A306",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1263,7 +1263,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "A307",
         sector: "A",
-        unitNumber: "307",
+        unitNumber: "A307",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1288,7 +1288,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "B301",
         sector: "B",
-        unitNumber: "301",
+        unitNumber: "B301",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -1311,7 +1311,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "B302",
         sector: "B",
-        unitNumber: "302",
+        unitNumber: "B302",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 71.69,
@@ -1334,7 +1334,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "B303",
         sector: "B",
-        unitNumber: "303",
+        unitNumber: "B303",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 51.0,
@@ -1357,7 +1357,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "B304",
         sector: "B",
-        unitNumber: "304",
+        unitNumber: "B304",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1380,7 +1380,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "B305",
         sector: "B",
-        unitNumber: "305",
+        unitNumber: "B305",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 83.26,
@@ -1403,7 +1403,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "B306",
         sector: "B",
-        unitNumber: "306",
+        unitNumber: "B306",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1426,7 +1426,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "B307",
         sector: "B",
-        unitNumber: "307",
+        unitNumber: "B307",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1451,7 +1451,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C301",
         sector: "C",
-        unitNumber: "301",
+        unitNumber: "C301",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 83.26,
@@ -1474,7 +1474,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C302",
         sector: "C",
-        unitNumber: "302",
+        unitNumber: "C302",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1497,7 +1497,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C303",
         sector: "C",
-        unitNumber: "303",
+        unitNumber: "C303",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1520,7 +1520,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C304",
         sector: "C",
-        unitNumber: "304",
+        unitNumber: "C304",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1543,7 +1543,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C305",
         sector: "C",
-        unitNumber: "305",
+        unitNumber: "C305",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 66.99,
@@ -1566,7 +1566,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C306",
         sector: "C",
-        unitNumber: "306",
+        unitNumber: "C306",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 49.32,
@@ -1589,7 +1589,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C307",
         sector: "C",
-        unitNumber: "307",
+        unitNumber: "C307",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1612,7 +1612,7 @@ const nivel3Data: DomeFloor = {
       {
         id: "C308",
         sector: "C",
-        unitNumber: "308",
+        unitNumber: "C308",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1645,7 +1645,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "A401",
         sector: "A",
-        unitNumber: "401",
+        unitNumber: "A401",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin - Esquinero",
         coveredArea: 86.49,
@@ -1668,7 +1668,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "A402",
         sector: "A",
-        unitNumber: "402",
+        unitNumber: "A402",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1691,7 +1691,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "A403",
         sector: "A",
-        unitNumber: "403",
+        unitNumber: "A403",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1714,7 +1714,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "A404",
         sector: "A",
-        unitNumber: "404",
+        unitNumber: "A404",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1737,7 +1737,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "A405",
         sector: "A",
-        unitNumber: "405",
+        unitNumber: "A405",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -1760,7 +1760,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "A406",
         sector: "A",
-        unitNumber: "406",
+        unitNumber: "A406",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1783,7 +1783,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "A407",
         sector: "A",
-        unitNumber: "407",
+        unitNumber: "A407",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1808,7 +1808,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "B401",
         sector: "B",
-        unitNumber: "401",
+        unitNumber: "B401",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 86.23,
@@ -1831,7 +1831,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "B402",
         sector: "B",
-        unitNumber: "402",
+        unitNumber: "B402",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 71.69,
@@ -1854,7 +1854,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "B403",
         sector: "B",
-        unitNumber: "403",
+        unitNumber: "B403",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 51.0,
@@ -1877,7 +1877,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "B404",
         sector: "B",
-        unitNumber: "404",
+        unitNumber: "B404",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -1900,7 +1900,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "B405",
         sector: "B",
-        unitNumber: "405",
+        unitNumber: "B405",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 83.26,
@@ -1923,7 +1923,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "B406",
         sector: "B",
-        unitNumber: "406",
+        unitNumber: "B406",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1946,7 +1946,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "B407",
         sector: "B",
-        unitNumber: "407",
+        unitNumber: "B407",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -1971,7 +1971,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C401",
         sector: "C",
-        unitNumber: "401",
+        unitNumber: "C401",
         description: "2 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 83.26,
@@ -1994,7 +1994,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C402",
         sector: "C",
-        unitNumber: "402",
+        unitNumber: "C402",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -2017,7 +2017,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C403",
         sector: "C",
-        unitNumber: "403",
+        unitNumber: "C403",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -2040,7 +2040,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C404",
         sector: "C",
-        unitNumber: "404",
+        unitNumber: "C404",
         description: "1 DORMITORIO",
         orientation: "Lago",
         coveredArea: 50.31,
@@ -2063,7 +2063,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C405",
         sector: "C",
-        unitNumber: "405",
+        unitNumber: "C405",
         description: "2 DORMITORIOS",
         orientation: "Lago",
         coveredArea: 66.99,
@@ -2086,7 +2086,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C406",
         sector: "C",
-        unitNumber: "406",
+        unitNumber: "C406",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 49.32,
@@ -2109,7 +2109,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C407",
         sector: "C",
-        unitNumber: "407",
+        unitNumber: "C407",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -2132,7 +2132,7 @@ const nivel4Data: DomeFloor = {
       {
         id: "C408",
         sector: "C",
-        unitNumber: "408",
+        unitNumber: "C408",
         description: "1 DORMITORIO",
         orientation: "Jardin",
         coveredArea: 48.59,
@@ -2165,7 +2165,7 @@ const nivel5Data: DomeFloor = {
       {
         id: "A501",
         sector: "A",
-        unitNumber: "501",
+        unitNumber: "A501",
         description: "3 DORMITORIOS",
         orientation: "Lago - Jardin - Esquinero",
         coveredArea: 151.37,
@@ -2188,7 +2188,7 @@ const nivel5Data: DomeFloor = {
       {
         id: "A502",
         sector: "A",
-        unitNumber: "502",
+        unitNumber: "A502",
         description: "3 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 151.94,
@@ -2213,7 +2213,7 @@ const nivel5Data: DomeFloor = {
       {
         id: "A503",
         sector: "B",
-        unitNumber: "503",
+        unitNumber: "B503",
         description: "3 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 163.63,
@@ -2237,7 +2237,7 @@ const nivel5Data: DomeFloor = {
       {
         id: "A504",
         sector: "B",
-        unitNumber: "504",
+        unitNumber: "B504",
         description: "3 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 151.11,
@@ -2262,7 +2262,7 @@ const nivel5Data: DomeFloor = {
       {
         id: "A505",
         sector: "C",
-        unitNumber: "505",
+        unitNumber: "C505",
         description: "3 DORMITORIOS",
         orientation: "Lago - Jardin",
         coveredArea: 148.74,
@@ -2285,7 +2285,7 @@ const nivel5Data: DomeFloor = {
       {
         id: "A506",
         sector: "C",
-        unitNumber: "506",
+        unitNumber: "C506",
         description: "3 DORMITORIOS",
         orientation: "Lago - Jardin - Esquinero",
         coveredArea: 147.89,
@@ -3815,6 +3815,12 @@ export const domeProjectInfo = {
 
 // Configuración de planos por piso
 export const domeFloorPlans = {
+    0: {
+    complete: "/planos/lagos/pisos/lagospb.jpg",
+    sectionA: "/planos/lagos/pisos/lagospb-a.jpg",
+    sectionB: "/planos/lagos/pisos/lagospb-b.jpg",
+    sectionC: "/planos/lagos/pisos/lagospb-c.jpg",
+  },
   1: {
     complete: "/planos/lagos/pisos/lagopiso1.jpg",
     sectionA: "/planos/lagos/pisos/lagopiso1-a.jpg",
