@@ -222,7 +222,7 @@ interface UnitOwner {
   phone: string
   type: string
   assignedAt: string
-  assignedBy?: string // Added for completeness, not strictly required by this specific update
+  assignedBy?: string
 }
 
 interface Cliente {
@@ -306,7 +306,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const {
     unitOwners,
     addOwner,
-    removeOwner, // <-- Added removeOwner
+    removeOwner,
     parkingAssignments,
     assignParking,
     getUnitParking,
@@ -357,7 +357,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const loadClientes = async () => {
     setIsLoadingClientes(true)
     try {
-      // Simulando llamada a la API - reemplazar con tu endpoint real
       const response = await fetch(`${API_BASE_URL}/clientes`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -401,14 +400,10 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
           notyf.success("Cliente creado exitosamente")
         }
 
-        // Actualizar la lista de clientes
         await loadClientes()
-
-        // Seleccionar el nuevo cliente
         setSelectedCliente(nuevoCliente)
         setShowCreateClient(false)
 
-        // Limpiar formulario
         setNewClienteData({
           nombre: "",
           apellido: "",
@@ -461,7 +456,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
       | "cancelReservation"
       | "release"
       | "addOwner"
-      | "assignParking", // Added assignParking action type
+      | "assignParking",
   ) => {
     setAction(actionType)
     setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
@@ -550,7 +545,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
         }
       }
 
-      // Log activity
       const timestamp = new Date().toLocaleString()
       const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedUnit.unitNumber}`
       setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
@@ -572,7 +566,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     return apartParking.filter((parking) => {
       const isCorrectLevel = parking.id.startsWith(levelPrefix)
       const assignedToUnit = getParkingSpotUnit(parking.id)
-      // Show if: belongs to current unit OR not assigned to anyone
       const isAvailable = !assignedToUnit || (selectedUnit && assignedToUnit === selectedUnit.unitNumber)
       return isCorrectLevel && isAvailable
     })
@@ -630,7 +623,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
           }
         }
 
-        // Actualizar el registro de actividades
         const timestamp = new Date().toLocaleString()
         const description = `${user.name} ${
           action === "block"
@@ -668,7 +660,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     }
   }
 
-  // Changed handleParkingClick to open modal and set selected parking
   const handleParkingClick = (parkingId: string) => {
     setSelectedParking(parkingId)
     setIsParkingModalOpen(true)
@@ -713,7 +704,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
         return
     }
 
-    // Create download link
     const link = document.createElement("a")
     link.href = filePath
     link.download = filePath.split("/").pop() || "documento.pdf"
@@ -950,9 +940,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -1097,6 +1084,9 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <Badge variant="secondary" className="mt-2">
                         {unitOwners[selectedUnit.unitNumber].type}
                       </Badge>
+                      <Button onClick={handleRemoveOwner} variant="destructive" size="sm" className="mt-2">
+                        Remover Propietario
+                      </Button>
                     </div>
                   ) : (
                     <p className="text-zinc-400">Sin asignar</p>

@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import type React from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
@@ -75,6 +75,23 @@ interface NewClienteData {
   estado: string
 }
 
+interface UnitOwner {
+  name: string
+  email: string
+  phone: string
+  type: string
+  assignedAt: string
+  assignedBy?: string
+}
+
+interface ActivityEntry {
+  timestamp: Date
+  description: string
+  unitId: string
+  action: string
+  user: string
+}
+
 type DomeFloorPlanProps = {
   floorNumber?: number | null
   onReturnToProjectModal: () => void
@@ -92,8 +109,9 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedApartment, setSelectedApartment] = useState<DomeApartment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [activityLog, setActivityLog] = useState<string[]>([])
+  // const [activityLog, setActivityLog] = useState<string[]>([]) // REMOVED: Replaced by useMemo hook
   const { user } = useAuth()
+
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -112,6 +130,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
   const {
     unitOwners,
     unitStatuses,
+    parkingAssignments, // Added for activity log
     addOwner,
     removeOwner,
     assignParking,
@@ -356,7 +375,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
-        assignedBy: "",
+        assignedBy: user?.name || "Usuario",
       })
 
       if (notyf) {
@@ -440,7 +459,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
 
       const timestamp = new Date().toLocaleString()
       const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedApartment.unitNumber}`
-      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+      // setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog]) // REMOVED: Replaced by useMemo hook
 
       setAction(null)
       setSelectedParkingsForAssignment({})
@@ -524,9 +543,9 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
           }
         }
 
-        const timestamp = new Date().toLocaleString()
-        const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} el departamento ${selectedApartment.unitNumber}`
-        setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+        // const timestamp = new Date().toLocaleString() // REMOVED: Replaced by useMemo hook
+        // const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} el departamento ${selectedApartment.unitNumber}`
+        // setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog]) // REMOVED: Replaced by useMemo hook
 
         setIsModalOpen(false)
         setAction(null)
@@ -620,6 +639,67 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     setSelectedParkingSpot(parkingSpot)
     setIsParkingSpotModalOpen(true)
   }, [])
+
+  const activityLog = useMemo(() => {
+    const activities: ActivityEntry[] = []
+
+    Object.entries(unitStatuses).forEach(([unitId, status]) => {
+      if (status.changedAt && status.changedBy) {
+        const actionLabel =
+          status.status === "VENDIDO"
+            ? "marcó como VENDIDA"
+            : status.status === "RESERVADO"
+              ? "marcó como RESERVADA"
+              : status.status === "BLOQUEADO"
+                ? "marcó como BLOQUEADA"
+                : "liberó (DISPONIBLE)"
+
+        activities.push({
+          timestamp: new Date(status.changedAt),
+          description: actionLabel,
+          unitId,
+          action: status.status,
+          user: status.changedBy,
+        })
+      }
+    })
+
+    Object.entries(unitOwners).forEach(([unitId, owner]) => {
+      if (owner.assignedAt) {
+        activities.push({
+          timestamp: new Date(owner.assignedAt),
+          description: `asignó a "${owner.name}" como propietario de`,
+          unitId,
+          action: "OWNER_ASSIGNED",
+          user: (owner as UnitOwner).assignedBy || "Sistema",
+        })
+      }
+    })
+
+    Object.entries(parkingAssignments).forEach(([unitId, assignment]) => {
+      if (assignment.assignedAt && assignment.parkingSpots.length > 0) {
+        activities.push({
+          timestamp: new Date(assignment.assignedAt),
+          description: `asignó cocheras (${assignment.parkingSpots.join(", ")}) a`,
+          unitId,
+          action: "PARKING_ASSIGNED",
+          user: "Sistema",
+        })
+      }
+    })
+
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  }, [unitStatuses, unitOwners, parkingAssignments])
+
+  const formatActivityDate = (date: Date) => {
+    return date.toLocaleString("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   if (!currentFloorData) {
     return (
@@ -1044,7 +1124,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                   </div>
                 )}
 
-                {/* Add Owner Action */}
+                {/* Replace the Add Owner Action section in the modal */}
                 {action === "addOwner" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -1072,45 +1152,47 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                           />
                         </div>
 
-                        <div className="max-h-60 overflow-y-auto space-y-2">
-                          {isLoadingClientes ? (
-                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
-                          ) : filteredClientes.length === 0 ? (
-                            <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
-                          ) : (
-                            filteredClientes.map((cliente) => (
-                              <div
-                                key={cliente.id}
-                                onClick={() => setSelectedCliente(cliente)}
-                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                  selectedCliente?.id === cliente.id
-                                    ? "border-indigo-500 bg-indigo-500/20"
-                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-                                }`}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-medium text-white">
-                                      {cliente.nombre} {cliente.apellido}
-                                    </p>
-                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                        <ScrollArea className="h-60">
+                          <div className="space-y-2">
+                            {isLoadingClientes ? (
+                              <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                            ) : filteredClientes.length === 0 ? (
+                              <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
+                            ) : (
+                              filteredClientes.map((cliente) => (
+                                <div
+                                  key={cliente.id}
+                                  onClick={() => setSelectedCliente(cliente)}
+                                  className={cn(
+                                    "p-3 rounded-lg border cursor-pointer transition-colors",
+                                    selectedCliente?.id === cliente.id
+                                      ? "border-purple-500 bg-purple-500/20"
+                                      : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700",
+                                  )}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium text-white">
+                                        {cliente.nombre} {cliente.apellido}
+                                      </p>
+                                      <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {cliente.tipo}
+                                    </Badge>
                                   </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {cliente.tipo}
-                                  </Badge>
                                 </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
+                              ))
+                            )}
+                          </div>
+                        </ScrollArea>
 
                         {selectedCliente && (
-                          <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                          <Button onClick={handleAssignOwner} className="w-full bg-purple-600 hover:bg-purple-700">
                             Asignar como Propietario
                           </Button>
                         )}
 
-                        {/* CHANGE: Add button to remove current owner */}
                         {unitOwners[selectedApartment.unitNumber] && (
                           <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
                             Remover Propietario Actual
@@ -1481,17 +1563,32 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
           </div>
         </div>
 
-        {/* Activity Log */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-zinc-900 p-4 rounded-lg">
             <h4 className="font-semibold mb-4">Registro de Actividades</h4>
             <ScrollArea className="h-60">
               <div className="space-y-2">
                 {activityLog.map((activity, index) => (
-                  <p key={index} className="text-sm text-zinc-300">
-                    {activity}
-                  </p>
+                  <div
+                    key={`${activity.unitId}-${activity.timestamp.getTime()}-${index}`}
+                    className="flex items-start gap-3 text-sm py-2 border-b border-zinc-800 last:border-0"
+                  >
+                    <span className="text-zinc-500 whitespace-nowrap min-w-[140px]">
+                      {formatActivityDate(activity.timestamp)}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="font-medium text-amber-400">{activity.user}</span>
+                      <span className="text-zinc-300">{activity.description}</span>
+                      <span className="text-zinc-400">la unidad</span>
+                      <span className="font-semibold text-white bg-zinc-700 px-2 py-0.5 rounded">
+                        {activity.unitId}
+                      </span>
+                    </div>
+                  </div>
                 ))}
+                {activityLog.length === 0 && (
+                  <p className="text-sm text-zinc-500 text-center py-4">No hay actividades registradas</p>
+                )}
               </div>
             </ScrollArea>
           </div>

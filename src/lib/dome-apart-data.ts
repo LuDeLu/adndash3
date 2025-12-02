@@ -105,6 +105,8 @@ export type ApartUnit = {
   coordinates?: string
 }
 
+export type ApartUnitStatus = ApartUnit["status"]
+
 export type ApartParking = {
   id: string
   level: string
@@ -112,6 +114,11 @@ export type ApartParking = {
   price: number
   status: "libre" | "ocupado"
   assignedTo?: string
+}
+
+export type ApartParkingSpot = ApartParking & {
+  coordinates?: { x: number; y: number }[]
+  area?: number
 }
 
 // Datos exactos de las unidades según la tabla proporcionada
@@ -327,9 +334,8 @@ export const apartUnits: ApartUnit[] = [
     weightedArea: 88.5,
     amenitiesArea: 5.31,
     totalAreaWithAmenities: 93.81,
-    pricePerSqm: 5103,
-    coordinates:
-      "727,672,826,669,831,547,927,544,930,238,726,240,726,348,663,349,664,421,686,421,686,441,674,441,672,491,726,491",
+    coordinates: "727,672,826,669,831,547,927,544,930,238,726,240,726,348,663,349,664,421,686,421,686,441,674,441,672,491,726,491",
+    pricePerSqm: 0
   },
   // Piso 5
   {
@@ -1075,4 +1081,56 @@ export const updateApartParkingStatus = (
     return true
   }
   return false
+}
+
+export const apartFloorPlans: { [key: number]: string } = {
+  1: "/planos/apart/pisos/piso1.png",
+  2: "/planos/apart/pisos/piso2.png",
+  3: "/planos/apart/pisos/piso3.png",
+  4: "/planos/apart/pisos/piso4-7.png",
+  5: "/planos/apart/pisos/piso4-7.png",
+  6: "/planos/apart/pisos/piso4-7.png",
+  7: "/planos/apart/pisos/piso4-7.png",
+  8: "/planos/apart/pisos/piso8.png",
+  9: "/planos/apart/pisos/piso9.png",
+}
+
+export const apartFloorsData = [
+  { level: 1, units: apartUnits.filter((u) => u.floor === 1) },
+  { level: 2, units: apartUnits.filter((u) => u.floor === 2) },
+  { level: 3, units: apartUnits.filter((u) => u.floor === 3) },
+  { level: 4, units: apartUnits.filter((u) => u.floor === 4) },
+  { level: 5, units: apartUnits.filter((u) => u.floor === 5) },
+  { level: 6, units: apartUnits.filter((u) => u.floor === 6) },
+  { level: 7, units: apartUnits.filter((u) => u.floor === 7) },
+  { level: 8, units: apartUnits.filter((u) => u.floor === 8) },
+  { level: 9, units: apartUnits.filter((u) => u.floor === 9) },
+]
+
+export const getApartParkingSpotsByLevel = (level: 1 | 2 | 3): ApartParkingSpot[] => {
+  const levelStr = `Nivel ${level}`
+  const parkingSpots = apartParking.filter((p) => p.level === levelStr)
+  const coordinates = apartGarageCoordinates[level] || []
+
+  return parkingSpots.map((parking) => {
+    const coordData = coordinates.find((c) => c.id === parking.id)
+    let parsedCoordinates: { x: number; y: number }[] | undefined
+
+    if (coordData?.coords) {
+      const coordPairs = coordData.coords.split(",")
+      parsedCoordinates = []
+      for (let i = 0; i < coordPairs.length; i += 2) {
+        parsedCoordinates.push({
+          x: Number.parseInt(coordPairs[i], 10),
+          y: Number.parseInt(coordPairs[i + 1], 10),
+        })
+      }
+    }
+
+    return {
+      ...parking,
+      coordinates: parsedCoordinates,
+      area: 12.5, // Default parking area
+    }
+  })
 }

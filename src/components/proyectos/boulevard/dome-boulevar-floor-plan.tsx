@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import type React from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
@@ -18,19 +18,13 @@ import {
   Mail,
   Search,
   Plus,
+  MapPin,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { useAuth } from "@/app/auth/auth-context"
@@ -49,6 +43,8 @@ import {
   type BoulevardGarageSpot,
 } from "@/lib/dome-boulevar-data"
 import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
+
+let notyf: Notyf | null = null
 
 interface Cliente {
   id: number
@@ -75,11 +71,18 @@ interface UnitOwner {
   phone: string
   type: string
   assignedAt: string
+  assignedBy?: string
 }
 
-let notyf: Notyf | null = null
+interface ActivityEntry {
+  timestamp: Date
+  description: string
+  unitId: string
+  action: string
+  user: string
+}
 
-const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+type BoulevardUnitStatus = "DISPONIBLE" | "RESERVADO" | "VENDIDO" | "BLOQUEADO"
 
 type DomeBoulevardFloorPlanProps = {
   floorNumber?: number | null
@@ -87,10 +90,11 @@ type DomeBoulevardFloorPlanProps = {
 }
 
 const floors = Array.from({ length: 12 }, (_, i) => i + 1)
-const garageLevels = [1, 2, 3]
+const garageLevels = [1, 2, 3] as const
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 // Garage plan images for Dome Boulevard
-const garagePlans = {
+const garagePlans: Record<(typeof garageLevels)[number], string> = {
   1: "/planos/boulevard/cochera/nivel1.png",
   2: "/planos/boulevard/cochera/nivel2.png",
   3: "/planos/boulevard/cochera/nivel3.png",
@@ -100,7 +104,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedUnit, setSelectedUnit] = useState<BoulevardUnit | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
     | "block"
@@ -112,6 +115,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     | "release"
     | "addOwner"
     | "assignParking"
+    | "removeOwner"
     | null
   >(null)
   const [formData, setFormData] = useState({
@@ -127,12 +131,12 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const [confirmRelease, setConfirmRelease] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [currentGarageLevel, setCurrentGarageLevel] = useState(1)
+  const [selectedParking, setSelectedParking] = useState<BoulevardGarageSpot | null>(null)
+  const [currentGarageLevel, setCurrentGarageLevel] = useState<(typeof garageLevels)[number]>(1)
+  const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
+  const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
-  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const [selectedGarageSpot, setSelectedGarageSpot] = useState<BoulevardGarageSpot | null>(null)
-  const [isGarageParkingModalOpen, setIsGarageParkingModalOpen] = useState(false)
 
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
@@ -149,18 +153,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   })
   const [isLoadingClientes, setIsLoadingClientes] = useState(false)
 
-  const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
-  const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState(1)
-
-  const {
-    unitOwners,
-    addOwner,
-    parkingAssignments,
-    assignParking,
-    getUnitParking,
-    isParkingSpotAssigned,
-    getParkingSpotUnit,
-  } = useUnitStorage("boulevard")
+  const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState<(typeof garageLevels)[number]>(1)
 
   // Initialize Notyf
   useEffect(() => {
@@ -172,13 +165,176 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     }
   }, [])
 
-  useEffect(() => {
-    if (action === "addOwner") {
-      loadClientes()
-    }
-  }, [action])
+  const {
+    unitOwners,
+    addOwner,
+    removeOwner,
+    parkingAssignments,
+    assignParking,
+    getUnitParking,
+    isParkingSpotAssigned,
+    getParkingSpotUnit,
+    updateStatus,
+    unitStatuses,
+  } = useUnitStorage("boulevard")
 
-  const loadClientes = useCallback(async () => {
+  const activityLog = useMemo(() => {
+    const activities: ActivityEntry[] = []
+
+    Object.entries(unitStatuses).forEach(([unitId, status]) => {
+      if (status.changedAt && status.changedBy) {
+        const actionLabel =
+          status.status === "VENDIDO"
+            ? "marcó como VENDIDA"
+            : status.status === "RESERVADO"
+              ? "marcó como RESERVADA"
+              : status.status === "BLOQUEADO"
+                ? "marcó como BLOQUEADA"
+                : "liberó (DISPONIBLE)"
+
+        activities.push({
+          timestamp: new Date(status.changedAt),
+          description: actionLabel,
+          unitId,
+          action: status.status,
+          user: status.changedBy,
+        })
+      }
+    })
+
+    Object.entries(unitOwners).forEach(([unitId, owner]) => {
+      if (owner.assignedAt) {
+        activities.push({
+          timestamp: new Date(owner.assignedAt),
+          description: `asignó a "${owner.name}" como propietario de`,
+          unitId,
+          action: "OWNER_ASSIGNED",
+          user: (owner as UnitOwner).assignedBy || "Sistema",
+        })
+      }
+    })
+
+    Object.entries(parkingAssignments).forEach(([unitId, assignment]) => {
+      if (assignment.assignedAt && assignment.parkingSpots.length > 0) {
+        activities.push({
+          timestamp: new Date(assignment.assignedAt),
+          description: `asignó cocheras (${assignment.parkingSpots.join(", ")}) a`,
+          unitId,
+          action: "PARKING_ASSIGNED",
+          user: "Sistema",
+        })
+      }
+    })
+
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  }, [unitStatuses, unitOwners, parkingAssignments])
+
+  const formatActivityDate = (date: Date) => {
+    return date.toLocaleString("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  const getRealStatus = useCallback(
+    (unit: BoulevardUnit): BoulevardUnitStatus => {
+      const override = unitStatuses[unit.unitNumber]
+      if (override && override.status) {
+        return override.status as BoulevardUnitStatus
+      }
+      return unit.status as BoulevardUnitStatus
+    },
+    [unitStatuses],
+  )
+
+  const getCurrentFloorData = useCallback(() => {
+    const units = getBoulevardUnitsByFloor(currentFloor)
+    return {
+      level: currentFloor,
+      name: `Piso ${currentFloor}`,
+      apartments: units,
+    }
+  }, [currentFloor])
+
+  const currentFloorData = getCurrentFloorData()
+
+  const getUnitStats = useCallback(() => {
+    if (!currentFloorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
+
+    return currentFloorData.apartments.reduce(
+      (acc, unit) => {
+        const realStatus = getRealStatus(unit)
+        switch (realStatus) {
+          case "DISPONIBLE":
+            acc.available++
+            break
+          case "RESERVADO":
+            acc.reserved++
+            break
+          case "VENDIDO":
+            acc.sold++
+            break
+          case "BLOQUEADO":
+            acc.blocked++
+            break
+        }
+        return acc
+      },
+      { available: 0, reserved: 0, sold: 0, blocked: 0 },
+    )
+  }, [currentFloorData, getRealStatus])
+
+  const handleParkingClick = useCallback((spot: BoulevardGarageSpot) => {
+    setSelectedParking(spot)
+    setIsParkingModalOpen(true)
+  }, [])
+
+  const handleUnitClick = useCallback((unit: BoulevardUnit) => {
+    setSelectedUnit(unit)
+    setIsModalOpen(true)
+    setAction(null)
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      reservationOrder: null,
+      price: "",
+      note: "",
+    })
+    setConfirmReservation(false)
+    setConfirmCancelReservation(false)
+    setConfirmRelease(false)
+    setSelectedCliente(null)
+  }, [])
+
+  const handleFloorClick = (floor: number) => {
+    setCurrentFloor(floor)
+    setSelectedUnit(null)
+    setIsModalOpen(false)
+  }
+
+  const handleActionClick = (newAction: typeof action) => {
+    setAction(newAction)
+    if (newAction === "assignParking" && selectedUnit) {
+      const currentParkings = getUnitParking(selectedUnit.unitNumber)
+      const initialSelection: { [key: string]: boolean } = {}
+      currentParkings.forEach((parkingId) => {
+        initialSelection[parkingId] = true
+      })
+      setSelectedParkingsForAssignment(initialSelection)
+      setParkingAssignmentLevel(1)
+    }
+    setConfirmReservation(
+      newAction === "reserve" && selectedUnit !== null && getRealStatus(selectedUnit) === "BLOQUEADO",
+    )
+    setConfirmCancelReservation(newAction === "cancelReservation")
+    setConfirmRelease(newAction === "release")
+  }
+
+  const loadClientes = async () => {
     setIsLoadingClientes(true)
     try {
       const response = await fetch(`${API_BASE_URL}/clientes`, {
@@ -205,9 +361,9 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     } finally {
       setIsLoadingClientes(false)
     }
-  }, [])
+  }
 
-  const createNewCliente = useCallback(async () => {
+  const createNewCliente = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/clientes`, {
         method: "POST",
@@ -247,87 +403,40 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
         notyf.error("Error de conexión al crear cliente")
       }
     }
-  }, [newClienteData, loadClientes])
-
-  // Obtener datos del piso seleccionado
-  const getCurrentFloorData = useCallback(() => {
-    const units = getBoulevardUnitsByFloor(currentFloor)
-    return {
-      level: currentFloor,
-      name: `Piso ${currentFloor}`,
-      apartments: units,
-    }
-  }, [currentFloor])
-
-  const currentFloorData = getCurrentFloorData()
-
-  const handleUnitClick = useCallback((unit: BoulevardUnit) => {
-    setSelectedUnit(unit)
-    setIsModalOpen(true)
-    setAction(null)
-    setFormData({
-      name: "",
-      phone: "",
-      email: "",
-      reservationOrder: null,
-      price: "",
-      note: "",
-    })
-    setConfirmReservation(false)
-    setConfirmCancelReservation(false)
-    setConfirmRelease(false)
-    setSelectedCliente(null)
-  }, [])
-
-  const handleFloorClick = (floor: number) => {
-    setCurrentFloor(floor)
-    setSelectedUnit(null)
-    setIsModalOpen(false)
   }
 
-  const handleActionClick = (newAction: typeof action) => {
-    setAction(newAction)
-    if (newAction === "assignParking" && selectedUnit) {
-      // Initialize with current assignments
-      const currentParkings = getUnitParking(selectedUnit.unitNumber)
-      const initialSelection: { [key: string]: boolean } = {}
-      currentParkings.forEach((parkingId) => {
-        initialSelection[parkingId] = true
-      })
-      setSelectedParkingsForAssignment(initialSelection)
-      setParkingAssignmentLevel(1)
+  const handleSearchClientes = (term: string) => {
+    setSearchTerm(term)
+    if (term.trim() === "") {
+      setFilteredClientes(clientes)
+    } else {
+      const filtered = clientes.filter(
+        (cliente) =>
+          `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.email.toLowerCase().includes(term.toLowerCase()) ||
+          cliente.telefono.includes(term),
+      )
+      setFilteredClientes(filtered)
     }
   }
 
-  const handleSearchClientes = useCallback(
-    (term: string) => {
-      setSearchTerm(term)
-      if (term.trim() === "") {
-        setFilteredClientes(clientes)
-      } else {
-        const filtered = clientes.filter(
-          (cliente) =>
-            `${cliente.nombre} ${cliente.apellido}`.toLowerCase().includes(term.toLowerCase()) ||
-            cliente.email.toLowerCase().includes(term.toLowerCase()) ||
-            cliente.telefono.includes(term),
-        )
-        setFilteredClientes(filtered)
-      }
-    },
-    [clientes],
-  )
+  useEffect(() => {
+    if (action === "addOwner") {
+      loadClientes()
+    }
+  }, [action])
 
-  const handleAssignOwner = useCallback(async () => {
+  const handleAssignOwner = async () => {
     if (!selectedCliente || !selectedUnit) return
 
     try {
-      addOwner(selectedUnit.id, {
+      addOwner(selectedUnit.unitNumber, {
         name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
         email: selectedCliente.email,
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
-        assignedBy: ""
+        assignedBy: user?.name || "Usuario",
       })
 
       if (notyf) {
@@ -342,7 +451,27 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       console.error("Error al asignar propietario:", error)
       if (notyf) notyf.error("Error al asignar propietario")
     }
-  }, [selectedCliente, selectedUnit, addOwner])
+  }
+
+  const handleRemoveOwner = async () => {
+    if (!selectedUnit) return
+
+    try {
+      removeOwner(selectedUnit.unitNumber)
+
+      if (notyf) {
+        notyf.success(`Propietario removido de la unidad ${selectedUnit.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al remover propietario:", error)
+      if (notyf) notyf.error("Error al remover propietario")
+    }
+  }
 
   const handleConfirmParkingAssignment = async () => {
     if (!selectedUnit) return
@@ -356,15 +485,11 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
       if (notyf) {
         if (parkingSpotIds.length > 0) {
-          notyf.success(`Cocheras asignadas a la unidad ${selectedUnit.unitNumber}: ${parkingSpotIds.join(", ")}`)
+          notyf.success(`Cocheras asignadas a la unidad ${selectedUnit.unitNumber}`)
         } else {
           notyf.success(`Se removieron las cocheras de la unidad ${selectedUnit.unitNumber}`)
         }
       }
-
-      const timestamp = new Date().toLocaleString()
-      const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedUnit.unitNumber}`
-      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
 
       setAction(null)
       setSelectedParkingsForAssignment({})
@@ -375,7 +500,11 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }
 
   const getParkingInfo = (parkingId: string) => {
-    const allSpots = [...getBoulevardGarageSpotsByLevel(1), ...getBoulevardGarageSpotsByLevel(3)]
+    const allSpots = [
+      ...getBoulevardGarageSpotsByLevel(1),
+      ...getBoulevardGarageSpotsByLevel(2),
+      ...getBoulevardGarageSpotsByLevel(3),
+    ]
     return allSpots.find((p) => p.id === parkingId)
   }
 
@@ -392,12 +521,48 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     return `USD ${price.toLocaleString()}`
   }
 
+  const formatBoulevardArea = (area: number) => {
+    return `${area} m²`
+  }
+
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedUnit || !user) return
 
+    if (action === "removeOwner") {
+      await handleRemoveOwner()
+      return
+    }
+
     try {
-      // Simular actualización
+      let newStatus: BoulevardUnitStatus = selectedUnit.status as BoulevardUnitStatus
+
+      switch (action) {
+        case "block":
+          newStatus = "BLOQUEADO"
+          break
+        case "reserve":
+        case "directReserve":
+          newStatus = "RESERVADO"
+          break
+        case "sell":
+          newStatus = "VENDIDO"
+          break
+        case "unblock":
+        case "cancelReservation":
+        case "release":
+          newStatus = "DISPONIBLE"
+          break
+      }
+
+      await updateStatus(selectedUnit.unitNumber, {
+        id: selectedUnit.id,
+        status: newStatus,
+        changedAt: new Date().toISOString(),
+        changedBy: user.name || user.email,
+        notes: formData.note || undefined,
+      })
+
       if (notyf) {
         switch (action) {
           case "block":
@@ -421,11 +586,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
             break
         }
       }
-
-      // Actualizar el registro de actividades
-      const timestamp = new Date().toLocaleString()
-      const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} la unidad ${selectedUnit.unitNumber}`
-      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
 
       setIsModalOpen(false)
       setAction(null)
@@ -506,7 +666,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     if (notyf) notyf.success("Datos actualizados")
   }
 
-  // Obtener la imagen del plano para el piso actual
   const getFloorPlanImage = () => {
     return getBoulevardFloorImage(currentFloor) || "/placeholder.svg?height=600&width=800"
   }
@@ -520,7 +679,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       case "RESERVADO":
         return "#F59E0B"
       case "BLOQUEADO":
-        return "#6B7280"
+        return "#3B82F6"
       default:
         return "#6B7280"
     }
@@ -541,11 +700,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     }
   }
 
-  const handleGarageSpotClick = useCallback((spot: BoulevardGarageSpot) => {
-    setSelectedGarageSpot(spot)
-    setIsGarageParkingModalOpen(true)
-  }, [])
-
   if (!currentFloorData) {
     return (
       <div className="min-h-screen bg-black text-white flex items-center justify-center">
@@ -559,6 +713,8 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       </div>
     )
   }
+
+  const unitStats = getUnitStats()
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -651,18 +807,20 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   className="pointer-events-none"
                 />
 
-                {/* SVG overlay for clickable areas */}
+                {/* SVG overlay for clickable areas - using getRealStatus for colors */}
                 <div className="absolute inset-0 z-10">
                   <svg viewBox="0 0 920 860" className="w-full h-full" style={{ pointerEvents: "all" }}>
                     {boulevardFloorCoordinates[currentFloor as keyof typeof boulevardFloorCoordinates]?.map((coord) => {
                       const unit = getBoulevardUnitById(coord.id)
                       if (!unit) return null
 
+                      const realStatus = getRealStatus(unit)
+
                       return (
                         <polygon
                           key={unit.id}
                           points={coord.coords}
-                          fill={getStatusColor(unit.status)}
+                          fill={getStatusColor(realStatus)}
                           stroke="white"
                           strokeWidth="2"
                           opacity="0.7"
@@ -679,6 +837,24 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
               <div className="p-4">
                 <h3 className="text-lg font-bold">{currentFloorData.name}</h3>
                 <p className="text-zinc-400 text-sm">Selecciona las unidades para ver su estado.</p>
+              </div>
+              <div className="grid grid-cols-4 gap-2 mb-4 text-center text-sm px-4 pb-4">
+                <div className="bg-green-500/20 p-2 rounded">
+                  <p className="text-green-400 font-bold">{unitStats.available}</p>
+                  <p className="text-zinc-400">Disponibles</p>
+                </div>
+                <div className="bg-yellow-500/20 p-2 rounded">
+                  <p className="text-yellow-400 font-bold">{unitStats.reserved}</p>
+                  <p className="text-zinc-400">Reservadas</p>
+                </div>
+                <div className="bg-red-500/20 p-2 rounded">
+                  <p className="text-red-400 font-bold">{unitStats.sold}</p>
+                  <p className="text-zinc-400">Vendidas</p>
+                </div>
+                <div className="bg-blue-500/20 p-2 rounded">
+                  <p className="text-blue-400 font-bold">{unitStats.blocked}</p>
+                  <p className="text-zinc-400">Bloqueadas</p>
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -702,70 +878,62 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                 </div>
                 <div className="relative aspect-video">
                   <Image
-                    src={
-                      garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
-                      "/placeholder.svg?height=600&width=800" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg" ||
-                      "/placeholder.svg"
-                    }
-                    alt={`Cocheras Nivel ${currentGarageLevel}`}
+                    src={garagePlans[currentGarageLevel] || "/placeholder.svg"}
+                    alt={`Plano de la cochera nivel ${currentGarageLevel}`}
                     fill
-                    className="object-contain pointer-events-none"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    style={{ objectFit: "contain" }}
+                    className="pointer-events-none"
                   />
 
-                  {/* SVG overlay for clickable garage spots */}
-                  {(currentGarageLevel === 1 || currentGarageLevel === 3) && (
-                    <div className="absolute inset-0 z-10">
-                      <svg viewBox="0 0 975 860" className="w-full h-full" style={{ pointerEvents: "all" }}>
-                        {getBoulevardGarageSpotsByLevel(currentGarageLevel).map((spot) => (
-                          <polygon
-                            key={spot.id}
-                            points={spot.coords}
-                            fill={getStatusColor(spot.status)}
-                            stroke="white"
-                            strokeWidth="2"
-                            opacity="0.7"
-                            onClick={() => handleGarageSpotClick(spot)}
-                            style={{ cursor: "pointer" }}
-                            className="hover:opacity-100 transition-opacity"
-                          />
-                        ))}
-                      </svg>
-                    </div>
-                  )}
+                  <div className="absolute inset-0 z-10">
+                    <svg viewBox="0 0 975 860" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                      {getBoulevardGarageSpotsByLevel(currentGarageLevel).map((spot) => {
+                        const coords = spot.coords.split(",").map(Number)
+                        if (coords.length >= 4) {
+                          const points = []
+                          for (let i = 0; i < coords.length; i += 2) {
+                            points.push(`${coords[i]},${coords[i + 1]}`)
+                          }
+
+                          const assignedToUnit = getParkingSpotUnit(spot.id)
+                          const isAssigned = !!assignedToUnit
+
+                          return (
+                            <polygon
+                              key={spot.id}
+                              points={points.join(" ")}
+                              fill={isAssigned ? "#EF4444" : "#10B981"}
+                              stroke="white"
+                              strokeWidth="2"
+                              opacity="0.4"
+                              onClick={() => handleParkingClick(spot)}
+                              style={{ cursor: "pointer" }}
+                              className="hover:opacity-100 transition-opacity"
+                            />
+                          )
+                        }
+                        return null
+                      })}
+                    </svg>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-4 mt-4">
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded mr-2 bg-green-500"></div>
+                    <span className="text-sm">Libre</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-4 h-4 rounded mr-2 bg-red-500"></div>
+                    <span className="text-sm">Asignada</span>
+                  </div>
                 </div>
               </div>
             </div>
           </TabsContent>
         </Tabs>
 
-        {/* Legend */}
-        <div className="max-w-4xl mx-auto mb-8">
-          <div className="bg-zinc-900 p-4 rounded-lg">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-green-400 mr-2 rounded"></div>
-                <span className="text-sm">Disponible</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-yellow-400 mr-2 rounded"></div>
-                <span className="text-sm">Reservado</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-red-400 mr-2 rounded"></div>
-                <span className="text-sm">Vendido</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-4 h-4 bg-blue-400 mr-2 rounded"></div>
-                <span className="text-sm">Bloqueado</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Unit Modal */}
+        {/* Apartment Modal */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -780,25 +948,25 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getStatusColor(selectedUnit.status) }}
+                        style={{ backgroundColor: getStatusColor(getRealStatus(selectedUnit)) }}
                       />
                       <Badge variant="outline" className="capitalize">
-                        {getStatusLabel(selectedUnit.status)}
+                        {getStatusLabel(getRealStatus(selectedUnit))}
                       </Badge>
                     </div>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Superficie Total</Label>
-                    <p className="font-semibold">{selectedUnit.totalArea}m²</p>
+                    <p className="font-semibold">{formatBoulevardArea(selectedUnit.totalArea)}</p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">USD {selectedUnit.saleValue.toLocaleString()}</p>
+                    <p className="font-semibold text-green-400">{formatBoulevardPrice(selectedUnit.saleValue)}</p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio por m²</Label>
                     <p className="font-semibold">
-                      USD {Math.round(selectedUnit.saleValue / selectedUnit.totalArea).toLocaleString()}
+                      {formatBoulevardPrice(Math.round(selectedUnit.saleValue / selectedUnit.totalArea))}
                     </p>
                   </div>
                 </div>
@@ -821,27 +989,28 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </div>
                 </div>
 
+                {/* Owner Section */}
                 <div className="p-4 bg-zinc-800 rounded-lg">
                   <h4 className="font-semibold text-green-400 mb-2 flex items-center">
                     <User className="w-4 h-4 mr-2" />
                     Propietario Actual
                   </h4>
-                  {unitOwners[selectedUnit.id] ? (
+                  {unitOwners[selectedUnit.unitNumber] ? (
                     <div className="space-y-1 text-sm">
                       <p className="flex items-center">
                         <User className="w-3 h-3 mr-2" />
-                        {unitOwners[selectedUnit.id].name}
+                        {unitOwners[selectedUnit.unitNumber].name}
                       </p>
                       <p className="flex items-center">
                         <Mail className="w-3 h-3 mr-2" />
-                        {unitOwners[selectedUnit.id].email}
+                        {unitOwners[selectedUnit.unitNumber].email}
                       </p>
                       <p className="flex items-center">
                         <Phone className="w-3 h-3 mr-2" />
-                        {unitOwners[selectedUnit.id].phone}
+                        {unitOwners[selectedUnit.unitNumber].phone}
                       </p>
                       <Badge variant="secondary" className="mt-2">
-                        {unitOwners[selectedUnit.id].type}
+                        {unitOwners[selectedUnit.unitNumber].type}
                       </Badge>
                     </div>
                   ) : (
@@ -849,6 +1018,38 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   )}
                 </div>
 
+                <div className="p-4 bg-zinc-800 rounded-lg">
+                  <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
+                    <Car className="w-4 h-4 mr-2" />
+                    Cocheras Asignadas
+                  </h4>
+                  {(() => {
+                    const assignedParkings = getUnitParking(selectedUnit.unitNumber)
+                    if (assignedParkings.length > 0) {
+                      return (
+                        <div className="space-y-2">
+                          {assignedParkings.map((parkingId) => {
+                            const parkingInfo = getParkingInfo(parkingId)
+                            return (
+                              <div key={parkingId} className="flex justify-between items-center text-sm">
+                                <span className="flex items-center">
+                                  <MapPin className="w-3 h-3 mr-2" />
+                                  {parkingId}
+                                </span>
+                                <span className="text-zinc-400">
+                                  Nivel {parkingInfo?.level} - {formatBoulevardPrice(parkingInfo?.price || 0)}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )
+                    }
+                    return <p className="text-zinc-400">Sin cocheras asignadas</p>
+                  })()}
+                </div>
+
+                {/* Action Buttons - Using getRealStatus for conditions */}
                 {!action && (
                   <div className="space-y-2">
                     <Button
@@ -856,16 +1057,15 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       className="bg-purple-600 hover:bg-purple-700 w-full"
                     >
                       <User className="mr-2 h-4 w-4" />
-                      {unitOwners[selectedUnit.id] ? "Cambiar Propietario" : "Añadir Propietario"}
+                      {unitOwners[selectedUnit.unitNumber] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
-                    {/* Agregar botón para asignar cocheras */}
                     <Button
                       onClick={() => handleActionClick("assignParking")}
-                      className="bg-indigo-600 hover:bg-indigo-700 w-full"
+                      className="bg-blue-600 hover:bg-blue-700 w-full"
                     >
                       <Car className="mr-2 h-4 w-4" />
-                      Asignar Cocheras
+                      {getUnitParking(selectedUnit.unitNumber).length > 0 ? "Gestionar Cocheras" : "Asignar Cocheras"}
                     </Button>
 
                     <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
@@ -873,7 +1073,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       Descargar plano
                     </Button>
 
-                    {selectedUnit.status === "DISPONIBLE" && (
+                    {getRealStatus(selectedUnit) === "DISPONIBLE" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
@@ -890,7 +1090,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       </>
                     )}
 
-                    {selectedUnit.status === "BLOQUEADO" && (
+                    {getRealStatus(selectedUnit) === "BLOQUEADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
@@ -907,7 +1107,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       </>
                     )}
 
-                    {selectedUnit.status === "RESERVADO" && (
+                    {getRealStatus(selectedUnit) === "RESERVADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
@@ -924,7 +1124,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       </>
                     )}
 
-                    {selectedUnit.status === "VENDIDO" && (
+                    {getRealStatus(selectedUnit) === "VENDIDO" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
@@ -968,41 +1168,50 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                           />
                         </div>
 
-                        <div className="max-h-60 overflow-y-auto space-y-2">
-                          {isLoadingClientes ? (
-                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
-                          ) : filteredClientes.length === 0 ? (
-                            <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
-                          ) : (
-                            filteredClientes.map((cliente) => (
-                              <div
-                                key={cliente.id}
-                                onClick={() => setSelectedCliente(cliente)}
-                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                  selectedCliente?.id === cliente.id
-                                    ? "border-indigo-500 bg-indigo-500/20"
-                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-                                }`}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-medium text-white">
-                                      {cliente.nombre} {cliente.apellido}
-                                    </p>
-                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                        <ScrollArea className="h-60">
+                          <div className="space-y-2">
+                            {isLoadingClientes ? (
+                              <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                            ) : filteredClientes.length === 0 ? (
+                              <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
+                            ) : (
+                              filteredClientes.map((cliente) => (
+                                <div
+                                  key={cliente.id}
+                                  onClick={() => setSelectedCliente(cliente)}
+                                  className={cn(
+                                    "p-3 rounded-lg border cursor-pointer transition-colors",
+                                    selectedCliente?.id === cliente.id
+                                      ? "border-purple-500 bg-purple-500/20"
+                                      : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700",
+                                  )}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium text-white">
+                                        {cliente.nombre} {cliente.apellido}
+                                      </p>
+                                      <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {cliente.tipo}
+                                    </Badge>
                                   </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {cliente.tipo}
-                                  </Badge>
                                 </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
+                              ))
+                            )}
+                          </div>
+                        </ScrollArea>
 
                         {selectedCliente && (
-                          <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                          <Button onClick={handleAssignOwner} className="w-full bg-purple-600 hover:bg-purple-700">
                             Asignar como Propietario
+                          </Button>
+                        )}
+
+                        {unitOwners[selectedUnit.unitNumber] && (
+                          <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
+                            Remover Propietario Actual
                           </Button>
                         )}
                       </>
@@ -1075,72 +1284,130 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                         </div>
                       </div>
                     )}
+
+                    <Button
+                      onClick={() => setAction(null)}
+                      variant="outline"
+                      className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                    >
+                      Cancelar
+                    </Button>
                   </div>
                 )}
 
-                {/* Assign Parking Action */}
-                {/* Agregar UI para la asignación de cocheras */}
-                {action === "assignParking" && selectedUnit && (
+                {action === "assignParking" && (
                   <div className="space-y-4">
-                    <h4 className="font-semibold">Asignar Cocheras a la Unidad {selectedUnit.unitNumber}</h4>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold flex items-center">
+                        <Car className="w-4 h-4 mr-2" />
+                        Asignar Cocheras a Unidad {selectedUnit.unitNumber}
+                      </h4>
+                    </div>
 
-                    <Tabs
-                      value={String(parkingAssignmentLevel)}
-                      onValueChange={(value) => setParkingAssignmentLevel(Number(value))}
-                      className="mb-4"
-                    >
-                      <TabsList className="grid w-full grid-cols-2 bg-zinc-800">
-                        {garageLevels.map((level) => (
-                          <TabsTrigger key={level} value={String(level)} className="data-[state=active]:bg-zinc-700">
-                            Nivel {level}
-                          </TabsTrigger>
-                        ))}
-                      </TabsList>
-
+                    {/* Level selector */}
+                    <div className="flex justify-center space-x-2">
                       {garageLevels.map((level) => (
-                        <TabsContent key={level} value={String(level)}>
-                          <div className="max-h-60 overflow-y-auto p-3 bg-zinc-800 rounded-lg border border-zinc-700">
-                            {getAvailableParkingForLevel(level).length > 0 ? (
-                              getAvailableParkingForLevel(level).map((parking) => (
-                                <div
-                                  key={parking.id}
-                                  className={`p-3 mb-2 rounded-lg border flex items-center justify-between cursor-pointer transition-colors ${
-                                    selectedParkingsForAssignment[parking.id]
-                                      ? "border-indigo-500 bg-indigo-500/20"
-                                      : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-                                  }`}
-                                  onClick={() =>
-                                    setSelectedParkingsForAssignment((prev) => ({
-                                      ...prev,
-                                      [parking.id]: !prev[parking.id],
-                                    }))
-                                  }
-                                >
-                                  <span>{parking.spotNumber}</span>
-                                  <Badge variant="outline">
-                                    {isParkingSpotAssigned(parking.id) &&
-                                    getParkingSpotUnit(parking.id) !== selectedUnit.unitNumber
-                                      ? "Ocupado"
-                                      : "Disponible"}
-                                  </Badge>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="text-center text-zinc-400 py-4">
-                                No hay cocheras disponibles en este nivel.
-                              </p>
-                            )}
-                          </div>
-                        </TabsContent>
+                        <Button
+                          key={level}
+                          onClick={() => setParkingAssignmentLevel(level)}
+                          variant={parkingAssignmentLevel === level ? "default" : "outline"}
+                          size="sm"
+                          className={parkingAssignmentLevel === level ? "bg-blue-600" : "border-zinc-600"}
+                        >
+                          Nivel {level}
+                        </Button>
                       ))}
-                    </Tabs>
+                    </div>
 
-                    <Button
-                      onClick={handleConfirmParkingAssignment}
-                      className="w-full bg-indigo-600 hover:bg-indigo-700"
-                    >
-                      Confirmar Asignación de Cocheras
-                    </Button>
+                    {/* Parking spots list */}
+                    <ScrollArea className="h-60">
+                      <div className="space-y-2">
+                        {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
+                          const isSelected = selectedParkingsForAssignment[parking.id] || false
+                          const assignedToUnit = getParkingSpotUnit(parking.id)
+                          const isAssignedToOther = assignedToUnit && assignedToUnit !== selectedUnit.unitNumber
+
+                          return (
+                            <div
+                              key={parking.id}
+                              onClick={() => {
+                                if (!isAssignedToOther) {
+                                  setSelectedParkingsForAssignment((prev) => ({
+                                    ...prev,
+                                    [parking.id]: !prev[parking.id],
+                                  }))
+                                }
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer transition-colors",
+                                isSelected
+                                  ? "border-blue-500 bg-blue-500/20"
+                                  : isAssignedToOther
+                                    ? "border-zinc-700 bg-zinc-800/50 opacity-50 cursor-not-allowed"
+                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700",
+                              )}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center space-x-3">
+                                  <Checkbox
+                                    checked={isSelected}
+                                    disabled={!!isAssignedToOther}
+                                    onCheckedChange={(checked) => {
+                                      if (!isAssignedToOther) {
+                                        setSelectedParkingsForAssignment((prev) => ({
+                                          ...prev,
+                                          [parking.id]: !!checked,
+                                        }))
+                                      }
+                                    }}
+                                  />
+                                  <div>
+                                    <p className="font-medium text-white">{parking.id}</p>
+                                    <p className="text-sm text-zinc-400">Nivel {parking.level}</p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-semibold text-green-400">{formatBoulevardPrice(parking.price)}</p>
+                                  {isAssignedToOther && (
+                                    <p className="text-xs text-red-400">Asignada a {assignedToUnit}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Currently selected summary */}
+                    {Object.values(selectedParkingsForAssignment).some((v) => v) && (
+                      <div className="p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
+                        <p className="text-sm text-blue-300">Cocheras seleccionadas:</p>
+                        <p className="font-medium text-white">
+                          {Object.entries(selectedParkingsForAssignment)
+                            .filter(([_, isSelected]) => isSelected)
+                            .map(([parkingId]) => parkingId)
+                            .join(", ")}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex space-x-2">
+                      <Button onClick={handleConfirmParkingAssignment} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                        Guardar Asignaciones
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setAction(null)
+                          setSelectedParkingsForAssignment({})
+                        }}
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -1182,7 +1449,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       <Input
                         id="price"
                         type="text"
-                        value={formData.price || `USD ${selectedUnit.saleValue.toLocaleString()}`}
+                        value={formData.price || formatBoulevardPrice(selectedUnit.saleValue)}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         className="text-white bg-zinc-800 border-zinc-700"
                       />
@@ -1275,108 +1542,62 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
           </DialogContent>
         </Dialog>
 
-        <Dialog open={isGarageParkingModalOpen} onOpenChange={setIsGarageParkingModalOpen}>
-          <DialogContent className="sm:max-w-[425px] bg-zinc-900 text-white">
+        {/* Parking Spot Modal */}
+        <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
+          <DialogContent className="sm:max-w-[400px] bg-zinc-900 text-white border-zinc-800">
             <DialogHeader>
-              <DialogTitle>Cochera {selectedGarageSpot?.spotNumber}</DialogTitle>
+              <DialogTitle>Cochera {selectedParking?.id}</DialogTitle>
             </DialogHeader>
-            {selectedGarageSpot && (
-              <div className="space-y-4">
-                <DialogDescription className="text-zinc-300 space-y-2">
-                  <p>
-                    <strong>Nivel:</strong> {selectedGarageSpot.level}
-                  </p>
-                  <p>
-                    <strong>Estado:</strong> {getStatusLabel(selectedGarageSpot.status)}
-                  </p>
-                  <p>
-                    <strong>Precio:</strong> USD {selectedGarageSpot.price.toLocaleString()}
-                  </p>
-                </DialogDescription>
 
-                <div className="space-y-2">
-                  {selectedGarageSpot.status === "DISPONIBLE" && (
-                    <>
-                      <Button
-                        onClick={() => {
-                          if (notyf) notyf.success("Cochera bloqueada")
-                          setIsGarageParkingModalOpen(false)
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700 w-full"
-                      >
-                        Bloquear
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (notyf) notyf.success("Cochera reservada")
-                          setIsGarageParkingModalOpen(false)
-                        }}
-                        className="bg-green-600 hover:bg-green-700 w-full"
-                      >
-                        Reservar
-                      </Button>
-                    </>
-                  )}
-                  {selectedGarageSpot.status === "BLOQUEADO" && (
-                    <>
-                      <Button
-                        onClick={() => {
-                          if (notyf) notyf.success("Cochera reservada")
-                          setIsGarageParkingModalOpen(false)
-                        }}
-                        className="bg-green-600 hover:bg-green-700 w-full"
-                      >
-                        Reservar
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (notyf) notyf.success("Bloqueo liberado")
-                          setIsGarageParkingModalOpen(false)
-                        }}
-                        className="bg-red-600 hover:bg-red-700 w-full"
-                      >
-                        Liberar Bloqueo
-                      </Button>
-                    </>
-                  )}
-                  {selectedGarageSpot.status === "RESERVADO" && (
-                    <>
-                      <Button
-                        onClick={() => {
-                          if (notyf) notyf.success("Cochera vendida")
-                          setIsGarageParkingModalOpen(false)
-                        }}
-                        className="bg-green-600 hover:bg-green-700 w-full"
-                      >
-                        Vender
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          if (notyf) notyf.success("Reserva cancelada")
-                          setIsGarageParkingModalOpen(false)
-                        }}
-                        className="bg-red-600 hover:bg-red-700 w-full"
-                      >
-                        Cancelar Reserva
-                      </Button>
-                    </>
-                  )}
-                  {selectedGarageSpot.status === "VENDIDO" && (
-                    <Button
-                      onClick={() => {
-                        if (notyf) notyf.success("Cochera liberada")
-                        setIsGarageParkingModalOpen(false)
-                      }}
-                      className="bg-yellow-600 hover:bg-yellow-700 w-full"
-                    >
-                      Liberar Cochera
-                    </Button>
-                  )}
+            {selectedParking && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <Label className="text-zinc-400">Estado</Label>
+                    <div className="flex items-center mt-1">
+                      {(() => {
+                        const assignedToUnit = getParkingSpotUnit(selectedParking.id)
+                        return (
+                          <>
+                            <div
+                              className="w-3 h-3 rounded-full mr-2"
+                              style={{ backgroundColor: assignedToUnit ? "#ef4444" : "#22c55e" }}
+                            />
+                            <Badge variant="outline" className="capitalize">
+                              {assignedToUnit ? "Asignada" : "Libre"}
+                            </Badge>
+                          </>
+                        )
+                      })()}
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Nivel</Label>
+                    <p className="font-semibold">Nivel {selectedParking.level}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Precio</Label>
+                    <p className="font-semibold text-green-400">{formatBoulevardPrice(selectedParking.price)}</p>
+                  </div>
                 </div>
+
+                {(() => {
+                  const assignedToUnit = getParkingSpotUnit(selectedParking.id)
+                  if (assignedToUnit) {
+                    return (
+                      <div className="p-3 bg-zinc-800 rounded">
+                        <Label className="text-zinc-400">Asignada a:</Label>
+                        <p className="font-semibold">Unidad {assignedToUnit}</p>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
               </div>
             )}
+
             <DialogFooter>
-              <Button onClick={() => setIsGarageParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
               </Button>
             </DialogFooter>
@@ -1422,17 +1643,32 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
           </div>
         </div>
 
-        {/* Activity Log */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-zinc-900 p-4 rounded-lg">
             <h4 className="font-semibold mb-4">Registro de Actividades</h4>
             <ScrollArea className="h-60">
               <div className="space-y-2">
                 {activityLog.map((activity, index) => (
-                  <p key={index} className="text-sm text-zinc-300">
-                    {activity}
-                  </p>
+                  <div
+                    key={`${activity.unitId}-${activity.timestamp.getTime()}-${index}`}
+                    className="flex items-start gap-3 text-sm py-2 border-b border-zinc-800 last:border-0"
+                  >
+                    <span className="text-zinc-500 whitespace-nowrap min-w-[140px]">
+                      {formatActivityDate(activity.timestamp)}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="font-medium text-amber-400">{activity.user}</span>
+                      <span className="text-zinc-300">{activity.description}</span>
+                      <span className="text-zinc-400">la unidad</span>
+                      <span className="font-semibold text-white bg-zinc-700 px-2 py-0.5 rounded">
+                        {activity.unitId}
+                      </span>
+                    </div>
+                  </div>
                 ))}
+                {activityLog.length === 0 && (
+                  <p className="text-sm text-zinc-500 text-center py-4">No hay actividades registradas</p>
+                )}
               </div>
             </ScrollArea>
           </div>
