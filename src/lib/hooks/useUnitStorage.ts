@@ -10,6 +10,7 @@ interface UnitOwner {
   phone: string
   type: string
   assignedAt: string
+  assignedBy: string
 }
 
 interface UnitStatus {
