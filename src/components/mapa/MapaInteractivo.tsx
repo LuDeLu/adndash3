@@ -77,7 +77,7 @@ const locationCoordinates: { [key: string]: [number, number] } = {
   'Libertador & Ombú': [-34.5755, -58.4222]
 }
 
-const API_BASE_URL = 'https://adndashboard.squareweb.app/api'
+const API_BASE_URL = 'http://localhost:3001/api'
 
 export default function MapaInteractivo() {
   const [isMounted, setIsMounted] = useState(false)

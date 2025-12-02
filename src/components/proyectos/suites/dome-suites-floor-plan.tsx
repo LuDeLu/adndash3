@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import type React from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
@@ -75,6 +75,15 @@ interface UnitOwner {
   phone: string
   type: string
   assignedAt: string
+  assignedBy?: string // agregado campo assignedBy
+}
+
+interface ActivityEntry {
+  timestamp: Date
+  description: string
+  unitId: string
+  action: string
+  user: string
 }
 
 type SuitesFloorPlanProps = {
@@ -83,7 +92,7 @@ type SuitesFloorPlanProps = {
 }
 
 const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = "http://localhost:3001/api"
 
 // Garage plan images for Dome Suites
 const garageLevels = [1, 2, 3] as const
@@ -97,7 +106,6 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedApartment, setSelectedApartment] = useState<SuitesApartment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
     | "block"
@@ -169,6 +177,71 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
     updateStatus,
     unitStatuses,
   } = useUnitStorage("suites")
+
+  const activityLog = useMemo(() => {
+    const activities: ActivityEntry[] = []
+
+    // Procesar cambios de estado de unidades (estos SÍ tienen changedBy)
+    Object.entries(unitStatuses).forEach(([unitId, status]) => {
+      if (status.changedAt && status.changedBy) {
+        const actionLabel =
+          status.status === "VENDIDO"
+            ? "marcó como VENDIDA"
+            : status.status === "RESERVADO"
+              ? "marcó como RESERVADA"
+              : status.status === "BLOQUEADO"
+                ? "marcó como BLOQUEADA"
+                : "liberó (DISPONIBLE)"
+
+        activities.push({
+          timestamp: new Date(status.changedAt),
+          description: actionLabel,
+          unitId,
+          action: status.status,
+          user: status.changedBy,
+        })
+      }
+    })
+
+    // Procesar asignaciones de propietarios
+    Object.entries(unitOwners).forEach(([unitId, owner]) => {
+      if (owner.assignedAt) {
+        activities.push({
+          timestamp: new Date(owner.assignedAt),
+          description: `asignó a "${owner.name}" como propietario de`,
+          unitId,
+          action: "OWNER_ASSIGNED",
+          user: (owner as UnitOwner).assignedBy || "Sistema",
+        })
+      }
+    })
+
+    // Procesar asignaciones de cocheras (no tienen info de quién lo hizo)
+    Object.entries(parkingAssignments).forEach(([unitId, assignment]) => {
+      if (assignment.assignedAt && assignment.parkingSpots.length > 0) {
+        activities.push({
+          timestamp: new Date(assignment.assignedAt),
+          description: `asignó cocheras (${assignment.parkingSpots.join(", ")}) a`,
+          unitId,
+          action: "PARKING_ASSIGNED",
+          user: "Sistema",
+        })
+      }
+    })
+
+    // Ordenar por fecha más reciente primero
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  }, [unitStatuses, unitOwners, parkingAssignments])
+
+  const formatActivityDate = (date: Date) => {
+    return date.toLocaleString("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
 
   const getRealStatus = useCallback(
     (apartment: SuitesApartment): SuitesApartmentStatus => {
@@ -364,6 +437,7 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
+        assignedBy: user?.name || "Usuario", // Agregado assignedBy
       })
 
       if (notyf) {
@@ -392,15 +466,15 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
 
       if (notyf) {
         if (parkingSpotIds.length > 0) {
-          notyf.success(`Cocheras asignadas a la unidad ${selectedApartment.unitNumber}: ${parkingSpotIds.join(", ")}`)
+          notyf.success(`Cocheras asignadas a la unidad ${selectedApartment.unitNumber}`)
         } else {
           notyf.success(`Se removieron las cocheras de la unidad ${selectedApartment.unitNumber}`)
         }
       }
 
-      const timestamp = new Date().toLocaleString()
-      const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedApartment.unitNumber}`
-      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+      // const timestamp = new Date().toLocaleString() // No longer needed, generated from unitStatuses
+      // const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedApartment.unitNumber}`
+      // setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog]) // No longer needed, generated from unitStatuses
 
       setAction(null)
       setSelectedParkingsForAssignment({})
@@ -488,9 +562,9 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
           }
         }
 
-        const timestamp = new Date().toLocaleString()
-        const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} la unidad ${selectedApartment.unitNumber}`
-        setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+        // const timestamp = new Date().toLocaleString() // No longer needed, generated from unitStatuses
+        // const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} la unidad ${selectedApartment.unitNumber}`
+        // setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog]) // No longer needed, generated from unitStatuses
 
         setIsModalOpen(false)
         setAction(null)
@@ -1233,8 +1307,8 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                       <div className="space-y-2">
                         {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
                           const isSelected = selectedParkingsForAssignment[parking.id] || false
-                          const assignedTo = getParkingSpotUnit(parking.id)
-                          const isAssignedToOther = assignedTo && assignedTo !== selectedApartment.unitNumber
+                          const assignedToUnit = getParkingSpotUnit(parking.id)
+                          const isAssignedToOther = assignedToUnit && assignedToUnit !== selectedApartment.unitNumber
 
                           return (
                             <div
@@ -1279,7 +1353,9 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                                 </div>
                                 <div className="text-right">
                                   <p className="font-semibold text-green-400">{formatSuitesPrice(parking.price)}</p>
-                                  {isAssignedToOther && <p className="text-xs text-red-400">Asignada a {assignedTo}</p>}
+                                  {isAssignedToOther && (
+                                    <p className="text-xs text-red-400">Asignada a {assignedToUnit}</p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1563,9 +1639,22 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
             <ScrollArea className="h-60">
               <div className="space-y-2">
                 {activityLog.map((activity, index) => (
-                  <p key={index} className="text-sm text-zinc-300">
-                    {activity}
-                  </p>
+                  <div
+                    key={`${activity.unitId}-${activity.timestamp.getTime()}-${index}`}
+                    className="flex items-start gap-3 text-sm py-2 border-b border-zinc-800 last:border-0"
+                  >
+                    <span className="text-zinc-500 whitespace-nowrap min-w-[140px]">
+                      {formatActivityDate(activity.timestamp)}
+                    </span>
+                    <div className="flex flex-wrap items-center gap-1">
+                      <span className="font-medium text-amber-400">{activity.user}</span>
+                      <span className="text-zinc-300">{activity.description}</span>
+                      <span className="text-zinc-400">la unidad</span>
+                      <span className="font-semibold text-white bg-zinc-700 px-2 py-0.5 rounded">
+                        {activity.unitId}
+                      </span>
+                    </div>
+                  </div>
                 ))}
                 {activityLog.length === 0 && (
                   <p className="text-sm text-zinc-500 text-center py-4">No hay actividades registradas</p>

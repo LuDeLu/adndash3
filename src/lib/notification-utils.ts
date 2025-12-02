@@ -26,7 +26,7 @@ export async function createNotification(
     },
   ) {
     try {
-      const response = await fetch("https://adndashboard.squareweb.app/api/notifications", {
+      const response = await fetch("http://localhost:3001/api/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -86,7 +86,7 @@ export async function createNotification(
     },
   ) {
     try {
-      const response = await fetch("https://adndashboard.squareweb.app/api/notifications/role", {
+      const response = await fetch("http://localhost:3001/api/notifications/role", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -274,7 +274,7 @@ export async function createNotification(
   export async function checkScheduledEvents() {
     try {
       // 1. Verificar clientes que necesitan seguimiento
-      const clientesResponse = await fetch("https://adndashboard.squareweb.app/api/clientes/seguimiento", {
+      const clientesResponse = await fetch("http://localhost:3001/api/clientes/seguimiento", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -298,7 +298,7 @@ export async function createNotification(
       }
   
       // 2. Verificar reclamos sin atender
-      const reclamosResponse = await fetch("https://adndashboard.squareweb.app/api/postventa/pendientes", {
+      const reclamosResponse = await fetch("http://localhost:3001/api/postventa/pendientes", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -340,7 +340,7 @@ export async function createNotification(
       const tomorrowStr = tomorrow.toISOString().split("T")[0]
   
       const visitasResponse = await fetch(
-        `https://adndashboard.squareweb.app/api/postventa/visitas?fecha=${tomorrowStr}`,
+        `http://localhost:3001/api/postventa/visitas?fecha=${tomorrowStr}`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

@@ -78,7 +78,7 @@ type DomeBerutiFloorPlanProps = {
 
 const floors = Array.from({ length: 14 }, (_, i) => i + 1)
 const garageLevels = [1, 2, 3]
-const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = "http://localhost:3001/api"
 
 const garagePlans = {
   1: "/planos/beruti/cochera/nivel1.png",

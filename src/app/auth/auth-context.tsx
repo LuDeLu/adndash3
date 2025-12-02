@@ -22,7 +22,7 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
 
 const TOKEN_REFRESH_INTERVAL = 30 * 60 * 1000 // Refrescar cada 30 minutos
 const SESSION_ACTIVITY_TIMEOUT = 8 * 60 * 60 * 1000 // 8 horas de inactividad máxima

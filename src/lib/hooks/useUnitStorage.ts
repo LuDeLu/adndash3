@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from "react"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
 
 interface UnitOwner {
   name: string
@@ -23,6 +23,7 @@ interface UnitStatus {
 interface ParkingAssignment {
   parkingSpots: string[] // Array of parking spot IDs like ["a1", "b2"]
   assignedAt: string
+  assignedBy: string
 }
 
 interface ProjectData {
@@ -257,6 +258,7 @@ export function useUnitStorage(projectName: string) {
       const assignment: ParkingAssignment = {
         parkingSpots,
         assignedAt: new Date().toISOString(),
+        assignedBy: ""
       }
 
       // Optimistic update

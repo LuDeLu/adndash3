@@ -171,7 +171,7 @@ export function AddProjectModal({ isOpen, onClose, onProjectAdded }: AddProjectM
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+      const API_BASE_URL = "http://localhost:3001/api"
 
       // Create the project
       const projectResponse = await fetch(`${API_BASE_URL}/projects`, {

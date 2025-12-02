@@ -77,7 +77,7 @@ type ParkingSpot = {
   dbId?: number // database id
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
 
 // Obtener paths desde la configuración del proyecto
 const getApartmentSvgPath = (apartmentId: string, floorConfig: FloorConfig | null, projectConfig: any) => {
