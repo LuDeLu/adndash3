@@ -356,6 +356,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
+        assignedBy: ""
       })
 
       if (notyf) {

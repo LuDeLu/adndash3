@@ -357,6 +357,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
+        assignedBy: ""
       })
 
       if (notyf) {

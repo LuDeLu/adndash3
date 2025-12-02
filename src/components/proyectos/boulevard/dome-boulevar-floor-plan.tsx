@@ -327,6 +327,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
+        assignedBy: ""
       })
 
       if (notyf) {
