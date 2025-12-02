@@ -356,7 +356,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
-        assignedBy: ""
+        assignedBy: "",
       })
 
       if (notyf) {
@@ -370,6 +370,26 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     } catch (error) {
       console.error("Error al asignar propietario:", error)
       if (notyf) notyf.error("Error al asignar propietario")
+    }
+  }
+
+  const handleRemoveOwner = async () => {
+    if (!selectedApartment) return
+
+    try {
+      removeOwner(selectedApartment.unitNumber)
+
+      if (notyf) {
+        notyf.success(`Propietario removido de la unidad ${selectedApartment.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al remover propietario:", error)
+      if (notyf) notyf.error("Error al remover propietario")
     }
   }
 
@@ -1090,13 +1110,12 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                           </Button>
                         )}
 
-                        <Button
-                          onClick={() => setAction(null)}
-                          variant="outline"
-                          className="w-full border-zinc-600 text-zinc-300 hover:bg-zinc-700"
-                        >
-                          Cancelar
-                        </Button>
+                        {/* CHANGE: Add button to remove current owner */}
+                        {unitOwners[selectedApartment.unitNumber] && (
+                          <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
+                            Remover Propietario Actual
+                          </Button>
+                        )}
                       </>
                     ) : (
                       <div className="space-y-4">

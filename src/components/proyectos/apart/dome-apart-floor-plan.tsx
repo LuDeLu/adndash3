@@ -222,6 +222,7 @@ interface UnitOwner {
   phone: string
   type: string
   assignedAt: string
+  assignedBy?: string // Added for completeness, not strictly required by this specific update
 }
 
 interface Cliente {
@@ -305,6 +306,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   const {
     unitOwners,
     addOwner,
+    removeOwner, // <-- Added removeOwner
     parkingAssignments,
     assignParking,
     getUnitParking,
@@ -493,7 +495,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
-        assignedBy: ""
+        assignedBy: "",
       })
 
       if (notyf) {
@@ -507,6 +509,26 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     } catch (error) {
       console.error("Error al asignar propietario:", error)
       if (notyf) notyf.error("Error al asignar propietario")
+    }
+  }
+
+  const handleRemoveOwner = async () => {
+    if (!selectedUnit) return
+
+    try {
+      removeOwner(selectedUnit.unitNumber)
+
+      if (notyf) {
+        notyf.success(`Propietario removido de la unidad ${selectedUnit.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al remover propietario:", error)
+      if (notyf) notyf.error("Error al remover propietario")
     }
   }
 
@@ -929,6 +951,8 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
                       "/placeholder.svg" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -1269,6 +1293,12 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                             Asignar como Propietario
                           </Button>
                         )}
+
+                        {unitOwners[selectedUnit.unitNumber] && (
+                          <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
+                            Remover Propietario Actual
+                          </Button>
+                        )}
                       </>
                     ) : (
                       <div className="space-y-4">
@@ -1371,8 +1401,8 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <div className="space-y-2">
                         {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
                           const isSelected = selectedParkingsForAssignment[parking.id] || false
-                          const assignedTo = getParkingSpotUnit(parking.id)
-                          const isAssignedToOther = assignedTo && assignedTo !== selectedUnit.unitNumber
+                          const assignedToUnit = getParkingSpotUnit(parking.id)
+                          const isAssignedToOther = assignedToUnit && assignedToUnit !== selectedUnit.unitNumber
 
                           return (
                             <div
@@ -1415,7 +1445,9 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                                 </div>
                                 <div className="text-right">
                                   <p className="font-semibold text-green-400">{formatApartPrice(parking.price)}</p>
-                                  {isAssignedToOther && <p className="text-xs text-red-400">Asignada a {assignedTo}</p>}
+                                  {isAssignedToOther && (
+                                    <p className="text-xs text-red-400">Asignada a {assignedToUnit}</p>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -1547,35 +1579,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                           : "Confirmar Liberación"}
                     </Button>
                   </form>
-                )}
-
-                {/* Confirmation Dialogs */}
-                {(confirmReservation || confirmCancelReservation || confirmRelease) && (
-                  <div className="space-y-4">
-                    <p className="text-yellow-400">
-                      {confirmReservation
-                        ? "¿Confirmar reserva de la unidad?"
-                        : confirmCancelReservation
-                          ? "¿Confirmar cancelación de la reserva?"
-                          : "¿Confirmar liberación de la unidad?"}
-                    </p>
-                    <div className="flex space-x-2">
-                      <Button onClick={handleFormSubmit} className="bg-green-600 hover:bg-green-700 flex-1">
-                        Confirmar
-                      </Button>
-                      <Button
-                        onClick={() => {
-                          setConfirmReservation(false)
-                          setConfirmCancelReservation(false)
-                          setConfirmRelease(false)
-                          setAction(null)
-                        }}
-                        className="bg-red-600 hover:bg-red-700 flex-1"
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-                  </div>
                 )}
               </div>
             )}

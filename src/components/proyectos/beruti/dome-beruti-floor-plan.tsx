@@ -102,6 +102,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     | "release"
     | "addOwner"
     | "assignParking"
+    | "removeOwner"
     | null
   >(null)
   const [formData, setFormData] = useState({
@@ -154,6 +155,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   const {
     unitOwners,
     addOwner,
+    removeOwner,
     parkingAssignments,
     assignParking,
     getUnitParking,
@@ -210,7 +212,8 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
       | "cancelReservation"
       | "release"
       | "addOwner"
-      | "assignParking",
+      | "assignParking"
+      | "removeOwner",
   ) => {
     setAction(actionType)
     setConfirmReservation(
@@ -227,6 +230,11 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
       })
       setSelectedParkingsForAssignment(initialSelection)
       setParkingAssignmentLevel(1)
+    }
+
+    // Add handler for removeOwner action
+    if (actionType === "removeOwner") {
+      // No specific state changes needed for this action, handled directly in handleRemoveOwner
     }
   }
 
@@ -319,7 +327,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
-        assignedBy: ""
+        assignedBy: "",
       })
 
       if (notyf) {
@@ -333,6 +341,26 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     } catch (error) {
       console.error("Error al asignar propietario:", error)
       if (notyf) notyf.error("Error al asignar propietario")
+    }
+  }
+
+  const handleRemoveOwner = async () => {
+    if (!selectedUnit) return
+
+    try {
+      removeOwner(selectedUnit.unitNumber)
+
+      if (notyf) {
+        notyf.success(`Propietario removido de la unidad ${selectedUnit.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al remover propietario:", error)
+      if (notyf) notyf.error("Error al remover propietario")
     }
   }
 
@@ -1099,6 +1127,12 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                         {selectedCliente && (
                           <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
                             Asignar como Propietario
+                          </Button>
+                        )}
+
+                        {unitOwners[selectedUnit.unitNumber] && (
+                          <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
+                            Remover Propietario Actual
                           </Button>
                         )}
                       </>

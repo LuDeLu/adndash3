@@ -15,7 +15,6 @@ import {
   MapPin,
   Home,
   User,
-  Calendar,
   Search,
   Plus,
   RefreshCw,
@@ -102,6 +101,7 @@ interface UnitOwner {
   phone: string
   type: string
   assignedAt: string
+  assignedBy: string
 }
 
 const floors = Array.from({ length: 9 }, (_, i) => i + 1)
@@ -185,6 +185,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     | "release"
     | "addOwner"
     | "assignParking"
+    | "removeOwner"
     | null
   >(null)
   const [formData, setFormData] = useState({
@@ -223,6 +224,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   const {
     unitOwners,
     addOwner,
+    removeOwner,
     parkingAssignments,
     assignParking,
     getUnitParking,
@@ -357,7 +359,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
-        assignedBy: ""
+        assignedBy: user?.name || user?.email || "Desconocido",
       })
 
       if (notyf) {
@@ -371,6 +373,26 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     } catch (error) {
       console.error("Error al asignar propietario:", error)
       if (notyf) notyf.error("Error al asignar propietario")
+    }
+  }
+
+  const handleRemoveOwner = async () => {
+    if (!selectedApartment) return
+
+    try {
+      removeOwner(selectedApartment)
+
+      if (notyf) {
+        notyf.success(`Propietario removido del departamento ${selectedApartment}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al remover propietario:", error)
+      if (notyf) notyf.error("Error al remover propietario")
     }
   }
 
@@ -450,6 +472,8 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       setConfirmCancelReservation(true)
     } else if (newAction === "release") {
       setConfirmRelease(true)
+    } else if (newAction === "removeOwner") {
+      setConfirmCancelReservation(true) // Reusing this state for confirmation
     }
   }
 
@@ -522,6 +546,12 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
           break
       }
 
+      if (action === "removeOwner") {
+        await handleRemoveOwner()
+        setLoading(false)
+        return
+      }
+
       // Update status in useUnitStorage
       if (selectedApartment) {
         await updateStatus(selectedApartment, {
@@ -570,8 +600,14 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             ? "reservó"
             : action === "sell"
               ? "vendió"
-              : "liberó"
-      } ${itemType} ${itemId}`
+              : action === "unblock"
+                ? "desbloqueó"
+                : action === "cancelReservation"
+                  ? "canceló la reserva de"
+                  : action === "release"
+                    ? "liberó"
+                    : ""
+      } ${itemType} ${itemId}${action === "sell" && formData.price ? ` por ${formatPrice(formData.price)}` : ""}`
       setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
 
       setIsModalOpen(false)
@@ -591,6 +627,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       setSearchTerm("")
       setShowCreateClient(false)
     } catch (error) {
+      console.error("Error during form submission:", error)
       if (notyf) notyf.error("Error al procesar la acción")
     } finally {
       setLoading(false)
@@ -655,7 +692,10 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
   const refreshData = async () => {
     setRefreshing(true)
+    // Simulate data fetching
     await new Promise((resolve) => setTimeout(resolve, 1000))
+    // In a real application, you would fetch new data here
+    // For now, we'll just reset the refreshing state
     setRefreshing(false)
     if (notyf) notyf.success("Datos actualizados")
   }
@@ -1040,6 +1080,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       <Badge variant="secondary" className="mt-2">
                         {unitOwners[selectedApartment].type}
                       </Badge>
+                      <p className="text-xs text-zinc-500">Asignado por: {unitOwners[selectedApartment].assignedBy}</p>
                     </div>
                   ) : (
                     <p className="text-zinc-400">Sin asignar</p>
@@ -1090,6 +1131,16 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       <User className="mr-2 h-4 w-4" />
                       {unitOwners[selectedApartment] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
+                    {unitOwners[selectedApartment] && (
+                      <Button
+                        onClick={() => handleActionClick("removeOwner")}
+                        variant="outline"
+                        className="w-full border-red-600 text-red-500 hover:bg-red-600/20"
+                      >
+                        <User className="mr-2 h-4 w-4" />
+                        Remover Propietario
+                      </Button>
+                    )}
 
                     <Button
                       onClick={() => handleActionClick("assignParking")}
@@ -1198,41 +1249,49 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                           />
                         </div>
 
-                        <div className="max-h-60 overflow-y-auto space-y-2">
-                          {isLoadingClientes ? (
-                            <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
-                          ) : filteredClientes.length === 0 ? (
-                            <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
-                          ) : (
-                            filteredClientes.map((cliente) => (
-                              <div
-                                key={cliente.id}
-                                onClick={() => setSelectedCliente(cliente)}
-                                className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                                  selectedCliente?.id === cliente.id
-                                    ? "border-indigo-500 bg-indigo-500/20"
-                                    : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
-                                }`}
-                              >
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-medium text-white">
-                                      {cliente.nombre} {cliente.apellido}
-                                    </p>
-                                    <p className="text-sm text-zinc-400">{cliente.email}</p>
+                        <ScrollArea className="max-h-60">
+                          <div className="space-y-2 pr-2">
+                            {isLoadingClientes ? (
+                              <div className="text-center py-4 text-zinc-400">Cargando clientes...</div>
+                            ) : filteredClientes.length === 0 ? (
+                              <div className="text-center py-4 text-zinc-400">No hay clientes disponibles</div>
+                            ) : (
+                              filteredClientes.map((cliente) => (
+                                <div
+                                  key={cliente.id}
+                                  onClick={() => setSelectedCliente(cliente)}
+                                  className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                                    selectedCliente?.id === cliente.id
+                                      ? "border-indigo-500 bg-indigo-500/20"
+                                      : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700"
+                                  }`}
+                                >
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="font-medium text-white">
+                                        {cliente.nombre} {cliente.apellido}
+                                      </p>
+                                      <p className="text-sm text-zinc-400">{cliente.email}</p>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {cliente.tipo}
+                                    </Badge>
                                   </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {cliente.tipo}
-                                  </Badge>
                                 </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
+                              ))
+                            )}
+                          </div>
+                        </ScrollArea>
 
                         {selectedCliente && (
                           <Button onClick={handleAssignOwner} className="w-full bg-indigo-600 hover:bg-indigo-700">
                             Asignar como Propietario
+                          </Button>
+                        )}
+
+                        {unitOwners[selectedApartment] && (
+                          <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
+                            Remover Propietario Actual
                           </Button>
                         )}
                       </>
@@ -1349,7 +1408,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
 
                     {/* Parking spots list */}
                     <ScrollArea className="h-60">
-                      <div className="space-y-2">
+                      <div className="space-y-2 pr-2">
                         {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
                           const isSelected = selectedParkingsForAssignment[parking.id] || false
                           const assignedTo = getParkingSpotUnit(parking.id)
@@ -1553,6 +1612,30 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     </div>
                   </form>
                 )}
+
+                {action === "removeOwner" && (
+                  <div className="space-y-4">
+                    <p className="text-zinc-300">
+                      Estás a punto de remover al propietario del departamento {selectedApartment}. ¿Estás seguro?
+                    </p>
+                    <div className="flex space-x-2">
+                      <Button onClick={handleFormSubmit} className="flex-1 bg-red-600 hover:bg-red-700">
+                        Confirmar Remoción
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setAction(null)
+                          setConfirmCancelReservation(false)
+                        }}
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -1599,7 +1682,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             )}
           </DialogContent>
         </Dialog>
-                {/* Additional Information */}
+        {/* Additional Information */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-zinc-900 p-4 rounded-lg">
             <h4 className="font-semibold mb-4">Información adicional</h4>
@@ -1653,8 +1736,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             </ScrollArea>
           </div>
         </div>
-
-
       </div>
     </div>
   )

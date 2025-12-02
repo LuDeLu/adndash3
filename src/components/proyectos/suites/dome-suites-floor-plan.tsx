@@ -117,6 +117,7 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
     | "release"
     | "addOwner"
     | "assignParking"
+    | "removeOwner" // Added removeOwner action
     | null
   >(null)
   const [formData, setFormData] = useState({
@@ -169,6 +170,7 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
   const {
     unitOwners,
     addOwner,
+    removeOwner, // Added removeOwner
     parkingAssignments,
     assignParking,
     getUnitParking,
@@ -333,6 +335,10 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
     )
     setConfirmCancelReservation(newAction === "cancelReservation")
     setConfirmRelease(newAction === "release")
+    // Set action for removing owner
+    if (newAction === "removeOwner") {
+      // No specific state to set here, the action itself is enough
+    }
   }
 
   const loadClientes = async () => {
@@ -454,6 +460,26 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
     }
   }
 
+  const handleRemoveOwner = async () => {
+    if (!selectedApartment) return
+
+    try {
+      removeOwner(selectedApartment.unitNumber)
+
+      if (notyf) {
+        notyf.success(`Propietario removido de la unidad ${selectedApartment.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedCliente(null)
+      setSearchTerm("")
+      setShowCreateClient(false)
+    } catch (error) {
+      console.error("Error al remover propietario:", error)
+      if (notyf) notyf.error("Error al remover propietario")
+    }
+  }
+
   const handleConfirmParkingAssignment = async () => {
     if (!selectedApartment) return
 
@@ -471,10 +497,6 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
           notyf.success(`Se removieron las cocheras de la unidad ${selectedApartment.unitNumber}`)
         }
       }
-
-      // const timestamp = new Date().toLocaleString() // No longer needed, generated from unitStatuses
-      // const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedApartment.unitNumber}`
-      // setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog]) // No longer needed, generated from unitStatuses
 
       setAction(null)
       setSelectedParkingsForAssignment({})
@@ -505,6 +527,12 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedApartment || !user) return
+
+    // Handle owner removal if that's the current action
+    if (action === "removeOwner") {
+      await handleRemoveOwner()
+      return
+    }
 
     try {
       let newStatus: SuitesApartment["status"] = selectedApartment.status
@@ -561,10 +589,6 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
               break
           }
         }
-
-        // const timestamp = new Date().toLocaleString() // No longer needed, generated from unitStatuses
-        // const description = `${user.name} ${action === "block" ? "bloqueó" : action === "reserve" || action === "directReserve" ? "reservó" : action === "sell" ? "vendió" : "liberó"} la unidad ${selectedApartment.unitNumber}`
-        // setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog]) // No longer needed, generated from unitStatuses
 
         setIsModalOpen(false)
         setAction(null)
@@ -1196,6 +1220,12 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                             Asignar como Propietario
                           </Button>
                         )}
+
+                        {unitOwners[selectedApartment.unitNumber] && (
+                          <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
+                            Remover Propietario Actual
+                          </Button>
+                        )}
                       </>
                     ) : (
                       <div className="space-y-4">
@@ -1489,7 +1519,7 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                   </form>
                 )}
 
-                {/* Confirmation Dialogs */}
+                {/* Confirmation Dialogs - No change here, but context for handleFormSubmit */}
                 {(confirmReservation || confirmCancelReservation || confirmRelease) && (
                   <div className="space-y-4">
                     <p className="text-yellow-400">
