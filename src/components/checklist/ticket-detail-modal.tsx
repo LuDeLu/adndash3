@@ -38,7 +38,7 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onApprove }: Ticket
     setIsDownloading(true)
     try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"}/checklist/${ticket.id}/download-pdf`,
+        `${process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"}/checklist/${ticket.id}/download-pdf`,
         {
           method: "GET",
           headers: {

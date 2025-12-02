@@ -16,7 +16,7 @@ import { StatisticsOverviewChart } from "./statistics-overview-chart"
 import { ExportModal } from "./export-modal"
 import { useToast } from "@/hooks/use-toast"
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
 
 type PeriodOption = "7d" | "30d" | "90d"
 

@@ -134,7 +134,7 @@ export default function NotificationsPage() {
 
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:3001/api/notifications", {
+      const response = await fetch("https://adndashboard.squareweb.app/api/notifications", {
         headers: {
           Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
         },
@@ -169,7 +169,7 @@ export default function NotificationsPage() {
   // Fetch notification details
   const fetchNotificationDetails = useCallback(async (notificationId: string) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/notifications/${notificationId}/details`, {
+      const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/${notificationId}/details`, {
         headers: {
           Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
         },
@@ -180,7 +180,7 @@ export default function NotificationsPage() {
         setSelectedNotification(data)
 
         // Mark as read
-        await fetch(`http://localhost:3001/api/notifications/${notificationId}/read`, {
+        await fetch(`https://adndashboard.squareweb.app/api/notifications/${notificationId}/read`, {
           method: "PATCH",
           headers: {
             Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
@@ -198,7 +198,7 @@ export default function NotificationsPage() {
   const deleteNotification = useCallback(
     async (notificationId: string) => {
       try {
-        const response = await fetch(`http://localhost:3001/api/notifications/${notificationId}`, {
+        const response = await fetch(`https://adndashboard.squareweb.app/api/notifications/${notificationId}`, {
           method: "DELETE",
           headers: {
             Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
@@ -361,7 +361,7 @@ export default function NotificationsPage() {
     try {
       await Promise.all(
         Array.from(selectedIds).map((id) =>
-          fetch(`http://localhost:3001/api/notifications/${id}`, {
+          fetch(`https://adndashboard.squareweb.app/api/notifications/${id}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,
@@ -385,7 +385,7 @@ export default function NotificationsPage() {
     try {
       await Promise.all(
         Array.from(selectedIds).map((id) =>
-          fetch(`http://localhost:3001/api/notifications/${id}/read`, {
+          fetch(`https://adndashboard.squareweb.app/api/notifications/${id}/read`, {
             method: "PATCH",
             headers: {
               Authorization: `Bearer ${typeof window !== "undefined" ? localStorage.getItem("token") : ""}`,

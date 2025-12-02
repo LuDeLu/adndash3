@@ -92,7 +92,7 @@ type SuitesFloorPlanProps = {
 }
 
 const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 // Garage plan images for Dome Suites
 const garageLevels = [1, 2, 3] as const

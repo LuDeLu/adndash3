@@ -106,7 +106,7 @@ function ClientSelector({ value, onChange }: { value: string; onChange: (value: 
 
   useEffect(() => {
     setLoading(true)
-    fetch("http://localhost:3001/api/clientes", {
+    fetch("https://adndashboard.squareweb.app/api/clientes", {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
@@ -298,7 +298,7 @@ export default function Calendar() {
   const checkGoogleConnection = useCallback(async () => {
     try {
       setGoogleStatus((prev) => ({ ...prev, loading: true, error: null }))
-      const response = await fetch("http://localhost:3001/api/events/google/status", {
+      const response = await fetch("https://adndashboard.squareweb.app/api/events/google/status", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -331,7 +331,7 @@ export default function Calendar() {
   useEffect(() => {
     const loadClientsMap = async () => {
       try {
-        const response = await fetch("http://localhost:3001/api/clientes", {
+        const response = await fetch("https://adndashboard.squareweb.app/api/clientes", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -365,7 +365,7 @@ export default function Calendar() {
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      const response = await fetch("http://localhost:3001/api/events", {
+      const response = await fetch("https://adndashboard.squareweb.app/api/events", {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
@@ -425,8 +425,8 @@ export default function Calendar() {
         }
 
         const url = selectedEvent
-          ? `http://localhost:3001/api/events/${selectedEvent.id}`
-          : "http://localhost:3001/api/events"
+          ? `https://adndashboard.squareweb.app/api/events/${selectedEvent.id}`
+          : "https://adndashboard.squareweb.app/api/events"
         const method = selectedEvent ? "PUT" : "POST"
 
         const response = await fetch(url, {
@@ -491,7 +491,7 @@ export default function Calendar() {
   const handleDeleteEvent = async (eventId: string) => {
     try {
       setLoading(true)
-      const response = await fetch(`http://localhost:3001/api/events/${eventId}`, {
+      const response = await fetch(`https://adndashboard.squareweb.app/api/events/${eventId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -522,7 +522,7 @@ export default function Calendar() {
     if (eventToUpdate) {
       try {
         setLoading(true)
-        const response = await fetch(`http://localhost:3001/api/events/${eventId}`, {
+        const response = await fetch(`https://adndashboard.squareweb.app/api/events/${eventId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -552,7 +552,7 @@ export default function Calendar() {
     if (eventToUpdate) {
       try {
         setLoading(true)
-        const response = await fetch(`http://localhost:3001/api/events/${eventId}`, {
+        const response = await fetch(`https://adndashboard.squareweb.app/api/events/${eventId}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -582,7 +582,7 @@ export default function Calendar() {
       setSyncLoading(true)
 
       if (!googleStatus.connected) {
-        const response = await fetch("http://localhost:3001/api/events/google/auth", {
+        const response = await fetch("https://adndashboard.squareweb.app/api/events/google/auth", {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
           },
@@ -598,7 +598,7 @@ export default function Calendar() {
         return
       }
 
-      const response = await fetch("http://localhost:3001/api/events/sync", {
+      const response = await fetch("https://adndashboard.squareweb.app/api/events/sync", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,

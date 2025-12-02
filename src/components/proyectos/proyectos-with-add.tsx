@@ -55,7 +55,7 @@ type Project = {
   promotions?: string
 }
 
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () => void }) => (
   <motion.div

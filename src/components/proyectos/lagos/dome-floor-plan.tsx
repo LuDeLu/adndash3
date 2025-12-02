@@ -81,7 +81,7 @@ type DomeFloorPlanProps = {
 }
 
 const floors = [0, 1, 2, 3, 4, 5]
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 const garageLevels = [1]
 const garagePlans = {

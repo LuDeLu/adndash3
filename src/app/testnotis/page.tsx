@@ -110,7 +110,7 @@ export default function TestNotificationsPage() {
       for (let i = 0; i < config.count; i++) {
         const message = messages[i % messages.length]
 
-        const response = await fetch("http://localhost:3001/api/notifications", {
+        const response = await fetch("https://adndashboard.squareweb.app/api/notifications", {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -151,7 +151,7 @@ export default function TestNotificationsPage() {
         for (let i = 0; i < config.count; i++) {
           const message = messages[i % messages.length]
 
-          const response = await fetch("http://localhost:3001/api/notifications", {
+          const response = await fetch("https://adndashboard.squareweb.app/api/notifications", {
             method: "POST",
             headers: {
               Authorization: `Bearer ${token}`,

@@ -79,7 +79,7 @@ interface UnitOwner {
 
 let notyf: Notyf | null = null
 
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 type DomeBoulevardFloorPlanProps = {
   floorNumber?: number | null
