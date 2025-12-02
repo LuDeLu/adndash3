@@ -804,10 +804,10 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                             <polygon
                               key={spot.id}
                               points={points}
-                              fill={isAssigned ? "#ef4444" : "#22c55e"}
+                              fill={isAssigned ? "#EF4444" : "#10B981"}
                               stroke="white"
                               strokeWidth="2"
-                              opacity="0.7"
+                              opacity="0.4"
                               onClick={() => handleParkingClick(spot)}
                               style={{ cursor: "pointer" }}
                               className="hover:opacity-100 transition-opacity"

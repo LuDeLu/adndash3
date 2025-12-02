@@ -47,9 +47,10 @@ export default function Login() {
           email: data.user.email,
           name: data.user.nombre,
           rol: data.user.rol,
-          userId: data.user.id || data.user.userId || 0, // Add userId property
+          userId: data.user.id || data.user.userId || 0,
         },
         data.token,
+        data.refreshToken || "", // Nuevo: refresh token
         "", // Empty string for googleAccessToken since this is email login
       )
     } catch (error) {
@@ -88,10 +89,11 @@ export default function Login() {
               email: userInfo.email,
               name: userInfo.name,
               rol: data.user.rol,
-              userId: data.user.id || data.user.userId || 0, // Add userId property
+              userId: data.user.id || data.user.userId || 0,
             },
             data.token,
-            tokenResponse.access_token,
+            data.refreshToken || "", // Nuevo: refresh token
+            tokenResponse.access_token, // Google access token
           )
         } else {
           const errorData = await serverResponse.json()
@@ -121,7 +123,13 @@ export default function Login() {
       <Card className="w-full max-w-md bg-zinc-900/90 border-zinc-800 backdrop-blur-xl relative z-10">
         <CardHeader className="text-center">
           <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden mb-4">
-            <Image src="/images/logo/adn-developers-logo-big.png" alt="ADN Developers" width={72} height={72} className="object-contain" />
+            <Image
+              src="/images/logo/adn-developers-logo-big.png"
+              alt="ADN Developers"
+              width={72}
+              height={72}
+              className="object-contain"
+            />
           </div>
           <CardTitle className="text-white">ADN Developers Dashboard</CardTitle>
           <CardDescription className="text-zinc-400">Accede a tu cuenta para gestionar el Dashboard</CardDescription>
