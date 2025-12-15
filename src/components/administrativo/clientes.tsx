@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table"
 import {
   Dialog,
@@ -20,7 +20,24 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
-import { Pencil, Trash2, ChevronDown, Send, ChevronLeft, ChevronRight, Search, Bell } from "lucide-react"
+import {
+  Pencil,
+  Trash2,
+  ChevronDown,
+  Send,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Bell,
+  TrendingUp,
+  Home,
+  DollarSign,
+  Maximize2,
+  Star,
+  Mail,
+  MessageCircle,
+  BarChart3,
+} from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -56,6 +73,13 @@ if (typeof window !== "undefined") {
     ],
   })
 }
+
+import {
+  generateRecommendations,
+  generateRecommendationSummary,
+  generateWhatsAppMessage,
+  type UnitRecommendation,
+} from "@/lib/recommendation-engine"
 
 type Cliente = {
   id: string
@@ -132,6 +156,11 @@ export function Clientes() {
   const [clienteToDelete, setClienteToDelete] = useState<string | null>(null)
   const [notifications, setNotifications] = useState<{ id: string; message: string }[]>([])
   const [isMobileView, setIsMobileView] = useState(false)
+
+  const [selectedClienteRecommendations, setSelectedClienteRecommendations] = useState<UnitRecommendation[]>([])
+  const [showRecommendations, setShowRecommendations] = useState(false)
+  const [selectedClienteForRec, setSelectedClienteForRec] = useState<Cliente | null>(null)
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false)
 
   const [openDropdowns, setOpenDropdowns] = useState({
     tipo: false,
@@ -395,6 +424,40 @@ export function Clientes() {
     }
   }
 
+  const handleShowRecommendations = (cliente: Cliente) => {
+    setSelectedClienteForRec(cliente)
+    setLoadingRecommendations(true)
+    setShowRecommendations(true)
+
+    setTimeout(() => {
+      const recommendations = generateRecommendations({
+        emprendimientos: cliente.emprendimientos,
+        tipologias: cliente.tipologias,
+        metros_min: cliente.metros_min,
+        metros_max: cliente.metros_max,
+        precio_min: cliente.precio_min,
+        precio_max: cliente.precio_max,
+      })
+
+      setSelectedClienteRecommendations(recommendations)
+      setLoadingRecommendations(false)
+
+      if (recommendations.length > 0) {
+        notyf.success(`Se encontraron ${recommendations.length} recomendaciones para ${cliente.nombre}`)
+      } else {
+        notyf.open({ type: "info", message: "No se encontraron unidades que coincidan con los criterios" })
+      }
+    }, 500)
+  }
+
+  const handleSendWhatsAppRecommendation = (cliente: Cliente, recommendations: UnitRecommendation[], topCount = 3) => {
+    const message = generateWhatsAppMessage(`${cliente.nombre} ${cliente.apellido}`, recommendations, topCount)
+    const whatsappUrl = `https://wa.me/${cliente.caracteristica}${cliente.telefono}?text=${message}`
+    window.open(whatsappUrl, "_blank")
+
+    notyf.success("Abriendo WhatsApp con recomendaciones")
+  }
+
   const handleSeleccionarDepartamento = (id: string) => {
     setDepartamentosSeleccionados((prev) => (prev.includes(id) ? prev.filter((depId) => depId !== id) : [...prev, id]))
   }
@@ -434,49 +497,137 @@ export function Clientes() {
   }
 
   const exportarPDF = () => {
-    const doc = new jsPDF()
-    const exportData = clientes.map((c) => ({
-      Nombre: `${c.nombre} ${c.apellido}`,
-      Tipo: c.tipo,
-      Teléfono: `${c.caracteristica}-${c.telefono}`,
-      Email: c.email,
-      "Cómo nos conoció": c.como_nos_conocio,
-      Metros: `${c.metros_min}-${c.metros_max}`,
-      Precio: `${c.precio_min}-${c.precio_max}`,
-      "Rango de edad": c.rango_edad,
-      Estado: c.estado,
-      "Dato extra": c.dato_extra,
-    }))
-    const columns = Object.keys(exportData[0])
+    const doc = new jsPDF("landscape")
+
+    // Title
+    doc.setFontSize(16)
+    doc.text("Reporte de Clientes - DOME", 14, 15)
+
+    // Summary statistics
+    doc.setFontSize(10)
+    const totalClientes = clientesFiltrados.length
+    const pendientes = clientesFiltrados.filter((c) => c.estado === "Pendiente").length
+    const enProceso = clientesFiltrados.filter((c) => c.estado === "En proceso").length
+    const completos = clientesFiltrados.filter((c) => c.estado === "Completo").length
+
+    doc.text(`Total de clientes: ${totalClientes}`, 14, 25)
+    doc.text(`Pendientes: ${pendientes} | En proceso: ${enProceso} | Completos: ${completos}`, 14, 30)
+    doc.text(`Fecha de exportación: ${new Date().toLocaleDateString()}`, 14, 35)
+
+    // Table data
+    const exportData = clientesFiltrados.map((c) => [
+      `${c.nombre} ${c.apellido}`,
+      c.tipo,
+      getEmprendimientosNames(c.emprendimientos) || "N/A",
+      getTipologiasNames(c.tipologias) || "N/A",
+      `${c.caracteristica}-${c.telefono}`,
+      c.email,
+      `${c.metros_min}-${c.metros_max} m²`,
+      `$${c.precio_min}-${c.precio_max}`,
+      c.estado,
+      c.ultimo_contacto ? new Date(c.ultimo_contacto).toLocaleDateString() : "N/A",
+    ])
 
     autoTable(doc, {
-      head: [columns],
-      body: exportData.map(Object.values),
-      styles: { overflow: "linebreak", cellWidth: "wrap" },
+      startY: 42,
+      head: [
+        [
+          "Cliente",
+          "Tipo",
+          "Emprendimientos",
+          "Tipologías",
+          "Teléfono",
+          "Email",
+          "Metros",
+          "Precio",
+          "Estado",
+          "Último Contacto",
+        ],
+      ],
+      body: exportData,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [66, 66, 66], textColor: 255 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      margin: { top: 40 },
     })
 
-    doc.save("clientes.pdf")
+    doc.save(`clientes_${new Date().toISOString().split("T")[0]}.pdf`)
     notyf.success("PDF exportado exitosamente")
   }
 
   const exportarExcel = () => {
-    const exportData = clientes.map((c) => ({
-      Nombre: `${c.nombre} ${c.apellido}`,
+    // Main data sheet
+    const mainData = clientesFiltrados.map((c) => ({
+      Nombre: c.nombre,
+      Apellido: c.apellido,
       Tipo: c.tipo,
       Teléfono: `${c.caracteristica}-${c.telefono}`,
       Email: c.email,
       "Cómo nos conoció": c.como_nos_conocio,
-      Metros: `${c.metros_min}-${c.metros_max}`,
-      Precio: `${c.precio_min}-${c.precio_max}`,
+      "Metros Mín": c.metros_min,
+      "Metros Máx": c.metros_max,
+      "Precio Mín": c.precio_min,
+      "Precio Máx": c.precio_max,
       "Rango de edad": c.rango_edad,
       Estado: c.estado,
+      Emprendimientos: getEmprendimientosNames(c.emprendimientos),
+      Tipologías: getTipologiasNames(c.tipologias),
       "Dato extra": c.dato_extra,
+      "Último Contacto": c.ultimo_contacto ? new Date(c.ultimo_contacto).toLocaleDateString() : "N/A",
+      "Próximo Contacto": c.proximo_contacto ? new Date(c.proximo_contacto).toLocaleDateString() : "N/A",
+      "Fecha Creación": c.fecha_creacion ? new Date(c.fecha_creacion).toLocaleDateString() : "N/A",
     }))
-    const worksheet = XLSX.utils.json_to_sheet(exportData)
+
+    // Statistics sheet
+    const totalClientes = clientesFiltrados.length
+    const statsData = [
+      { Métrica: "Total de Clientes", Valor: totalClientes },
+      { Métrica: "Pendientes", Valor: clientesFiltrados.filter((c) => c.estado === "Pendiente").length },
+      { Métrica: "En Proceso", Valor: clientesFiltrados.filter((c) => c.estado === "En proceso").length },
+      { Métrica: "Completos", Valor: clientesFiltrados.filter((c) => c.estado === "Completo").length },
+      { Métrica: "Consumidores Finales", Valor: clientesFiltrados.filter((c) => c.tipo === "Consumidor final").length },
+      { Métrica: "Inversores", Valor: clientesFiltrados.filter((c) => c.tipo === "Inversor").length },
+      { Métrica: "Inmobiliarias", Valor: clientesFiltrados.filter((c) => c.tipo === "Inmobiliaria").length },
+    ]
+
+    // By emprendimiento sheet
+    const emprendimientoData: any[] = []
+    emprendimientos.forEach((emp) => {
+      const count = clientesFiltrados.filter((c) => c.emprendimientos.includes(emp.id)).length
+      emprendimientoData.push({
+        Emprendimiento: emp.nombre,
+        "Clientes Interesados": count,
+        Porcentaje: `${((count / totalClientes) * 100).toFixed(1)}%`,
+      })
+    })
+
+    // By tipologia sheet
+    const tipologiaData: any[] = []
+    tipologias.forEach((tip) => {
+      const count = clientesFiltrados.filter((c) => c.tipologias.includes(tip.id)).length
+      tipologiaData.push({
+        Tipología: tip.nombre,
+        "Clientes Interesados": count,
+        Porcentaje: `${((count / totalClientes) * 100).toFixed(1)}%`,
+      })
+    })
+
     const workbook = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Clientes")
-    XLSX.writeFile(workbook, "clientes.xlsx")
-    notyf.success("Excel exportado exitosamente")
+
+    const mainSheet = XLSX.utils.json_to_sheet(mainData)
+    XLSX.utils.book_append_sheet(workbook, mainSheet, "Clientes")
+
+    const statsSheet = XLSX.utils.json_to_sheet(statsData)
+    XLSX.utils.book_append_sheet(workbook, statsSheet, "Estadísticas")
+
+    const empSheet = XLSX.utils.json_to_sheet(emprendimientoData)
+    XLSX.utils.book_append_sheet(workbook, empSheet, "Por Emprendimiento")
+
+    const tipSheet = XLSX.utils.json_to_sheet(tipologiaData)
+    XLSX.utils.book_append_sheet(workbook, tipSheet, "Por Tipología")
+
+    XLSX.writeFile(workbook, `clientes_completo_${new Date().toISOString().split("T")[0]}.xlsx`)
+    notyf.success("Excel exportado exitosamente con 4 hojas")
   }
 
   const getEmprendimientosNames = (empIds: number[]) => {
@@ -662,13 +813,23 @@ export function Clientes() {
             <Send className="h-3 w-3 mr-1" />
             Enviar
           </Button>
+          {/* Add recommendation button for mobile cards */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handleShowRecommendations(cliente)}
+            title="Ver recomendaciones"
+          >
+            <TrendingUp className="h-3 w-3 mr-1" />
+            Recomendaciones
+          </Button>
         </div>
       </CardHeader>
     </Card>
   )
 
   return (
-    <div className="flex flex-col p-2 md:p-4 lg:p-6 space-y-4 md:space-y-6">
+    <div className="container mx-auto p-4 space-y-6">
       {/* Cards de estadísticas - mejoradas para móvil */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4">
         <Card>
@@ -1249,14 +1410,15 @@ export function Clientes() {
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => handleEditar(cliente)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleEditar(cliente)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleBorrar(cliente.id)}>
-                        <Trash2 className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" onClick={() => handleShowRecommendations(cliente)} title="Ver recomendaciones"
+                      >
+                      <TrendingUp className="h-4 w-4" />
                       </Button>
-                      <Button variant="outline" size="icon" onClick={() => handleEnviarFicha(cliente)}>
-                        <Send className="h-4 w-4" />
+                      <Button variant="ghost" size="icon" onClick={() => handleBorrar(cliente.id)}>
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -1314,35 +1476,226 @@ export function Clientes() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={dialogoEnvioAbierto} onOpenChange={setDialogoEnvioAbierto}>
-        <DialogContent className="w-[95vw] max-w-md">
+
+      <Dialog open={showRecommendations} onOpenChange={setShowRecommendations}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Enviar ficha de departamentos</DialogTitle>
-            <DialogDescription>Selecciona los departamentos para enviar al cliente.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Recomendaciones para {selectedClienteForRec?.nombre} {selectedClienteForRec?.apellido}
+            </DialogTitle>
+            <DialogDescription>
+              {loadingRecommendations
+                ? "Analizando inventario de los 6 proyectos..."
+                : selectedClienteRecommendations.length > 0
+                  ? generateRecommendationSummary(selectedClienteRecommendations)
+                  : "No se encontraron unidades disponibles que coincidan con los criterios especificados."}
+            </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4 max-h-60 overflow-y-auto">
-            {departamentos.map((departamento) => (
-              <div key={departamento.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={departamento.id}
-                  checked={departamentosSeleccionados.includes(departamento.id)}
-                  onCheckedChange={() => handleSeleccionarDepartamento(departamento.id)}
-                />
-                <label
-                  htmlFor={departamento.id}
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  {departamento.emprendimiento} - {departamento.tipologia} ({departamento.id})
-                </label>
+
+          {loadingRecommendations ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+            </div>
+          ) : selectedClienteRecommendations.length > 0 ? (
+            <>
+              {/* Statistics Summary */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <Home className="h-8 w-8 mx-auto text-blue-600 mb-2" />
+                      <div className="text-2xl font-bold">{selectedClienteRecommendations.length}</div>
+                      <div className="text-sm text-muted-foreground">Unidades disponibles</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <Star className="h-8 w-8 mx-auto text-yellow-600 mb-2" />
+                      <div className="text-2xl font-bold">
+                        {selectedClienteRecommendations[0]?.matchScore.toFixed(0)}%
+                      </div>
+                      <div className="text-sm text-muted-foreground">Mejor coincidencia</div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="text-center">
+                      <BarChart3 className="h-8 w-8 mx-auto text-green-600 mb-2" />
+                      <div className="text-2xl font-bold">
+                        {
+                          Object.keys(
+                            selectedClienteRecommendations.reduce(
+                              (acc, rec) => {
+                                acc[rec.projectName] = true
+                                return acc
+                              },
+                              {} as Record<string, boolean>,
+                            ),
+                          ).length
+                        }
+                      </div>
+                      <div className="text-sm text-muted-foreground">Proyectos con opciones</div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-            ))}
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button onClick={enviarPorWhatsApp} className="w-full sm:w-auto">
-              Enviar por WhatsApp
-            </Button>
-            <Button onClick={enviarPorEmail} className="w-full sm:w-auto">
-              Enviar por Email
+
+              {/* Quick Actions */}
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() =>
+                    selectedClienteForRec &&
+                    handleSendWhatsAppRecommendation(selectedClienteForRec, selectedClienteRecommendations, 3)
+                  }
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Enviar Top 3 por WhatsApp
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    selectedClienteForRec &&
+                    handleSendWhatsAppRecommendation(selectedClienteForRec, selectedClienteRecommendations, 5)
+                  }
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
+                  Enviar Top 5 por WhatsApp
+                </Button>
+              </div>
+
+              {/* Recommendations Grid */}
+              <div className="grid grid-cols-1 gap-4">
+                {selectedClienteRecommendations.map((rec, index) => (
+                  <Card key={`${rec.projectName}-${rec.unitNumber}`} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Badge variant="secondary" className="text-xs">
+                              #{index + 1}
+                            </Badge>
+                            <CardTitle className="text-lg">{rec.projectName}</CardTitle>
+                          </div>
+                          <CardDescription className="text-base font-medium">
+                            Unidad {rec.unitNumber} - Piso {rec.floor}
+                          </CardDescription>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1">
+                            <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                            <span className="text-lg font-bold">{rec.matchScore.toFixed(0)}%</span>
+                          </div>
+                          <span className="text-xs text-muted-foreground">Coincidencia</span>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Descripción</div>
+                          <div className="text-sm">{rec.description}</div>
+                        </div>
+                        {rec.orientation && (
+                          <div>
+                            <div className="text-sm font-medium text-muted-foreground mb-1">Orientación</div>
+                            <div className="text-sm">{rec.orientation}</div>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Superficie Total</div>
+                          <div className="flex items-center gap-1">
+                            <Maximize2 className="h-4 w-4" />
+                            <span className="text-sm font-semibold">{rec.totalArea.toFixed(1)} m²</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Precio Total</div>
+                          <div className="flex items-center gap-1">
+                            <DollarSign className="h-4 w-4" />
+                            <span className="text-sm font-semibold">USD {rec.saleValue.toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Precio por m²</div>
+                          <div className="text-sm">USD {rec.pricePerM2.toLocaleString()}/m²</div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-muted-foreground mb-1">Estado</div>
+                          <Badge variant="default" className="text-xs">
+                            {rec.status}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {/* Match Reasons */}
+                      <div className="mb-4">
+                        <div className="text-sm font-medium mb-2">Razones de coincidencia:</div>
+                        <div className="space-y-1">
+                          {rec.matchReasons.map((reason, idx) => (
+                            <div key={idx} className="text-xs text-muted-foreground flex items-start gap-2">
+                              <span className="mt-0.5">•</span>
+                              <span>{reason}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Quick Contact Actions */}
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedClienteForRec) {
+                              const message = `Hola ${selectedClienteForRec.nombre}! Te quiero mostrar esta excelente opción:\n\n🏢 ${rec.projectName}\n📍 Unidad ${rec.unitNumber} - Piso ${rec.floor}\n🏠 ${rec.description}\n📐 ${rec.totalArea.toFixed(1)} m²\n💵 USD ${rec.saleValue.toLocaleString()}\n📊 ${rec.matchScore.toFixed(0)}% de compatibilidad con tu búsqueda\n\n¿Te gustaría agendar una visita?`
+                              const whatsappUrl = `https://wa.me/${selectedClienteForRec.caracteristica}${selectedClienteForRec.telefono}?text=${encodeURIComponent(message)}`
+                              window.open(whatsappUrl, "_blank")
+                            }
+                          }}
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" />
+                          Enviar esta unidad
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            if (selectedClienteForRec) {
+                              window.location.href = `mailto:${selectedClienteForRec.email}?subject=Recomendación: ${rec.projectName} - Unidad ${rec.unitNumber}&body=Hola ${selectedClienteForRec.nombre},%0D%0A%0D%0ATe quiero mostrar esta excelente opción que se ajusta a tu búsqueda:%0D%0A%0D%0AProyecto: ${rec.projectName}%0D%0AUnidad: ${rec.unitNumber}%0D%0ADescripción: ${rec.description}%0D%0ASuperficie: ${rec.totalArea.toFixed(1)} m²%0D%0APrecio: USD ${rec.saleValue.toLocaleString()}%0D%0A%0D%0A¿Te gustaría recibir más información?`
+                            }
+                          }}
+                        >
+                          <Mail className="h-3 w-3 mr-1" />
+                          Email
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <Home className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+              <p className="text-muted-foreground">
+                No se encontraron unidades disponibles que coincidan exactamente con los criterios.
+              </p>
+              <p className="text-sm text-muted-foreground mt-2">
+                Intenta ajustar los filtros de búsqueda del cliente o consulta otras opciones disponibles.
+              </p>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRecommendations(false)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
