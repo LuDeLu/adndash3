@@ -7,7 +7,7 @@ import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -38,7 +38,6 @@ import {
   Bell,
   LogOut,
   User,
-  X,
   BarChart3,
   Crown,
 } from "lucide-react"
@@ -227,7 +226,6 @@ function UserDropdown() {
   )
 }
 
-// Header móvil
 function MobileHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
   const pathname = usePathname()
 
@@ -252,15 +250,20 @@ function MobileHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
+    <div className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-gray-800">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center space-x-3">
-          <Button variant="ghost" size="icon" onClick={onMenuToggle} className="hover:bg-muted/50">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onMenuToggle}
+            className="text-gray-400 hover:text-white hover:bg-gray-900"
+          >
             <Menu className="h-5 w-5" />
           </Button>
           <div>
-            <h1 className="font-semibold text-base text-foreground">{getCurrentPageTitle()}</h1>
-            <p className="text-xs text-muted-foreground">ADN Developers</p>
+            <h1 className="font-semibold text-base text-white">{getCurrentPageTitle()}</h1>
+            <p className="text-xs text-gray-500">ADN Developers</p>
           </div>
         </div>
 
@@ -273,7 +276,6 @@ function MobileHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
   )
 }
 
-// Contenido del sidebar móvil
 function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname()
   const { user, logout } = useAuth()
@@ -288,13 +290,14 @@ function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   const navigationItems = [
     { title: "Proyectos", href: "/proyectos", icon: Building2, badge: null },
     { title: "Estadísticas", href: "/estadisticas", icon: BarChart3, badge: null },
-    { title: "Clientes", href: "/clientes", icon: Users, badge: null },
+    { title: "Leads", href: "/leads", icon: Users, badge: null },
+    { title: "Propietarios", href: "/propietarios", icon: Crown, badge: null },
     { title: "Calendario", href: "/calendario", icon: Calendar, badge: 3 },
+    { title: "Archivos", href: "/archivos", icon: FileText, badge: null },
     { title: "Obras", href: "/obras", icon: HardHat, badge: null },
     { title: "Post Ventas", href: "/postventas", icon: Wrench, badge: 5 },
     { title: "Checklist", href: "/checklist", icon: CheckSquare, badge: 2 },
     { title: "Mapa", href: "/mapa", icon: Map, badge: null },
-    { title: "Archivos", href: "/archivos", icon: FileText, badge: null },
     ...(user?.rol === "admin"
       ? [{ title: "Gestión de Usuarios", href: "/usermanagement", icon: UserPlus, badge: null }]
       : []),
@@ -307,93 +310,96 @@ function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      <div className="p-4 border-b border-border">
-        <div className="flex items-center space-x-3">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg overflow-hidden">
-            <Image src="/images/logo/adn-developers-logo-big.png" alt="ADN Developers" width={44} height={44} className="object-contain" />
+    <div className="flex flex-col h-full bg-black text-white">
+      {/* Header del sidebar con logo - estilo desktop */}
+      <div className="flex h-16 items-center border-b border-gray-800 px-4 flex-shrink-0">
+        <div className="flex items-center gap-3 flex-1">
+          <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden">
+            <Image
+              src="/images/logo/adn-developers-logo-big.png"
+              alt="ADN Developers"
+              width={36}
+              height={36}
+              className="object-contain"
+            />
           </div>
-          <div className="flex-1 min-w-0">
-            <h2 className="font-bold text-lg text-foreground truncate">ADN Developers</h2>
-            <p className="text-sm text-muted-foreground truncate">Panel de Control</p>
-          </div>
+          <span className="text-lg font-semibold truncate">ADN Developers</span>
         </div>
       </div>
 
-      {/* Información del usuario */}
-      <div className="p-4 border-b border-border">
+      {/* Información del usuario - estilo más limpio */}
+      <div className="p-4 border-b border-gray-800 flex-shrink-0">
         <div className="flex items-center space-x-3">
-          <Avatar className="h-10 w-10">
+          <Avatar className="h-10 w-10 flex-shrink-0">
             <AvatarImage src={user?.avatarUrl || "/placeholder.svg"} alt={user?.name || "Usuario"} />
-            <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold">
+            <AvatarFallback className="bg-gradient-to-br from-green-500 to-blue-500 text-white font-semibold text-sm">
               {getUserInitials(user?.name || "Usuario")}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{user?.name || "Usuario"}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email || "usuario@adn.com"}</p>
-            <Badge variant="secondary" className="text-xs mt-1">
+            <p className="text-sm font-semibold text-white truncate">{user?.name || "Usuario"}</p>
+            <p className="text-xs text-gray-400 truncate">{user?.email || "usuario@adn.com"}</p>
+            <Badge variant="secondary" className="text-xs mt-1 bg-gray-800 text-gray-300 hover:bg-gray-700">
               {user?.rol === "admin" ? "Administrador" : "Usuario"}
             </Badge>
           </div>
         </div>
       </div>
 
-      {/* Navegación principal */}
-      <ScrollArea className="flex-1 px-2 py-4">
-        <nav className="space-y-1">
-          {navigationItems.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
-            const Icon = item.icon
+      {/* Navegación principal - estilo desktop con items más compactos */}
+      <ScrollArea className="flex-1">
+        <nav className="py-2 px-2">
+          <ul className="space-y-4">
+            {navigationItems.map((item) => {
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`)
+              const Icon = item.icon
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={onItemClick}
-                className={cn(
-                  "flex items-center space-x-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200 group relative",
-                  isActive
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
-                )}
-              >
-                <Icon
-                  className={cn(
-                    "h-5 w-5 transition-transform duration-200",
-                    isActive ? "text-white" : "text-muted-foreground group-hover:text-foreground",
-                    "group-hover:scale-110",
-                  )}
-                />
-                <span className="flex-1 truncate">{item.title}</span>
-                {item.badge && (
-                  <Badge
-                    variant={isActive ? "secondary" : "outline"}
+              return (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    onClick={onItemClick}
                     className={cn(
-                      "text-xs min-w-[20px] h-5 flex items-center justify-center",
-                      isActive ? "bg-white/20 text-white border-white/30" : "",
+                      "flex items-center space-x-2 px-2 py-3 rounded-lg text-sm font-medium transition-colors duration-200 group",
+                      isActive ? "bg-gray-800 text-white" : "text-gray-400 hover:bg-gray-900 hover:text-white",
                     )}
                   >
-                    {item.badge}
-                  </Badge>
-                )}
-                {isActive && <ChevronRight className="h-4 w-4 text-white" />}
-              </Link>
-            )
-          })}
+                    <Icon
+                      className={cn(
+                        "h-5 w-5 flex-shrink-0",
+                        isActive ? "text-white" : "text-gray-400 group-hover:text-white",
+                      )}
+                    />
+                    <span className="flex-1 truncate">{item.title}</span>
+                    {item.badge && (
+                      <Badge
+                        variant="secondary"
+                        className={cn(
+                          "text-xs min-w-[20px] h-5 flex items-center justify-center px-1.5",
+                          isActive ? "bg-gray-700 text-white" : "bg-gray-800 text-gray-300",
+                        )}
+                      >
+                        {item.badge}
+                      </Badge>
+                    )}
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
         </nav>
       </ScrollArea>
 
-      <Separator />
+      <Separator className="bg-gray-800" />
 
-      {/* Footer con acciones */}
-      <div className="p-4 space-y-2">
+      {/* Footer con logout - estilo desktop */}
+      <div className="p-4 flex-shrink-0">
         <Button
           variant="ghost"
-          className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          className="w-full justify-start text-gray-400 hover:text-white hover:bg-gray-900 h-10"
           onClick={handleLogout}
         >
-          <LogOut className="h-4 w-4 mr-3" />
+          <LogOut className="h-4 w-4 mr-2" />
           Cerrar Sesión
         </Button>
       </div>
@@ -447,7 +453,13 @@ function DesktopNavigation() {
           </div>
         ) : (
           <div className="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden mx-auto">
-            <Image src="/images/logo/adn-developers-logo-big.png" alt="ADN" width={36} height={36} className="object-contain" />
+            <Image
+              src="/images/logo/adn-developers-logo-big.png"
+              alt="ADN"
+              width={36}
+              height={36}
+              className="object-contain"
+            />
           </div>
         )}
         <Button
@@ -516,13 +528,7 @@ export function Navigation() {
         <MobileHeader onMenuToggle={() => setMobileMenuOpen(true)} />
 
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="w-80 p-0 bg-background">
-            <div className="flex items-center justify-between p-4 border-b">
-              <SheetTitle className="text-lg font-bold">Menú</SheetTitle>
-              <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+          <SheetContent side="left" className="w-80 p-0 bg-black border-r border-gray-800">
             <MobileSidebarContent onItemClick={() => setMobileMenuOpen(false)} />
           </SheetContent>
         </Sheet>
