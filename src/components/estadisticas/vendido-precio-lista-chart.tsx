@@ -3,8 +3,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 
+interface ProjectData {
+  proyecto: string
+  vendido: number
+  precioLista: number
+}
+
 interface VendidoPrecioListaChartProps {
-  data: { proyecto: string; vendido: number; precioLista: number }[]
+  data: ProjectData[]
 }
 
 export function VendidoPrecioListaChart({ data }: VendidoPrecioListaChartProps) {

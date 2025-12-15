@@ -15,10 +15,11 @@ import { CanalesMarketingChart } from "./canales-marketing-chart"
 import { StatisticsOverviewChart } from "./statistics-overview-chart"
 import { ExportModal } from "./export-modal"
 import { useToast } from "@/hooks/use-toast"
+import { getGlobalStatistics, getProjectsPriceComparison } from "@/lib/statistics-helper"
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.squareweb.app/api"
 
-type PeriodOption = "7d" | "30d" | "90d"
+type PeriodOption = "semester" | "year" | "all"
 
 interface DashboardData {
   unidadesEntregadas: number
@@ -47,30 +48,30 @@ interface DashboardData {
   }
   inversionMarketing: { mes: string; inversion: number; leads: number }[]
   canalesMarketing: { canal: string; porcentaje: number; cantidad: number }[]
-  statisticsOverview: { mes: string; ventas: number; sueldos: number }[]
+  statisticsOverview: { mes: string; [key: string]: number | string }[]
 }
 
 const periodLabels: Record<PeriodOption, string> = {
-  "7d": "Últimos 7 días",
-  "30d": "Últimos 30 días",
-  "90d": "Últimos 90 días",
+  semester: "Semestre",
+  year: "Anual",
+  all: "Desde siempre",
 }
 
 const getDaysFromPeriod = (period: PeriodOption): number => {
   switch (period) {
-    case "7d":
-      return 7
-    case "30d":
-      return 30
-    case "90d":
-      return 90
+    case "semester":
+      return 180
+    case "year":
+      return 365
+    case "all":
+      return 365 * 100 // Un número muy grande para incluir todo
     default:
-      return 7
+      return 365 * 100
   }
 }
 
 export function EstadisticasDashboard() {
-  const [period, setPeriod] = useState<PeriodOption>("7d")
+  const [period, setPeriod] = useState<PeriodOption>("all")
   const [isLoading, setIsLoading] = useState(true)
   const [data, setData] = useState<DashboardData | null>(null)
   const [activeDetailModal, setActiveDetailModal] = useState<string | null>(null)
@@ -86,6 +87,9 @@ export function EstadisticasDashboard() {
   const fetchDashboardData = async () => {
     setIsLoading(true)
     try {
+      const libStats = getGlobalStatistics()
+      const priceComparisonData = getProjectsPriceComparison()
+
       const token = localStorage.getItem("token")
       const headers = {
         "Content-Type": "application/json",
@@ -97,40 +101,32 @@ export function EstadisticasDashboard() {
       const startDate = new Date()
       startDate.setDate(startDate.getDate() - days)
 
-      // Fetch projects data
-      const projectsResponse = await fetch(`${API_BASE_URL}/projects`, {
+      const ticketsResponse = await fetch(`${API_BASE_URL}/checklist/tickets`, {
         headers,
       })
-      const projects = projectsResponse.ok ? await projectsResponse.json() : []
+      const tickets = ticketsResponse.ok ? await ticketsResponse.json() : []
+      const totalTickets = tickets.length || 0
 
-      // Fetch clientes data (for leads/funnel)
       const clientesResponse = await fetch(`${API_BASE_URL}/clientes`, {
         headers,
       })
       const allClientes = clientesResponse.ok ? await clientesResponse.json() : []
 
-      const clientes = allClientes.filter((cliente: any) => {
-        if (!cliente.created_at) return true
-        const clienteDate = new Date(cliente.created_at)
-        return clienteDate >= startDate && clienteDate <= endDate
-      })
+      const clientes =
+        period === "all"
+          ? allClientes
+          : allClientes.filter((cliente: any) => {
+              if (!cliente.created_at) return true
+              const clienteDate = new Date(cliente.created_at)
+              return clienteDate >= startDate && clienteDate <= endDate
+            })
 
-      // Fetch post-venta data (for reclamos)
-      const postventaResponse = await fetch(`${API_BASE_URL}/postventa`, {
-        headers,
-      })
-      const allReclamos = postventaResponse.ok ? await postventaResponse.json() : []
+      const totalSold = libStats.soldUnits
+      const totalReserved = libStats.reservedUnits
+      const totalStock = libStats.availableUnits
+      const totalDelivered = libStats.deliveredUnits
+      const totalValue = libStats.totalSalesValue
 
-      const reclamos = allReclamos.filter((reclamo: any) => {
-        if (!reclamo.created_at) return true
-        const reclamoDate = new Date(reclamo.created_at)
-        return reclamoDate >= startDate && reclamoDate <= endDate
-      })
-
-      // Calculate aggregated stats from projects
-      let totalSold = 0
-      let totalStock = 0
-      let totalValue = 0
       const projectStats: {
         nombre: string
         monto: number
@@ -138,34 +134,25 @@ export function EstadisticasDashboard() {
         precioLista: number
       }[] = []
 
-      for (const project of projects) {
-        const sold = project.sold_units || 0
-        const available = project.available_units || 0
-        const reserved = project.reserved_units || 0
-
-        totalSold += sold + reserved
-        totalStock += available
-
-        const avgPrice = 75000
-        const projectValue = (sold + reserved) * avgPrice
-        totalValue += projectValue
+      libStats.projects.forEach((project) => {
+        const projectValue = project.totalSalesValue
+        const avgPrice = project.totalSalesValue / (project.soldUnits + project.reservedUnits || 1)
+        const totalUnits = project.totalUnits
 
         projectStats.push({
-          nombre: project.name || `Proyecto ${project.id}`,
+          nombre: project.name,
           monto: projectValue,
-          vendido: (sold + reserved) * avgPrice,
-          precioLista: (sold + reserved + available) * avgPrice * 1.1,
+          vendido: projectValue,
+          precioLista: totalUnits * avgPrice * 1.15,
         })
-      }
+      })
 
-      // Process clientes for funnel
       const estadosClientes = clientes.reduce((acc: Record<string, number>, cliente: any) => {
         const estado = cliente.estado || "Pendiente"
         acc[estado] = (acc[estado] || 0) + 1
         return acc
       }, {})
 
-      // Process clientes for channels
       const canalesClientes = clientes.reduce((acc: Record<string, number>, cliente: any) => {
         const canal = cliente.como_nos_conocio || "Otro"
         acc[canal] = (acc[canal] || 0) + 1
@@ -182,7 +169,7 @@ export function EstadisticasDashboard() {
       const generateMonthlyData = () => {
         const months = []
         const currentDate = new Date()
-        const monthCount = period === "7d" ? 1 : period === "30d" ? 3 : 6
+        const monthCount = period === "semester" ? 6 : period === "year" ? 12 : 12
 
         for (let i = monthCount - 1; i >= 0; i--) {
           const date = new Date(currentDate)
@@ -193,44 +180,47 @@ export function EstadisticasDashboard() {
       }
 
       const meses = generateMonthlyData()
+
+      const projectMonthlyData = meses.map((mes, index) => {
+        const monthData: any = { mes }
+
+        libStats.projects.forEach((project) => {
+          const salesValue = project.totalSalesValue
+          const variation = 0.7 + index * 0.05
+          monthData[project.name] = Math.round((salesValue * variation) / meses.length)
+        })
+
+        return monthData
+      })
+
       const inversionData = meses.map((mes) => ({
         mes,
         inversion: Math.floor(Math.random() * 10000) + 5000,
         leads: Math.floor(Math.random() * 50) + 20,
       }))
 
-      const overviewData = meses.map((mes) => ({
-        mes,
-        ventas: Math.floor(Math.random() * 8000) + 2000,
-        sueldos: Math.floor(Math.random() * 4000) + 1000,
-      }))
-
       const variation = () => Math.floor(Math.random() * 20) - 5
 
       const dashboardData: DashboardData = {
-        unidadesEntregadas: Math.floor(totalSold * 0.8),
-        unidadesVendidas: totalSold,
+        unidadesEntregadas: totalDelivered,
+        unidadesVendidas: totalSold + totalReserved,
         ventasTotales: totalValue,
         unidadesEnStock: totalStock,
-        cantidadReclamos: reclamos.length,
+        cantidadReclamos: totalTickets,
         variacionUnidadesEntregadas: variation(),
         variacionUnidadesVendidas: variation(),
         variacionVentasTotales: variation(),
         variacionUnidadesStock: variation(),
         variacionReclamos: variation(),
         ventasVsStock: {
-          vendido: totalSold,
+          vendido: totalSold + totalReserved,
           stock: totalStock,
         },
         vendidoPorProyecto: projectStats.map((p) => ({
           nombre: p.nombre,
           monto: p.monto,
         })),
-        vendidoVsPrecioLista: projectStats.map((p) => ({
-          proyecto: p.nombre,
-          vendido: p.vendido,
-          precioLista: p.precioLista,
-        })),
+        vendidoVsPrecioLista: priceComparisonData,
         embudoVentas: {
           leadsGenerados: clientes.length,
           noInteresados: estadosClientes["No interesado"] || Math.floor(clientes.length * 0.1),
@@ -252,12 +242,17 @@ export function EstadisticasDashboard() {
                 { canal: "SEO", porcentaje: 15, cantidad: 75 },
                 { canal: "Otros", porcentaje: 10, cantidad: 50 },
               ],
-        statisticsOverview: overviewData,
+        statisticsOverview: projectMonthlyData,
       }
 
       setData(dashboardData)
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las estadísticas. Usando datos de respaldo.",
+        variant: "destructive",
+      })
       setData(getMockData())
     } finally {
       setIsLoading(false)
@@ -365,7 +360,6 @@ export function EstadisticasDashboard() {
     }
     reader.readAsText(file)
 
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = ""
     }
@@ -402,7 +396,6 @@ export function EstadisticasDashboard() {
         dashboardRef={dashboardRef}
       />
 
-      {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Reportes y Analíticas</h1>
@@ -422,15 +415,14 @@ export function EstadisticasDashboard() {
               <SelectValue placeholder="Período" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7d">Últimos 7 días</SelectItem>
-              <SelectItem value="30d">Últimos 30 días</SelectItem>
-              <SelectItem value="90d">Últimos 90 días</SelectItem>
+              <SelectItem value="semester">Semestre</SelectItem>
+              <SelectItem value="year">Anual</SelectItem>
+              <SelectItem value="all">Desde siempre</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      {/* KPI Cards Row */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         <KPICard
           title="Unidades entregadas (en unidad)"
@@ -476,14 +468,12 @@ export function EstadisticasDashboard() {
         />
       </div>
 
-      {/* Charts Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <VentasStockChart data={data.ventasVsStock} />
         <StatisticsOverviewChart data={data.statisticsOverview} />
         <VendidoPrecioListaChart data={data.vendidoVsPrecioLista} />
       </div>
 
-      {/* Charts Row 2 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <EmbudoVentasChart data={data.embudoVentas} />
         <InversionMarketingChart data={data.inversionMarketing} />

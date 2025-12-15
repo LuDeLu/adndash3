@@ -24,7 +24,7 @@ export interface SuitesFloor {
   apartments: SuitesApartment[]
 }
 
-// Datos del Piso 1
+// Piso 1
 const piso1Data: SuitesFloor = {
   level: 1,
   name: "Piso 1",

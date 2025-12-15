@@ -2,13 +2,24 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 
 interface StatisticsOverviewChartProps {
-  data: { mes: string; ventas: number; sueldos: number }[]
+  data: { mes: string; [key: string]: any }[]
 }
 
 export function StatisticsOverviewChart({ data }: StatisticsOverviewChartProps) {
+  const projectNames = data.length > 0 ? Object.keys(data[0]).filter((key) => key !== "mes") : []
+
+  const projectColors: { [key: string]: string } = {
+    "Dome Apart": "#a855f7",
+    "Dome Beruti": "#3b82f6",
+    "Dome Boulevard": "#10b981",
+    "Dome Palermo": "#f59e0b",
+    "Dome Puertos": "#ef4444",
+    "Dome Suites": "#8b5cf6",
+  }
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -30,15 +41,25 @@ export function StatisticsOverviewChart({ data }: StatisticsOverviewChartProps) 
       <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Statics Overview</CardTitle>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs bg-purple-500/10 text-purple-500 border-purple-500/20">
-              <span className="w-2 h-2 rounded-full bg-purple-500 mr-1" />
-              Suites
-            </Badge>
-            <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-500 border-blue-500/20">
-              <span className="w-2 h-2 rounded-full bg-blue-500 mr-1" />
-              Beruti
-            </Badge>
+          <div className="flex items-center gap-2 flex-wrap">
+            {projectNames.slice(0, 6).map((projectName, index) => {
+              const color = projectColors[projectName] || `hsl(${index * 60}, 70%, 50%)`
+              return (
+                <Badge
+                  key={projectName}
+                  variant="outline"
+                  className="text-xs"
+                  style={{
+                    backgroundColor: `${color}10`,
+                    color: color,
+                    borderColor: `${color}20`,
+                  }}
+                >
+                  <span className="w-2 h-2 rounded-full mr-1" style={{ backgroundColor: color }} />
+                  {projectName.replace("Dome ", "")}
+                </Badge>
+              )
+            })}
           </div>
         </div>
       </CardHeader>
@@ -60,8 +81,27 @@ export function StatisticsOverviewChart({ data }: StatisticsOverviewChartProps) 
                 tickFormatter={(value) => `${value / 1000}k`}
               />
               <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--accent))", opacity: 0.1 }} />
-              <Bar dataKey="ventas" name="Suites" fill="#a855f7" radius={[4, 4, 0, 0]} maxBarSize={20} />
-              <Bar dataKey="sueldos" name="Beruti" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={20} />
+              <Legend
+                verticalAlign="bottom"
+                height={36}
+                iconType="rect"
+                formatter={(value) => (
+                  <span className="text-xs text-muted-foreground">{value.replace("Dome ", "")}</span>
+                )}
+              />
+              {projectNames.map((projectName, index) => {
+                const color = projectColors[projectName] || `hsl(${index * 60}, 70%, 50%)`
+                return (
+                  <Bar
+                    key={projectName}
+                    dataKey={projectName}
+                    name={projectName}
+                    fill={color}
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={20}
+                  />
+                )
+              })}
             </BarChart>
           </ResponsiveContainer>
         </div>
