@@ -2,11 +2,11 @@ import type React from "react"
 import type { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Clientes",
-  description: "Gestión de clientes - ADN Developers",
+  title: "Propietarios",
+  description: "Gestión de propietarios",
 }
 
-export default function ClientesLayout({
+export default function PropietariosLayout({
   children,
 }: {
   children: React.ReactNode

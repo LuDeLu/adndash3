@@ -40,6 +40,7 @@ import {
   User,
   X,
   BarChart3,
+  Crown,
 } from "lucide-react"
 
 // Hook para detectar móvil
@@ -411,7 +412,8 @@ function DesktopNavigation() {
   const navigationItems = [
     { title: "Proyectos", icon: Building2, href: "/proyectos" },
     { title: "Estadísticas", icon: BarChart3, href: "/estadisticas" },
-    { title: "Clientes", icon: Users, href: "/clientes" },
+    { title: "Leads", icon: Users, href: "/leads" },
+    { title: "Propietarios", icon: Crown, href: "/propietarios" },
     { title: "Calendario", icon: Calendar, href: "/calendario" },
     { title: "Archivos", icon: FileText, href: "/archivos" },
     { title: "Obras", icon: HardHat, href: "/obras" },
