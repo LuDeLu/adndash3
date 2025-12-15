@@ -797,7 +797,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     selectedApartment && selectedApartmentData ? getRealStatus(selectedApartment, selectedApartmentData.status) : null
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen  text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <Button onClick={onBack} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">

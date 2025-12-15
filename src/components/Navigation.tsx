@@ -250,7 +250,7 @@ function MobileHeader({ onMenuToggle }: { onMenuToggle: () => void }) {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-md border-b border-gray-800">
+    <div className="fixed top-0 left-0 right-0 z-50 /95 backdrop-blur-md border-b border-gray-800">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center space-x-3">
           <Button
@@ -310,7 +310,7 @@ function MobileSidebarContent({ onItemClick }: { onItemClick?: () => void }) {
   }
 
   return (
-    <div className="flex flex-col h-full bg-black text-white">
+    <div className="flex flex-col h-full  text-white">
       {/* Header del sidebar con logo - estilo desktop */}
       <div className="flex h-16 items-center border-b border-gray-800 px-4 flex-shrink-0">
         <div className="flex items-center gap-3 flex-1">
@@ -433,7 +433,7 @@ function DesktopNavigation() {
   return (
     <div
       className={cn(
-        "flex flex-col h-full border-r border-gray-800 bg-black text-white transition-all duration-300",
+        "flex flex-col h-full border-r border-gray-800  text-white transition-all duration-300",
         isCollapsed ? "w-16 min-w-16" : "w-64 min-w-64",
       )}
     >
@@ -528,7 +528,7 @@ export function Navigation() {
         <MobileHeader onMenuToggle={() => setMobileMenuOpen(true)} />
 
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="w-80 p-0 bg-black border-r border-gray-800">
+          <SheetContent side="left" className="w-80 p-0  border-r border-gray-800">
             <MobileSidebarContent onItemClick={() => setMobileMenuOpen(false)} />
           </SheetContent>
         </Sheet>

@@ -179,7 +179,7 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen  text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -245,7 +245,7 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
                   )}
 
                   {/* Overlay */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  <div className="absolute inset-0 /60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                     <div className="text-center p-4">
                       <ZoomIn className="w-8 h-8 text-white mx-auto mb-2" />
                       <h3 className="text-white font-semibold text-sm">{item.title}</h3>
@@ -278,14 +278,14 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center"
+              className="fixed inset-0 z-50 /95 flex items-center justify-center"
               onClick={() => setIsLightboxOpen(false)}
             >
               <div className="relative w-full h-full flex items-center justify-center p-4">
                 {/* Close Button */}
                 <Button
                   onClick={() => setIsLightboxOpen(false)}
-                  className="absolute top-4 right-4 z-10 bg-black/50 hover:bg-black/70"
+                  className="absolute top-4 right-4 z-10 /50 hover:/70"
                   size="sm"
                 >
                   <X className="w-4 h-4" />
@@ -294,7 +294,7 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
                 {/* Navigation Buttons */}
                 <Button
                   onClick={prevImage}
-                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70"
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 /50 hover:/70"
                   size="sm"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -302,7 +302,7 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
 
                 <Button
                   onClick={nextImage}
-                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70"
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 /50 hover:/70"
                   size="sm"
                 >
                   <ChevronRight className="w-4 h-4" />
@@ -329,7 +329,7 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
                 </div>
 
                 {/* Image Info */}
-                <div className="absolute bottom-4 left-4 right-4 bg-black/70 backdrop-blur-sm rounded-lg p-4">
+                <div className="absolute bottom-4 left-4 right-4 /70 backdrop-blur-sm rounded-lg p-4">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-white font-semibold text-lg">{filteredItems[lightboxIndex]?.title}</h3>

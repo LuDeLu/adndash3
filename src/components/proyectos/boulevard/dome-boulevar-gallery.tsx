@@ -113,7 +113,7 @@ export function DomeBoulevardGallery({ onReturnToProject }: DomeBoulevardGallery
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen  text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
@@ -192,7 +192,7 @@ export function DomeBoulevardGallery({ onReturnToProject }: DomeBoulevardGallery
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
+                      <div className="absolute inset-0  bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
                         <ImageIcon className="text-white opacity-0 hover:opacity-100 transition-opacity" size={32} />
                       </div>
                     </div>
@@ -219,7 +219,7 @@ export function DomeBoulevardGallery({ onReturnToProject }: DomeBoulevardGallery
                         className="object-cover"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       />
-                      <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center hover:bg-opacity-20 transition-all duration-200">
+                      <div className="absolute inset-0  bg-opacity-30 flex items-center justify-center hover:bg-opacity-20 transition-all duration-200">
                         <Play className="text-white" size={48} />
                       </div>
                     </div>
@@ -266,7 +266,7 @@ export function DomeBoulevardGallery({ onReturnToProject }: DomeBoulevardGallery
 
         {/* Image Modal */}
         <Dialog open={selectedImage !== null} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black border-zinc-700">
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0  border-zinc-700">
             {selectedImage && (
               <div className="relative">
                 <Image
@@ -288,7 +288,7 @@ export function DomeBoulevardGallery({ onReturnToProject }: DomeBoulevardGallery
 
         {/* Video Modal */}
         <Dialog open={selectedVideo !== null} onOpenChange={() => setSelectedVideo(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-black border-zinc-700">
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0  border-zinc-700">
             {selectedVideo && (
               <div className="relative">
                 <video

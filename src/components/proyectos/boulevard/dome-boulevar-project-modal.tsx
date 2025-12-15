@@ -200,7 +200,7 @@ export function DomeBoulevardProjectModal({
                 </svg>
 
                 {/* Leyenda de estados */}
-                <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 p-2 rounded">
+                <div className="absolute bottom-4 left-4  bg-opacity-50 p-2 rounded">
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-500 mr-2"></div>
                     <span className="text-white text-xs sm:text-sm">Vendido</span>
@@ -222,7 +222,7 @@ export function DomeBoulevardProjectModal({
                     disabled={refreshing}
                     size="sm"
                     variant="outline"
-                    className="bg-black bg-opacity-50 text-white border-white hover:bg-opacity-75"
+                    className=" bg-opacity-50 text-white border-white hover:bg-opacity-75"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? "animate-spin" : ""}`} />
                     {refreshing ? "Actualizando..." : "Actualizar"}
@@ -323,7 +323,7 @@ export function DomeBoulevardProjectModal({
                           />
                         </div>
 
-                        <div className="mt-6 bg-black text-white p-4 rounded-lg">
+                        <div className="mt-6  text-white p-4 rounded-lg">
                           <h4 className="font-medium mb-4 text-base sm:text-lg text-white">Unidades por piso:</h4>
                           <div className="mb-4 flex flex-wrap gap-1 sm:gap-2">
                             <Button

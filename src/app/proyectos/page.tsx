@@ -91,11 +91,11 @@ const ProjectCard = memo(({ project, onClick }: { project: StaticProject; onClic
     transition={{ type: "spring", stiffness: 400, damping: 17 }}
   >
     <Card
-      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full bg-black"
+      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full "
       onClick={onClick}
     >
       <div className="relative h-[200px] overflow-hidden group">
-        <div className="absolute inset-0 bg-black">
+        <div className="absolute inset-0 ">
           <img
             src={project.image || "/placeholder.svg"}
             className="w-[200%] h-[200%] object-cover absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-transform duration-300"
@@ -117,7 +117,7 @@ const ProjectCard = memo(({ project, onClick }: { project: StaticProject; onClic
           </div>
         )}
       </div>
-      <div className="p-3 text-center bg-black text-white">
+      <div className="p-3 text-center  text-white">
         <p className="text-xs text-gray-400">{project.location}</p>
       </div>
     </Card>
@@ -292,7 +292,7 @@ export default function DomePuertosPage() {
 
   // Vista principal con las cartas de proyectos
   return (
-    <div className="bg-black">
+    <div className="">
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-6">
           <AnimatePresence>

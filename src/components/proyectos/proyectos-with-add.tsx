@@ -64,11 +64,11 @@ const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () 
     transition={{ type: "spring", stiffness: 400, damping: 17 }}
   >
     <Card
-      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full bg-black"
+      className="overflow-hidden hover:shadow-lg transition-shadow duration-300 cursor-pointer w-full "
       onClick={onClick}
     >
       <div className="relative h-[200px] overflow-hidden group">
-        <div className="absolute inset-0 bg-black">
+        <div className="absolute inset-0 ">
           <img
             src={project.image || "/placeholder.svg"}
             alt={project.name}
@@ -76,7 +76,7 @@ const ProjectCard = memo(({ project, onClick }: { project: Project; onClick: () 
           />
         </div>
       </div>
-      <div className="p-3 text-center bg-black text-white">
+      <div className="p-3 text-center  text-white">
         <p className="text-sm text-gray-400">{project.location}</p>
       </div>
     </Card>
@@ -149,7 +149,7 @@ export function ProyectosWithAdd({ onViewProject, onViewPlanes, onViewGallery }:
   const selectedProject = projects.find((p) => p.id === selectedProjectId) || null
 
   return (
-    <div className="bg-black min-h-screen">
+    <div className=" min-h-screen">
       <div className="p-6 flex justify-end">
         <Button onClick={() => setIsAddModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
           <PlusCircle className="mr-2 h-4 w-4" />

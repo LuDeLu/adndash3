@@ -702,7 +702,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
   if (!currentFloorData) {
     return (
-      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+      <div className="min-h-screen  text-white flex items-center justify-center">
         <div className="w-full max-w-md bg-zinc-900 text-white p-6 rounded-lg text-center">
           <p className="text-zinc-300 mb-4">Piso no encontrado</p>
           <Button onClick={onReturnToProjectModal} className="bg-zinc-800 hover:bg-zinc-700">
@@ -717,7 +717,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const unitStats = getUnitStats()
 
   return (
-    <div className="min-h-screen bg-black text-white">
+    <div className="min-h-screen  text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">

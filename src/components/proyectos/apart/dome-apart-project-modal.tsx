@@ -365,7 +365,7 @@ export function ApartProjectModal({
                 </svg>
 
                 {/* Leyenda de estados */}
-                <div className="absolute bottom-4 left-4 bg-black bg-opacity-50 p-2 rounded">
+                <div className="absolute bottom-4 left-4  bg-opacity-50 p-2 rounded">
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("sold") }} />
                     <span className="ml-2 text-white text-xs sm:text-sm">Vendido</span>
@@ -391,7 +391,7 @@ export function ApartProjectModal({
                     disabled={refreshing || loadingProjectData}
                     size="sm"
                     variant="outline"
-                    className="bg-black bg-opacity-50 text-white border-white hover:bg-opacity-75"
+                    className=" bg-opacity-50 text-white border-white hover:bg-opacity-75"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing || loadingProjectData ? "animate-spin" : ""}`} />
                     {refreshing || loadingProjectData ? "Actualizando..." : "Actualizar"}

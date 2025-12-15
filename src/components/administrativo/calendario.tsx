@@ -708,7 +708,7 @@ export default function Calendar() {
 
   if (isMobile) {
     return (
-      <div className="h-screen flex flex-col bg-black text-white">
+      <div className="h-screen flex flex-col  text-white">
         {/* Header móvil */}
         <div className="flex items-center justify-between p-4 border-b border-gray-700">
           <h1 className="text-lg font-bold text-white">Calendario</h1>
@@ -749,7 +749,7 @@ export default function Calendar() {
                   <Menu className="h-4 w-4" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="w-full bg-black text-white border-gray-700 p-0">
+              <SheetContent side="right" className="w-full  text-white border-gray-700 p-0">
                 <EventsSidebar />
               </SheetContent>
             </Sheet>
@@ -984,7 +984,7 @@ export default function Calendar() {
 
   // Vista desktop (código original)
   return (
-    <div className="h-screen flex flex-col md:flex-row bg-black text-white">
+    <div className="h-screen flex flex-col md:flex-row  text-white">
       <div className="flex-grow p-4 md:p-6 overflow-auto">
         <div className="max-w-4xl mx-auto">
           <div className="flex justify-between items-center mb-6">

@@ -128,11 +128,11 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 
   // Layout para desktop
   return (
-    <div className="h-screen bg-black overflow-hidden flex">
+    <div className="h-screen  overflow-hidden flex">
       <div className="flex-shrink-0">
         <Navigation />
       </div>
-      <main className="flex-1 flex flex-col min-w-0 bg-black text-white">
+      <main className="flex-1 flex flex-col min-w-0  text-white">
         <div className="flex justify-between items-center p-6 flex-shrink-0">
           <div className="ml-auto">
             <UserMenu />

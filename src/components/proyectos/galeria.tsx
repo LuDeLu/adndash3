@@ -209,7 +209,7 @@ const MediaCard = React.memo(
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 loading="lazy"
               />
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300"></div>
+              <div className="absolute inset-0  bg-opacity-0 group-hover:bg-opacity-20 transition-opacity duration-300"></div>
             </div>
           ) : (
             <div className="relative">
@@ -218,7 +218,7 @@ const MediaCard = React.memo(
                 Your browser does not support the video tag.
               </video>
               <Button
-                className="absolute inset-0 m-auto w-12 h-12 rounded-full flex items-center justify-center bg-black bg-opacity-50 hover:bg-opacity-75 transition-opacity"
+                className="absolute inset-0 m-auto w-12 h-12 rounded-full flex items-center justify-center  bg-opacity-50 hover:bg-opacity-75 transition-opacity"
                 onClick={(e) => {
                   e.stopPropagation()
                   const videoElement = document.getElementById(`video-${media.id}`) as HTMLVideoElement
@@ -281,7 +281,7 @@ const MediaCard = React.memo(
         )}
         {media.category && (
           <div className="absolute top-2 left-2">
-            <Badge className="bg-black bg-opacity-70">{media.category}</Badge>
+            <Badge className=" bg-opacity-70">{media.category}</Badge>
           </div>
         )}
       </Card>
@@ -320,7 +320,7 @@ const MediaPreview = React.memo(
           <div className="relative h-full">
             <button
               onClick={onClose}
-              className="absolute top-2 right-2 z-10 bg-black bg-opacity-50 rounded-full p-2 text-white hover:bg-opacity-70 transition-opacity"
+              className="absolute top-2 right-2 z-10  bg-opacity-50 rounded-full p-2 text-white hover:bg-opacity-70 transition-opacity"
               aria-label="Cerrar vista previa"
             >
               <FaTimes />
@@ -351,7 +351,7 @@ const MediaPreview = React.memo(
                 {hasPrevious && (
                   <button
                     onClick={onPrevious}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-3 text-white hover:bg-opacity-70 transition-opacity"
+                    className="absolute left-2 top-1/2 transform -translate-y-1/2  bg-opacity-50 rounded-full p-3 text-white hover:bg-opacity-70 transition-opacity"
                     aria-label="Anterior"
                   >
                     <FaArrowLeft />
@@ -360,7 +360,7 @@ const MediaPreview = React.memo(
                 {hasNext && (
                   <button
                     onClick={onNext}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 rounded-full p-3 text-white hover:bg-opacity-70 transition-opacity"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2  bg-opacity-50 rounded-full p-3 text-white hover:bg-opacity-70 transition-opacity"
                     aria-label="Siguiente"
                   >
                     <FaArrowLeft className="transform rotate-180" />
