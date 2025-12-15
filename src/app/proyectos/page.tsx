@@ -6,7 +6,7 @@ import { AnimatePresence, motion } from "framer-motion"
 import { DomeBoulevardFloorPlan } from "@/components/proyectos/boulevard/dome-boulevar-floor-plan"
 import { DomeApartFloorPlan } from "@/components/proyectos/apart/dome-apart-floor-plan"
 import { DomeBerutiFloorPlan } from "@/components/proyectos/beruti/dome-beruti-floor-plan"
-import {DomeFloorPlan} from "@/components/proyectos/lagos/dome-floor-plan"
+import { DomeFloorPlan } from "@/components/proyectos/lagos/dome-floor-plan"
 import { DomeSuitesFloorPlan } from "@/components/proyectos/suites/dome-suites-floor-plan"
 import { DomePalermoFloorPlan } from "@/components/proyectos/resi/dome-resi-floor-plan"
 import Image from "next/image"
@@ -148,6 +148,40 @@ export default function DomePuertosPage() {
     setIsBerutiModalOpen(false)
   }
 
+  const reopenProjectModal = useCallback(() => {
+    if (!selectedProject) return
+
+    switch (selectedProject) {
+      case "lagos":
+        setIsLagosModalOpen(true)
+        break
+      case "suites":
+        setIsSuitesModalOpen(true)
+        break
+      case "palermo":
+        setIsPalermoModalOpen(true)
+        break
+      case "boulevar":
+        setIsBoulevardModalOpen(true)
+        break
+      case "apart":
+        setIsApartModalOpen(true)
+        break
+      case "beruti":
+        setIsBerutiModalOpen(true)
+        break
+    }
+  }, [selectedProject])
+
+  const handleBackToProjectModal = useCallback(() => {
+    setCurrentView("cards")
+    setSelectedFloor(undefined)
+    // Reopen the modal after a short delay to ensure proper rendering
+    setTimeout(() => {
+      reopenProjectModal()
+    }, 100)
+  }, [reopenProjectModal])
+
   // Función para manejar la navegación a planos de piso
   const handleViewFloorPlan = useCallback(
     (floorNumber?: number) => {
@@ -220,17 +254,17 @@ export default function DomePuertosPage() {
   if (currentView === "floorplan") {
     switch (selectedProject) {
       case "lagos":
-        return <DomeFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToCards} />
+        return <DomeFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "suites":
-        return <DomeSuitesFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToCards} />
+        return <DomeSuitesFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "palermo":
-        return <DomePalermoFloorPlan onBack={handleBackToCards} />
+        return <DomePalermoFloorPlan onBack={handleBackToProjectModal} />
       case "boulevar":
-        return <DomeBoulevardFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToCards} />
+        return <DomeBoulevardFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "apart":
-        return <DomeApartFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToCards} />
+        return <DomeApartFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "beruti":
-        return <DomeBerutiFloorPlan floorNumber={selectedFloor} onBack={handleBackToCards} />
+        return <DomeBerutiFloorPlan floorNumber={selectedFloor} onBack={handleBackToProjectModal} />
       default:
         return null
     }
@@ -240,17 +274,17 @@ export default function DomePuertosPage() {
   if (currentView === "gallery") {
     switch (selectedProject) {
       case "lagos":
-        return <DomeGallery onReturnToProject={handleBackToCards} />
+        return <DomeGallery onReturnToProject={handleBackToProjectModal} />
       case "suites":
-        return <DomeSuitesGallery onReturnToProject={handleBackToCards} />
+        return <DomeSuitesGallery onReturnToProject={handleBackToProjectModal} />
       case "palermo":
-        return <DomePalermoGallery onReturnToProject={handleBackToCards} />
+        return <DomePalermoGallery onReturnToProject={handleBackToProjectModal} />
       case "boulevar":
-        return <DomeBoulevardGallery onReturnToProject={handleBackToCards} />
+        return <DomeBoulevardGallery onReturnToProject={handleBackToProjectModal} />
       case "apart":
-        return <DomeApartGallery onReturnToProject={handleBackToCards} />
+        return <DomeApartGallery onReturnToProject={handleBackToProjectModal} />
       case "beruti":
-        return <DomeBerutiGallery onReturnToProject={handleBackToCards} />
+        return <DomeBerutiGallery onReturnToProject={handleBackToProjectModal} />
       default:
         return null
     }

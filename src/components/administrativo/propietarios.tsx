@@ -80,12 +80,12 @@ type ProjectStats = {
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 const PROJECT_NAMES: Record<string, string> = {
-  lagos: "Lagos del Golf",
-  apart: "Palermo Apart",
-  beruti: "Beruti Residence",
+  lagos: "Puertos del Lago",
+  apart: "Palermo Apartaments",
+  beruti: "Torre Beruti",
   boulevard: "Palermo Boulevard",
   suites: "Suites & Residence",
-  resi: "Resi Urban Living",
+  resi: "Palermo Residence",
 }
 
 const PROJECT_COLORS: Record<string, string> = {
