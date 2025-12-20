@@ -155,7 +155,7 @@ export function VentasStockChart({ data }: VentasStockChartProps) {
       return (
         <ResponsiveContainer width="100%" height="100%">
           <RadialBarChart cx="50%" cy="50%" innerRadius="30%" outerRadius="90%" barSize={30} data={chartData}>
-            <RadialBar minAngle={15} background clockWise dataKey="value">
+            <RadialBar background dataKey="value">
               {chartData.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
               ))}
