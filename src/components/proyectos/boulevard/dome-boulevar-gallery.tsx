@@ -1,112 +1,205 @@
 "use client"
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Play, Download, FileText, Video, ImageIcon } from "lucide-react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import Image from "next/image"
 
-type DomeBoulevardGalleryProps = {
+import { useState } from "react"
+import Image from "next/image"
+import { motion, AnimatePresence } from "framer-motion"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import {
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Download,
+  Share2,
+  Heart,
+  ZoomIn,
+  Grid3X3,
+  Play,
+  Camera,
+  Building,
+  Home,
+  Car,
+  Waves,
+} from "lucide-react"
+
+interface DomeBoulevardGalleryProps {
   onReturnToProject: () => void
 }
 
-// Datos de ejemplo para la galería
-const galleryData = {
-  images: [
-    {
-      id: 1,
-      src: "/placeholder.svg?height=400&width=600&text=Fachada+Principal",
-      title: "Fachada Principal",
-      category: "exterior",
-    },
-    {
-      id: 2,
-      src: "/placeholder.svg?height=400&width=600&text=Hall+de+Entrada",
-      title: "Hall de Entrada",
-      category: "interior",
-    },
-    { id: 3, src: "/placeholder.svg?height=400&width=600&text=Piscina", title: "Piscina", category: "amenities" },
-    { id: 4, src: "/placeholder.svg?height=400&width=600&text=Gimnasio", title: "Gimnasio", category: "amenities" },
-    {
-      id: 5,
-      src: "/placeholder.svg?height=400&width=600&text=Unidad+Tipo",
-      title: "Unidad Tipo",
-      category: "interior",
-    },
-    {
-      id: 6,
-      src: "/placeholder.svg?height=400&width=600&text=Vista+Aérea",
-      title: "Vista Aérea",
-      category: "exterior",
-    },
-    { id: 7, src: "/placeholder.svg?height=400&width=600&text=Terraza", title: "Terraza", category: "amenities" },
-    { id: 8, src: "/placeholder.svg?height=400&width=600&text=Cocina", title: "Cocina", category: "interior" },
-    { id: 9, src: "/placeholder.svg?height=400&width=600&text=Balcón", title: "Balcón", category: "interior" },
-    { id: 10, src: "/placeholder.svg?height=400&width=600&text=Lobby", title: "Lobby", category: "interior" },
-    { id: 11, src: "/placeholder.svg?height=400&width=600&text=Jardín", title: "Jardín", category: "exterior" },
-    {
-      id: 12,
-      src: "/placeholder.svg?height=400&width=600&text=Coworking",
-      title: "Coworking",
-      category: "amenities",
-    },
-  ],
-  videos: [
-    {
-      id: 1,
-      src: "/placeholder.mp4",
-      title: "Recorrido Virtual",
-      thumbnail: "/placeholder.svg?height=300&width=400&text=Video+1",
-    },
-    {
-      id: 2,
-      src: "/placeholder.mp4",
-      title: "Amenities",
-      thumbnail: "/placeholder.svg?height=300&width=400&text=Video+2",
-    },
-    {
-      id: 3,
-      src: "/placeholder.mp4",
-      title: "Ubicación",
-      thumbnail: "/placeholder.svg?height=300&width=400&text=Video+3",
-    },
-    {
-      id: 4,
-      src: "/placeholder.mp4",
-      title: "Unidades",
-      thumbnail: "/placeholder.svg?height=300&width=400&text=Video+4",
-    },
-  ],
-  documents: [
-    { id: 1, name: "Brochure Completo", type: "PDF", size: "2.5 MB", url: "/documents/brochure.pdf" },
-    { id: 2, name: "Planos Generales", type: "PDF", size: "5.1 MB", url: "/documents/planos.pdf" },
-    { id: 3, name: "Memoria Descriptiva", type: "PDF", size: "1.8 MB", url: "/documents/memoria.pdf" },
-    { id: 4, name: "Lista de Precios", type: "PDF", size: "0.9 MB", url: "/documents/precios.pdf" },
-    { id: 5, name: "Reglamento de Copropiedad", type: "PDF", size: "3.2 MB", url: "/documents/reglamento.pdf" },
-  ],
-}
-
 export function DomeBoulevardGallery({ onReturnToProject }: DomeBoulevardGalleryProps) {
-  const [selectedImage, setSelectedImage] = useState<number | null>(null)
-  const [selectedVideo, setSelectedVideo] = useState<number | null>(null)
-  const [activeTab, setActiveTab] = useState("images")
-  const [imageFilter, setImageFilter] = useState<string>("all")
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  const filteredImages = galleryData.images.filter((image) => imageFilter === "all" || image.category === imageFilter)
+const galleryItems = [
+  {
+    id: 1,
+    src: "/images/multimedia/boulevard/EXTERIOR 1.webp",
+    alt: "Vista exterior del edificio",
+    category: "exterior",
+    type: "image",
+    title: "Vista Exterior",
+    description: "Vista general del edificio",
+  },
+  {
+    id: 2,
+    src: "/images/multimedia/boulevard/EXTERIOR 2.webp",
+    alt: "Vista exterior alternativa del edificio",
+    category: "exterior",
+    type: "image",
+    title: "Exterior Alternativo",
+    description: "Otra vista exterior del proyecto",
+  },
+  {
+    id: 3,
+    src: "/images/multimedia/boulevard/EXTERIOR 2.1.webp",
+    alt: "Vista exterior desde otro ángulo",
+    category: "exterior",
+    type: "image",
+    title: "Exterior Lateral",
+    description: "Vista exterior desde un ángulo lateral",
+  },
+  {
+    id: 4,
+    src: "/images/multimedia/boulevard/EXTERIOR 3.webp",
+    alt: "Vista exterior adicional del edificio",
+    category: "exterior",
+    type: "image",
+    title: "Exterior Complementario",
+    description: "Vista exterior complementaria del edificio",
+  },
+  {
+    id: 5,
+    src: "/images/multimedia/boulevard/AC-11-PILETA-7.webp",
+    alt: "Piscina del edificio",
+    category: "amenities",
+    type: "image",
+    title: "Piscina",
+    description: "Área de piscina del edificio",
+  },
+  {
+    id: 6,
+    src: "/images/multimedia/boulevard/AC-003-GYM-op2-06.webp",
+    alt: "Gimnasio del edificio",
+    category: "amenities",
+    type: "image",
+    title: "Gimnasio",
+    description: "Espacio de gimnasio equipado",
+  },
+  {
+    id: 7,
+    src: "/images/multimedia/boulevard/AC-002-SUM-6.webp",
+    alt: "Salón de usos múltiples",
+    category: "amenities",
+    type: "image",
+    title: "SUM",
+    description: "Salón de usos múltiples",
+  },
+  {
+    id: 8,
+    src: "/images/multimedia/boulevard/AC-009-PARRILLAS-5.RGB_color.0000.webp",
+    alt: "Sector de parrillas",
+    category: "amenities",
+    type: "image",
+    title: "Parrillas",
+    description: "Espacio común con parrillas",
+  },
+  {
+    id: 9,
+    src: "/images/multimedia/boulevard/AC-008-A11TERRAZA-00.webp",
+    alt: "Terraza del edificio",
+    category: "amenities",
+    type: "image",
+    title: "Terraza",
+    description: "Terraza del edificio",
+  },
+  {
+    id: 10,
+    src: "/images/multimedia/boulevard/AC-006-COCINA-06.webp",
+    alt: "Cocina de unidad",
+    category: "interior",
+    type: "image",
+    title: "Cocina",
+    description: "Cocina de unidad residencial",
+  },
+  {
+    id: 11,
+    src: "/images/multimedia/boulevard/AC-005-ESTAR-04.webp",
+    alt: "Estar interior de la unidad",
+    category: "interior",
+    type: "image",
+    title: "Estar Interior",
+    description: "Área de estar interior",
+  },
+  {
+    id: 12,
+    src: "/images/multimedia/boulevard/AC-005-ESTAR-05.webp",
+    alt: "Estar interior desde otro ángulo",
+    category: "interior",
+    type: "image",
+    title: "Estar Interior Alternativo",
+    description: "Vista alternativa del área de estar",
+  },
+  {
+    id: 13,
+    src: "/images/multimedia/boulevard/AC-007-A11DPTO-05.webp",
+    alt: "Interior de departamento",
+    category: "interior",
+    type: "image",
+    title: "Departamento",
+    description: "Vista interior de departamento",
+  },
+  {
+    id: 14,
+    src: "/images/multimedia/boulevard/CRV 3941 - Unidad 1 - 01.webp",
+    alt: "Unidad 1 interior",
+    category: "interior",
+    type: "image",
+    title: "Unidad 1",
+    description: "Vista interior de la unidad 1",
+  },
+  {
+    id: 15,
+    src: "/images/multimedia/boulevard/CRV 3941 - Unidad 2 - 03.webp",
+    alt: "Unidad 2 interior",
+    category: "interior",
+    type: "image",
+    title: "Unidad 2",
+    description: "Vista interior de la unidad 2",
+  },
+];
 
-  const handleImageClick = (imageId: number) => {
-    setSelectedImage(imageId)
+
+  const categories = [
+    { id: "all", name: "Todas", icon: <Grid3X3 className="w-4 h-4" /> },
+    { id: "exterior", name: "Exterior", icon: <Building className="w-4 h-4" /> },
+    { id: "interior", name: "Interior", icon: <Home className="w-4 h-4" /> },
+    { id: "amenities", name: "Amenities", icon: <Waves className="w-4 h-4" /> },
+    { id: "parking", name: "Cocheras", icon: <Car className="w-4 h-4" /> },
+    { id: "video", name: "Videos", icon: <Play className="w-4 h-4" /> },
+  ]
+
+  const filteredItems =
+    selectedCategory === "all" ? galleryItems : galleryItems.filter((item) => item.category === selectedCategory)
+
+  const openLightbox = (index: number) => {
+    setLightboxIndex(index)
+    setIsLightboxOpen(true)
   }
 
-  const handleVideoClick = (videoId: number) => {
-    setSelectedVideo(videoId)
+  const nextImage = () => {
+    setLightboxIndex((prev) => (prev + 1) % filteredItems.length)
   }
 
-  const handleDownload = (url: string, filename: string) => {
+  const prevImage = () => {
+    setLightboxIndex((prev) => (prev - 1 + filteredItems.length) % filteredItems.length)
+  }
+
+  const handleDownload = (src: string, title: string) => {
     const link = document.createElement("a")
-    link.href = url
-    link.download = filename
+    link.href = src
+    link.download = `dome-boulevard-${title.toLowerCase().replace(/\s+/g, "-")}.webp`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -118,195 +211,194 @@ export function DomeBoulevardGallery({ onReturnToProject }: DomeBoulevardGallery
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Button onClick={onReturnToProject} className="bg-zinc-800 hover:bg-zinc-700 text-zinc-100">
-            <ArrowLeft className="mr-2 h-4 w-4" />
+            <ChevronLeft className="mr-2 h-4 w-4" />
             Volver al proyecto
           </Button>
-          <h1 className="text-2xl font-bold">Galería Multimedia</h1>
+          <h1 className="text-2xl font-bold">Galería - DOME Boulevard</h1>
           <div></div>
         </div>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 bg-zinc-800 mb-8">
-            <TabsTrigger value="images" className="data-[state=active]:bg-zinc-700">
-              <ImageIcon className="mr-2 h-4 w-4" />
-              Imágenes ({galleryData.images.length})
-            </TabsTrigger>
-            <TabsTrigger value="videos" className="data-[state=active]:bg-zinc-700">
-              <Video className="mr-2 h-4 w-4" />
-              Videos ({galleryData.videos.length})
-            </TabsTrigger>
-            <TabsTrigger value="documents" className="data-[state=active]:bg-zinc-700">
-              <FileText className="mr-2 h-4 w-4" />
-              Documentos ({galleryData.documents.length})
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          {/* Category Filter */}
+          <div className="flex flex-wrap gap-2">
+            {categories.map((category) => (
+              <Button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                variant={selectedCategory === category.id ? "default" : "outline"}
+                size="sm"
+                className={`${
+                  selectedCategory === category.id
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "border-zinc-700 hover:bg-zinc-800"
+                }`}
+              >
+                {category.icon}
+                <span className="ml-2">{category.name}</span>
+                <Badge variant="secondary" className="ml-2 bg-zinc-700">
+                  {category.id === "all"
+                    ? galleryItems.length
+                    : galleryItems.filter((item) => item.category === category.id).length}
+                </Badge>
+              </Button>
+            ))}
+          </div>
 
-          {/* Images Tab */}
-          <TabsContent value="images" className="space-y-6">
-            {/* Image Filters */}
-            <div className="flex flex-wrap gap-2 mb-6">
-              <Button
-                variant={imageFilter === "all" ? "default" : "outline"}
-                onClick={() => setImageFilter("all")}
-                size="sm"
-              >
-                Todas
-              </Button>
-              <Button
-                variant={imageFilter === "exterior" ? "default" : "outline"}
-                onClick={() => setImageFilter("exterior")}
-                size="sm"
-              >
-                Exteriores
-              </Button>
-              <Button
-                variant={imageFilter === "interior" ? "default" : "outline"}
-                onClick={() => setImageFilter("interior")}
-                size="sm"
-              >
-                Interiores
-              </Button>
-              <Button
-                variant={imageFilter === "amenities" ? "default" : "outline"}
-                onClick={() => setImageFilter("amenities")}
-                size="sm"
-              >
-                Amenities
-              </Button>
-            </div>
-
-            {/* Images Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredImages.map((image) => (
-                <Card
-                  key={image.id}
-                  className="bg-zinc-900 border-zinc-700 overflow-hidden cursor-pointer hover:bg-zinc-800 transition-colors"
+          {/* Gallery Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <AnimatePresence>
+              {filteredItems.map((item, index) => (
+                <motion.div
+                  key={item.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                  className="group relative aspect-square overflow-hidden rounded-lg bg-zinc-800 cursor-pointer"
+                  onClick={() => openLightbox(index)}
                 >
-                  <CardContent className="p-0">
-                    <div className="relative aspect-video" onClick={() => handleImageClick(image.id)}>
-                      <Image
-                        src={image.src || "/placeholder.svg"}
-                        alt={image.title}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                      />
-                      <div className="absolute inset-0  bg-opacity-0 hover:bg-opacity-20 transition-all duration-200 flex items-center justify-center">
-                        <ImageIcon className="text-white opacity-0 hover:opacity-100 transition-opacity" size={32} />
-                      </div>
+                  {item.type === "video" ? (
+                    <div className="relative w-full h-full flex items-center justify-center bg-zinc-800">
+                      <Play className="w-12 h-12 text-white opacity-80" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     </div>
-                    <div className="p-3">
-                      <h3 className="text-sm font-medium text-white">{image.title}</h3>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+                  ) : (
+                    <Image
+                      src={item.src || "/placeholder.svg?height=300&width=300"}
+                      alt={item.alt}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                  )}
 
-          {/* Videos Tab */}
-          <TabsContent value="videos" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {galleryData.videos.map((video) => (
-                <Card key={video.id} className="bg-zinc-900 border-zinc-700 overflow-hidden">
-                  <CardContent className="p-0">
-                    <div className="relative aspect-video cursor-pointer" onClick={() => handleVideoClick(video.id)}>
-                      <Image
-                        src={video.thumbnail || "/placeholder.svg"}
-                        alt={video.title}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                      <div className="absolute inset-0  bg-opacity-30 flex items-center justify-center hover:bg-opacity-20 transition-all duration-200">
-                        <Play className="text-white" size={48} />
-                      </div>
+                  {/* Overlay */}
+                  <div className="absolute inset-0 /60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                    <div className="text-center p-4">
+                      <ZoomIn className="w-8 h-8 text-white mx-auto mb-2" />
+                      <h3 className="text-white font-semibold text-sm">{item.title}</h3>
                     </div>
-                    <div className="p-4">
-                      <h3 className="text-lg font-medium text-white">{video.title}</h3>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
+                  </div>
 
-          {/* Documents Tab */}
-          <TabsContent value="documents" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {galleryData.documents.map((doc) => (
-                <Card key={doc.id} className="bg-zinc-900 border-zinc-700">
-                  <CardContent className="p-6">
-                    <div className="flex items-start space-x-4">
-                      <div className="flex-shrink-0">
-                        <FileText className="h-8 w-8 text-red-500" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-medium text-white truncate">{doc.name}</h3>
-                        <p className="text-sm text-zinc-400">
-                          {doc.type} • {doc.size}
-                        </p>
-                        <Button
-                          onClick={() => handleDownload(doc.url, doc.name)}
-                          className="mt-3 bg-blue-600 hover:bg-blue-700"
-                          size="sm"
-                        >
-                          <Download className="mr-2 h-4 w-4" />
-                          Descargar
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                  {/* Type Badge */}
+                  <div className="absolute top-2 right-2">
+                    <Badge className={`${item.type === "video" ? "bg-red-600" : "bg-blue-600"} text-white`}>
+                      {item.type === "video" ? "Video" : "Imagen"}
+                    </Badge>
+                  </div>
+                </motion.div>
               ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+            </AnimatePresence>
+          </div>
 
-        {/* Image Modal */}
-        <Dialog open={selectedImage !== null} onOpenChange={() => setSelectedImage(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0  border-zinc-700">
-            {selectedImage && (
-              <div className="relative">
-                <Image
-                  src={galleryData.images.find((img) => img.id === selectedImage)?.src || ""}
-                  alt={galleryData.images.find((img) => img.id === selectedImage)?.title || ""}
-                  width={800}
-                  height={600}
-                  className="w-full h-auto"
-                />
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-6">
-                  <h3 className="text-xl font-bold text-white">
-                    {galleryData.images.find((img) => img.id === selectedImage)?.title}
-                  </h3>
+          {filteredItems.length === 0 && (
+            <div className="text-center py-12">
+              <Camera className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
+              <p className="text-zinc-400 text-lg">No hay elementos en esta categoría</p>
+            </div>
+          )}
+        </div>
+
+        {/* Lightbox */}
+        <AnimatePresence>
+          {isLightboxOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 /95 flex items-center justify-center"
+              onClick={() => setIsLightboxOpen(false)}
+            >
+              <div className="relative w-full h-full flex items-center justify-center p-4">
+                {/* Close Button */}
+                <Button
+                  onClick={() => setIsLightboxOpen(false)}
+                  className="absolute top-4 right-4 z-10 /50 hover:/70"
+                  size="sm"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+
+                {/* Navigation Buttons */}
+                <Button
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 /50 hover:/70"
+                  size="sm"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+
+                <Button
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 /50 hover:/70"
+                  size="sm"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+
+                {/* Image */}
+                <div className="relative max-w-5xl max-h-[80vh] w-full h-full">
+                  {filteredItems[lightboxIndex]?.type === "video" ? (
+                    <video
+                      src={filteredItems[lightboxIndex].src}
+                      controls
+                      className="w-full h-full object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <Image
+                      src={filteredItems[lightboxIndex]?.src || ""}
+                      alt={filteredItems[lightboxIndex]?.alt || ""}
+                      fill
+                      className="object-contain"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
+                </div>
+
+                {/* Image Info */}
+                <div className="absolute bottom-4 left-4 right-4 /70 backdrop-blur-sm rounded-lg p-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-white font-semibold text-lg">{filteredItems[lightboxIndex]?.title}</h3>
+                      <p className="text-zinc-300 text-sm mt-1">{filteredItems[lightboxIndex]?.description}</p>
+                      <p className="text-zinc-400 text-xs mt-2">
+                        {lightboxIndex + 1} de {filteredItems.length}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleDownload(filteredItems[lightboxIndex].src, filteredItems[lightboxIndex].title)
+                        }}
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        onClick={(e) => e.stopPropagation()}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600"
+                      >
+                        <Share2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        onClick={(e) => e.stopPropagation()}
+                        size="sm"
+                        variant="outline"
+                        className="border-zinc-600"
+                      >
+                        <Heart className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-
-        {/* Video Modal */}
-        <Dialog open={selectedVideo !== null} onOpenChange={() => setSelectedVideo(null)}>
-          <DialogContent className="max-w-4xl max-h-[90vh] p-0  border-zinc-700">
-            {selectedVideo && (
-              <div className="relative">
-                <video
-                  controls
-                  className="w-full h-auto"
-                  src={galleryData.videos.find((vid) => vid.id === selectedVideo)?.src}
-                >
-                  Tu navegador no soporta el elemento de video.
-                </video>
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-white">
-                    {galleryData.videos.find((vid) => vid.id === selectedVideo)?.title}
-                  </h3>
-                </div>
-              </div>
-            )}
-          </DialogContent>
-        </Dialog>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

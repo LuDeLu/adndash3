@@ -1,4 +1,5 @@
 "use client"
+
 import { useState } from "react"
 import Image from "next/image"
 import { motion, AnimatePresence } from "framer-motion"
@@ -20,7 +21,6 @@ import {
   Car,
   Waves,
 } from "lucide-react"
-import { apartProjectInfo } from "@/lib/dome-apart-data"
 
 interface DomeApartGalleryProps {
   onReturnToProject: () => void
@@ -32,116 +32,81 @@ export function DomeApartGallery({ onReturnToProject }: DomeApartGalleryProps) {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  const galleryItems = [
-    {
-      id: 1,
-      src: apartProjectInfo.image,
-      alt: "Fachada principal DOME Palermo Apartament",
-      category: "exterior",
-      type: "image",
-      title: "Fachada Principal",
-      description: "Vista frontal del edificio desde Cabello y Lafinur",
-    },
-    {
-      id: 2,
-      src: apartProjectInfo.logo,
-      alt: "Logo DOME Palermo Apartament",
-      category: "branding",
-      type: "image",
-      title: "Identidad del Proyecto",
-      description: "Logo y branding oficial del proyecto",
-    },
-    {
-      id: 3,
-      src: "/placeholder.svg?height=400&width=600&text=Render+Exterior+Nocturno",
-      alt: "Render exterior nocturno",
-      category: "exterior",
-      type: "image",
-      title: "Vista Nocturna",
-      description: "Render del edificio con iluminación nocturna",
-    },
-    {
-      id: 4,
-      src: "/placeholder.svg?height=400&width=600&text=Hall+de+Acceso",
-      alt: "Hall de acceso",
-      category: "interior",
-      type: "image",
-      title: "Hall de Acceso",
-      description: "Elegante hall de acceso con diseño moderno",
-    },
-    {
-      id: 5,
-      src: "/placeholder.svg?height=400&width=600&text=Piscina+Rooftop",
-      alt: "Piscina en rooftop",
-      category: "amenities",
-      type: "image",
-      title: "Piscina Rooftop",
-      description: "Pileta con solárium en el nivel 10º",
-    },
-    {
-      id: 6,
-      src: "/placeholder.svg?height=400&width=600&text=Gimnasio",
-      alt: "Gimnasio",
-      category: "amenities",
-      type: "image",
-      title: "Gimnasio",
-      description: "Gimnasio completamente equipado en el 10º nivel",
-    },
-    {
-      id: 7,
-      src: "/placeholder.svg?height=400&width=600&text=Departamento+1+Dorm",
-      alt: "Departamento 1 dormitorio",
-      category: "interior",
-      type: "image",
-      title: "Departamento 1 Dormitorio",
-      description: "Interior de departamento de 1 dormitorio con parrilla",
-    },
-    {
-      id: 8,
-      src: "/placeholder.svg?height=400&width=600&text=Departamento+2+Dorm",
-      alt: "Departamento 2 dormitorios",
-      category: "interior",
-      type: "image",
-      title: "Departamento 2 Dormitorios",
-      description: "Living comedor con vista panorámica",
-    },
-    {
-      id: 9,
-      src: "/placeholder.svg?height=400&width=600&text=Cocheras+Cubiertas",
-      alt: "Cocheras cubiertas",
-      category: "parking",
-      type: "image",
-      title: "Cocheras Cubiertas",
-      description: "3 niveles de cocheras en subsuelos",
-    },
-    {
-      id: 10,
-      src: "/placeholder.svg?height=400&width=600&text=Rooftop+Parrilla",
-      alt: "Rooftop con parrilla",
-      category: "amenities",
-      type: "image",
-      title: "Rooftop con Parrilla",
-      description: "Rooftop con parrilla en terraza verde del 10º nivel",
-    },
-    {
-      id: 11,
-      src: "/placeholder.svg?height=400&width=600&text=Video+Tour",
-      alt: "Video tour virtual",
-      category: "video",
-      type: "video",
-      title: "Tour Virtual",
-      description: "Recorrido virtual completo por el proyecto",
-    },
-    {
-      id: 12,
-      src: "/placeholder.svg?height=400&width=600&text=Salón+Gourmet",
-      alt: "Salón gourmet",
-      category: "amenities",
-      type: "image",
-      title: "Salón Gourmet",
-      description: "Salón gourmet en el 10º nivel",
-    },
-  ]
+const galleryItems = [
+  {
+    id: 1,
+    src: "/images/multimedia/apart/200417 - FINAL Lafinur Aéreo.webp",
+    alt: "Vista aérea del edificio Lafinur",
+    category: "exterior",
+    type: "image",
+    title: "Vista Aérea",
+    description: "Vista aérea del edificio sobre Lafinur",
+  },
+  {
+    id: 2,
+    src: "/images/multimedia/apart/221004 - FINAL Lafinur Atardecer - sin puntal en esquina y con 10 con solo SUM.webp",
+    alt: "Vista del edificio Lafinur al atardecer",
+    category: "exterior",
+    type: "image",
+    title: "Atardecer",
+    description: "Vista exterior del edificio al atardecer",
+  },
+  {
+    id: 3,
+    src: "/images/multimedia/apart/230823 - Lafinur Esquina Peatonal FINAL EDIT.webp",
+    alt: "Vista peatonal en esquina del edificio Lafinur",
+    category: "exterior",
+    type: "image",
+    title: "Esquina Peatonal",
+    description: "Vista a nivel peatonal desde la esquina",
+  },
+  {
+    id: 4,
+    src: "/images/multimedia/apart/230823 - Lafinur Semiaérea FINAL EDIT.webp",
+    alt: "Vista semiaérea del edificio Lafinur",
+    category: "exterior",
+    type: "image",
+    title: "Vista Semiaérea",
+    description: "Vista general del edificio desde altura intermedia",
+  },
+  {
+    id: 5,
+    src: "/images/multimedia/apart/201230 - FINAL Lafinur Terraza - solo SUM.webp",
+    alt: "Terraza con SUM del edificio Lafinur",
+    category: "amenities",
+    type: "image",
+    title: "Terraza y SUM",
+    description: "Terraza del edificio con Salón de Usos Múltiples",
+  },
+  {
+    id: 6,
+    src: "/images/multimedia/apart/210118 - FINAL Lafinur Dormitorio Unidad Tipo.webp",
+    alt: "Dormitorio de unidad tipo",
+    category: "interior",
+    type: "image",
+    title: "Dormitorio",
+    description: "Dormitorio de unidad tipo",
+  },
+  {
+    id: 7,
+    src: "/images/multimedia/apart/210303 - FINAL Estar Interior Lafinur Piso Tipo.webp",
+    alt: "Estar interior de unidad tipo",
+    category: "interior",
+    type: "image",
+    title: "Estar Interior",
+    description: "Área de estar de unidad tipo",
+  },
+  {
+    id: 8,
+    src: "/images/multimedia/apart/210301 - FINAL Interior Lafinur Piso 9no piso.webp",
+    alt: "Interior de unidad en piso 9",
+    category: "interior",
+    type: "image",
+    title: "Interior Piso 9",
+    description: "Vista interior de unidad ubicada en el noveno piso",
+  },
+];
+
 
   const categories = [
     { id: "all", name: "Todas", icon: <Grid3X3 className="w-4 h-4" /> },
@@ -171,7 +136,7 @@ export function DomeApartGallery({ onReturnToProject }: DomeApartGalleryProps) {
   const handleDownload = (src: string, title: string) => {
     const link = document.createElement("a")
     link.href = src
-    link.download = `dome-apart-${title.toLowerCase().replace(/\s+/g, "-")}.jpg`
+    link.download = `dome-apart-${title.toLowerCase().replace(/\s+/g, "-")}.webp`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)

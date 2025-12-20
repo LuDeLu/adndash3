@@ -21,7 +21,6 @@ import {
   Car,
   Waves,
 } from "lucide-react"
-import { berutiProjectInfo } from "@/lib/dome-beruti-data"
 
 interface DomeBerutiGalleryProps {
   onReturnToProject: () => void
@@ -33,134 +32,99 @@ export function DomeBerutiGallery({ onReturnToProject }: DomeBerutiGalleryProps)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  const galleryItems = [
-    {
-      id: 1,
-      src: berutiProjectInfo.image,
-      alt: "Fachada principal DOME Torre Beruti",
-      category: "exterior",
-      type: "image",
-      title: "Fachada Principal",
-      description: "Vista frontal del edificio desde Beruti 4540",
-    },
-    {
-      id: 2,
-      src: "/placeholder.svg?height=400&width=600&text=Render+Exterior+Nocturno",
-      alt: "Render exterior nocturno",
-      category: "exterior",
-      type: "image",
-      title: "Vista Nocturna",
-      description: "Render del edificio con iluminación nocturna",
-    },
-    {
-      id: 3,
-      src: "/placeholder.svg?height=400&width=600&text=Hall+de+Acceso",
-      alt: "Hall de acceso",
-      category: "interior",
-      type: "image",
-      title: "Hall de Acceso",
-      description: "Imponente hall ubicado en planta baja",
-    },
-    {
-      id: 4,
-      src: "/placeholder.svg?height=400&width=600&text=Piscina+In+Out",
-      alt: "Piscina in/out",
-      category: "amenities",
-      type: "image",
-      title: "Piscina In/Out",
-      description: "Pileta in/out con solárium en PB",
-    },
-    {
-      id: 5,
-      src: "/placeholder.svg?height=400&width=600&text=Gimnasio",
-      alt: "Gimnasio",
-      category: "amenities",
-      type: "image",
-      title: "Gimnasio",
-      description: "Gimnasio en PB con sala exclusiva de relax",
-    },
-    {
-      id: 6,
-      src: "/placeholder.svg?height=400&width=600&text=Salon+Usos+Multiples",
-      alt: "Salón de usos múltiples",
-      category: "amenities",
-      type: "image",
-      title: "Salón de Usos Múltiples",
-      description: "Salón completamente equipado con expansión descubierta",
-    },
-    {
-      id: 7,
-      src: "/placeholder.svg?height=400&width=600&text=Gameroom",
-      alt: "Gameroom",
-      category: "amenities",
-      type: "image",
-      title: "Gameroom",
-      description: "Espacio de esparcimiento situado en la PB",
-    },
-    {
-      id: 8,
-      src: "/placeholder.svg?height=400&width=600&text=Departamento+3+Dorm",
-      alt: "Departamento 3 dormitorios",
-      category: "interior",
-      type: "image",
-      title: "3 Dormitorios con Dependencia",
-      description: "Interior de departamento con acabados premium",
-    },
-    {
-      id: 9,
-      src: "/placeholder.svg?height=400&width=600&text=Town+House",
-      alt: "Town House",
-      category: "interior",
-      type: "image",
-      title: "Town House",
-      description: "Town House con terraza privada",
-    },
-    {
-      id: 10,
-      src: "/placeholder.svg?height=400&width=600&text=Penthouse",
-      alt: "Penthouse",
-      category: "interior",
-      type: "image",
-      title: "Penthouse",
-      description: "Penthouse con terraza panorámica",
-    },
-    {
-      id: 11,
-      src: "/placeholder.svg?height=400&width=600&text=Cocheras+Cubiertas",
-      alt: "Cocheras cubiertas",
-      category: "parking",
-      type: "image",
-      title: "Cocheras Cubiertas",
-      description: "3 niveles de subsuelos de cocheras",
-    },
-    {
-      id: 12,
-      src: "/placeholder.svg?height=400&width=600&text=Juegos+Infantiles",
-      alt: "Juegos infantiles",
-      category: "amenities",
-      type: "image",
-      title: "Juegos Infantiles",
-      description: "Espacio de juegos para niños en sector descubierto",
-    },
-    {
-      id: 13,
-      src: "/placeholder.svg?height=400&width=600&text=Video+Tour",
-      alt: "Video tour virtual",
-      category: "video",
-      type: "video",
-      title: "Tour Virtual",
-      description: "Recorrido virtual completo por el proyecto",
-    },
-    {
-      id: 14,
-      src: "/placeholder.svg?height=400&width=600&text=Spa+y+Sauna",
-      alt: "Área de spa y sauna",
-      category: "amenities",
-      type: "image",
-      title: "Spa y Sauna",
-      description: "Área de sauna y sala de spa",
-    },
-  ]
+const galleryItems = [
+  {
+    id: 1,
+    src: "/images/multimedia/beruti/250109 - Berutti Fachada_ copy EDIT.webp",
+    alt: "Fachada del edificio Beruti",
+    category: "exterior",
+    type: "image",
+    title: "Fachada",
+    description: "Vista frontal del edificio sobre Beruti",
+  },
+  {
+    id: 2,
+    src: "/images/multimedia/beruti/250109 - Berutti vereda PB_ copy EDIT 3.webp",
+    alt: "Vista peatonal en planta baja del edificio Beruti",
+    category: "exterior",
+    type: "image",
+    title: "Vereda Planta Baja",
+    description: "Vista del edificio a nivel peatonal",
+  },
+  {
+    id: 3,
+    src: "/images/multimedia/beruti/250109 - BER - Contrafrente_ copy EDIT.webp",
+    alt: "Contrafrente del edificio Beruti",
+    category: "exterior",
+    type: "image",
+    title: "Contrafrente",
+    description: "Vista del contrafrente del edificio",
+  },
+  {
+    id: 4,
+    src: "/images/multimedia/beruti/250109 - BER - Contrafrente_patio copy EDIT.webp",
+    alt: "Contrafrente con patio del edificio Beruti",
+    category: "exterior",
+    type: "image",
+    title: "Contrafrente con Patio",
+    description: "Vista del contrafrente con patio interior",
+  },
+  {
+    id: 5,
+    src: "/images/multimedia/beruti/250109 - Berutti - Pileta_ copy EDIT 1.webp",
+    alt: "Piscina del edificio Beruti",
+    category: "amenities",
+    type: "image",
+    title: "Piscina",
+    description: "Área de piscina del edificio",
+  },
+  {
+    id: 6,
+    src: "/images/multimedia/beruti/250109 - Berutti GYM_ copy EDIT 1.webp",
+    alt: "Gimnasio del edificio Beruti",
+    category: "amenities",
+    type: "image",
+    title: "Gimnasio",
+    description: "Espacio de gimnasio del edificio",
+  },
+  {
+    id: 7,
+    src: "/images/multimedia/beruti/250109 - Berutti 4 ambientes_ copy EDIT.webp",
+    alt: "Unidad de cuatro ambientes",
+    category: "interior",
+    type: "image",
+    title: "Unidad 4 Ambientes",
+    description: "Interior de departamento de cuatro ambientes",
+  },
+  {
+    id: 8,
+    src: "/images/multimedia/beruti/250109 - Berutti piso7 4D_ copy EDIT.webp",
+    alt: "Departamento en piso 7 de cuatro dormitorios",
+    category: "interior",
+    type: "image",
+    title: "Unidad Piso 7",
+    description: "Vista interior de unidad ubicada en el séptimo piso",
+  },
+  {
+    id: 9,
+    src: "/images/multimedia/beruti/250109 BER - Unidad Terraza_ copy SGEDIT.webp",
+    alt: "Unidad con terraza",
+    category: "interior",
+    type: "image",
+    title: "Unidad con Terraza",
+    description: "Departamento con expansión a terraza",
+  },
+  {
+    id: 10,
+    src: "/images/multimedia/beruti/250109 - Berutti terraza duplex copy SGEDIT.webp",
+    alt: "Terraza de unidad dúplex",
+    category: "amenities",
+    type: "image",
+    title: "Terraza Dúplex",
+    description: "Terraza correspondiente a unidad tipo dúplex",
+  },
+];
+
 
   const categories = [
     { id: "all", name: "Todas", icon: <Grid3X3 className="w-4 h-4" /> },
@@ -190,7 +154,7 @@ export function DomeBerutiGallery({ onReturnToProject }: DomeBerutiGalleryProps)
   const handleDownload = (src: string, title: string) => {
     const link = document.createElement("a")
     link.href = src
-    link.download = `dome-beruti-${title.toLowerCase().replace(/\s+/g, "-")}.jpg`
+    link.download = `dome-beruti-${title.toLowerCase().replace(/\s+/g, "-")}.webp`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -205,7 +169,7 @@ export function DomeBerutiGallery({ onReturnToProject }: DomeBerutiGalleryProps)
             <ChevronLeft className="mr-2 h-4 w-4" />
             Volver al proyecto
           </Button>
-          <h1 className="text-2xl font-bold">Galería - {berutiProjectInfo.name}</h1>
+          <h1 className="text-2xl font-bold">Galería - DOME Torre Beruti</h1>
           <div></div>
         </div>
 

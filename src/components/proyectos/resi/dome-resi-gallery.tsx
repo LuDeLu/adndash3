@@ -21,128 +21,119 @@ import {
   Car,
   Waves,
 } from "lucide-react"
-import { domePalermoData } from "@/lib/dome-palermo-data"
 
-interface DomePalermoGalleryProps {
+interface DomeResiGalleryProps {
   onReturnToProject: () => void
 }
 
-export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProps) {
+export function DomeResiGallery({ onReturnToProject }: DomeResiGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [lightboxIndex, setLightboxIndex] = useState(0)
 
-  const galleryItems = [
-    {
-      id: 1,
-      src: domePalermoData.projectInfo.edificio,
-      alt: "Fachada principal DOME Palermo Residence",
-      category: "exterior",
-      type: "image",
-      title: "Fachada Principal",
-      description: "Vista frontal del edificio desde Cabello y República Árabe Siria",
-    },
-    {
-      id: 2,
-      src: domePalermoData.projectInfo.image,
-      alt: "Logo DOME Palermo Residence",
-      category: "branding",
-      type: "image",
-      title: "Identidad del Proyecto",
-      description: "Logo y branding oficial del proyecto",
-    },
-    {
-      id: 3,
-      src: "/placeholder.svg?height=400&width=600&text=Render+Exterior+Nocturno",
-      alt: "Render exterior nocturno",
-      category: "exterior",
-      type: "image",
-      title: "Vista Nocturna",
-      description: "Render del edificio con iluminación nocturna",
-    },
-    {
-      id: 4,
-      src: "/placeholder.svg?height=400&width=600&text=Hall+de+Acceso",
-      alt: "Hall de acceso",
-      category: "interior",
-      type: "image",
-      title: "Hall de Acceso",
-      description: "Importante hall de acceso con diseño moderno",
-    },
-    {
-      id: 5,
-      src: "/placeholder.svg?height=400&width=600&text=Piscina+Rooftop",
-      alt: "Piscina en rooftop",
-      category: "amenities",
-      type: "image",
-      title: "Piscina Rooftop",
-      description: "Piscina descubierta con solárium en terraza 10mo piso",
-    },
-    {
-      id: 6,
-      src: "/placeholder.svg?height=400&width=600&text=Gimnasio",
-      alt: "Gimnasio",
-      category: "amenities",
-      type: "image",
-      title: "Gimnasio",
-      description: "Gimnasio completamente equipado con baños y vestuarios",
-    },
-    {
-      id: 7,
-      src: "/placeholder.svg?height=400&width=600&text=Departamento+Tipo+A",
-      alt: "Departamento tipo A",
-      category: "interior",
-      type: "image",
-      title: "Departamento Tipo A",
-      description: "Interior de departamento con acabados premium",
-    },
-    {
-      id: 8,
-      src: "/placeholder.svg?height=400&width=600&text=Departamento+Tipo+B",
-      alt: "Departamento tipo B",
-      category: "interior",
-      type: "image",
-      title: "Departamento Tipo B",
-      description: "Living comedor con vista panorámica",
-    },
-    {
-      id: 9,
-      src: "/placeholder.svg?height=400&width=600&text=Cocheras+Cubiertas",
-      alt: "Cocheras cubiertas",
-      category: "parking",
-      type: "image",
-      title: "Cocheras Cubiertas",
-      description: "Estacionamiento cubierto en 3 subsuelos",
-    },
-    {
-      id: 10,
-      src: "/placeholder.svg?height=400&width=600&text=Rooftop",
-      alt: "Rooftop",
-      category: "amenities",
-      type: "image",
-      title: "Rooftop",
-      description: "Terraza panorámica en 10mo piso con vista 360°",
-    },
-    {
-      id: 11,
-      src: "/placeholder.svg?height=400&width=600&text=Video+Tour",
-      alt: "Video tour virtual",
-      category: "video",
-      type: "video",
-      title: "Tour Virtual",
-      description: "Recorrido virtual completo por el proyecto",
-    },
-    {
-      id: 12,
-      src: "/placeholder.svg?height=400&width=600&text=Balcón+con+Vista",
-      alt: "Balcón con vista",
-      category: "interior",
-      type: "image",
-      title: "Balcones Privados",
-      description: "Balcones con vista panorámica de la ciudad",
-    },
-  ]
+const galleryItems = [
+  {
+    id: 1,
+    src: "/images/multimedia/resi/2025-09-25_CyRAS_Renders_page3_image1.webp",
+    alt: "Vista exterior render del edificio CyRAS",
+    category: "exterior",
+    type: "image",
+    title: "Vista Exterior",
+    description: "Render exterior del edificio",
+  },
+  {
+    id: 2,
+    src: "/images/multimedia/resi/2025-09-25_CyRAS_Renders_page3_image2.webp",
+    alt: "Vista exterior alternativa del edificio CyRAS",
+    category: "exterior",
+    type: "image",
+    title: "Exterior Alternativo",
+    description: "Vista exterior del proyecto desde otro ángulo",
+  },
+  {
+    id: 3,
+    src: "/images/multimedia/resi/2025-09-25_CyRAS_Renders_page3_image3.webp",
+    alt: "Render exterior adicional del edificio CyRAS",
+    category: "exterior",
+    type: "image",
+    title: "Exterior Complementario",
+    description: "Vista exterior complementaria del edificio",
+  },
+  {
+    id: 4,
+    src: "/images/multimedia/resi/CRFAC-003-hall-08.webp",
+    alt: "Hall de acceso del edificio",
+    category: "interior",
+    type: "image",
+    title: "Hall de Acceso",
+    description: "Vista del hall de acceso",
+  },
+  {
+    id: 5,
+    src: "/images/multimedia/resi/CRFAC-004-HALL 2-00.webp",
+    alt: "Hall del edificio desde otro ángulo",
+    category: "interior",
+    type: "image",
+    title: "Hall Alternativo",
+    description: "Vista alternativa del hall de acceso",
+  },
+  {
+    id: 6,
+    src: "/images/multimedia/resi/CRFAC-005-HALL 1-00.webp",
+    alt: "Hall principal del edificio",
+    category: "interior",
+    type: "image",
+    title: "Hall Principal",
+    description: "Vista del hall principal",
+  },
+  {
+    id: 7,
+    src: "/images/multimedia/resi/CRFAC-006-SUM-06.webp",
+    alt: "Salón de usos múltiples del edificio",
+    category: "amenities",
+    type: "image",
+    title: "SUM",
+    description: "Salón de usos múltiples",
+  },
+  {
+    id: 8,
+    src: "/images/multimedia/resi/CRFAC-007-GYM-06.webp",
+    alt: "Gimnasio del edificio",
+    category: "amenities",
+    type: "image",
+    title: "Gimnasio",
+    description: "Espacio de gimnasio del edificio",
+  },
+  {
+    id: 9,
+    src: "/images/multimedia/resi/CRFAC-010-PILETA-04.webp",
+    alt: "Piscina del edificio",
+    category: "amenities",
+    type: "image",
+    title: "Piscina",
+    description: "Área de piscina del edificio",
+  },
+  {
+    id: 10,
+    src: "/images/multimedia/resi/Interior CyRAS.webp",
+    alt: "Interior de departamento CyRAS",
+    category: "interior",
+    type: "image",
+    title: "Interior de Departamento",
+    description: "Vista interior de departamento",
+  },
+  {
+    id: 11,
+    src: "/images/multimedia/resi/Interior CyRAS 2.webp",
+    alt: "Interior alternativo de departamento CyRAS",
+    category: "interior",
+    type: "image",
+    title: "Interior Alternativo",
+    description: "Vista alternativa del interior del departamento",
+  },
+];
+
 
   const categories = [
     { id: "all", name: "Todas", icon: <Grid3X3 className="w-4 h-4" /> },
@@ -172,7 +163,7 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
   const handleDownload = (src: string, title: string) => {
     const link = document.createElement("a")
     link.href = src
-    link.download = `dome-palermo-${title.toLowerCase().replace(/\s+/g, "-")}.jpg`
+    link.download = `dome-resi-${title.toLowerCase().replace(/\s+/g, "-")}.webp`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -377,4 +368,4 @@ export function DomePalermoGallery({ onReturnToProject }: DomePalermoGalleryProp
   )
 }
 
-export default DomePalermoGallery
+export default DomeResiGallery

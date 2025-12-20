@@ -19,6 +19,8 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://adndashboard.sq
 
 interface DomePalermoProjectModalProps {
   isOpen: boolean
+  onViewProject: () => void
+  onViewGallery: () => void
   onClose: () => void
   onOpenFloorPlan: (floorNumber?: number) => void
 }
@@ -65,7 +67,7 @@ const Tooltip = React.forwardRef<
 ))
 Tooltip.displayName = TooltipPrimitive.Content.displayName
 
-export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: DomePalermoProjectModalProps) {
+export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan, onViewGallery }: DomePalermoProjectModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "units" | "features" | "financial" | "location">("overview")
   const [refreshing, setRefreshing] = useState(false)
   const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
@@ -669,7 +671,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan }: Do
                     <span className="hidden sm:inline">Descargar </span>
                     <span>brochure</span>
                   </Button>
-                  <Button onClick={() => {}} className="w-full py-3 sm:py-6 text-xs sm:text-base">
+                  <Button onClick={onViewGallery} className="w-full py-3 sm:py-6 text-xs sm:text-base">
                     <ImageIcon className="mr-1 h-4 w-4 sm:h-5 sm:w-5" />
                     <span className="hidden sm:inline">Ver </span>
                     <span>multimedia</span>

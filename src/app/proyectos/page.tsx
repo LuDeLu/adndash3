@@ -22,7 +22,7 @@ import { DomeBerutiProjectModal } from "@/components/proyectos/beruti/dome-berut
 // Importar galerías (usando named exports)
 import { DomeGallery } from "@/components/proyectos/lagos/dome-gallery"
 import { DomeSuitesGallery } from "@/components/proyectos/suites/dome-suites-gallery"
-import { DomePalermoGallery } from "@/components/proyectos/resi/dome-resi-gallery"
+import { DomeResiGallery } from "@/components/proyectos/resi/dome-resi-gallery"
 import { DomeBoulevardGallery } from "@/components/proyectos/boulevard/dome-boulevar-gallery"
 import { DomeApartGallery } from "@/components/proyectos/apart/dome-apart-gallery"
 import { DomeBerutiGallery } from "@/components/proyectos/beruti/dome-beruti-gallery"
@@ -278,7 +278,7 @@ export default function DomePuertosPage() {
       case "suites":
         return <DomeSuitesGallery onReturnToProject={handleBackToProjectModal} />
       case "palermo":
-        return <DomePalermoGallery onReturnToProject={handleBackToProjectModal} />
+        return <DomeResiGallery onReturnToProject={handleBackToProjectModal} />
       case "boulevar":
         return <DomeBoulevardGallery onReturnToProject={handleBackToProjectModal} />
       case "apart":
@@ -331,6 +331,8 @@ export default function DomePuertosPage() {
       <DomePalermoProjectModal
         isOpen={isPalermoModalOpen}
         onClose={closeAllModals}
+        onViewProject={handleModalViewProject}
+        onViewGallery={handleViewGallery}
         onOpenFloorPlan={handleViewFloorPlan}
       />
 
