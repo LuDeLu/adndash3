@@ -2754,7 +2754,7 @@ export const suitesProjectInfo = {
     "Emprendimiento de viviendas premium en el corazón de Palermo con 12 pisos de unidades de alta gama, desde suites junior hasta residences de 2 dormitorios, con amenities de primer nivel y ubicación estratégica.",
   totalUnits: 361,
   floors: 12,
-  image: "/images/edificio/suitesedi.png",
+  image: "/images/edificio/suitesedi.webp",
   logo: "/images/logo/suitelogo.png",
   brochure: "#",
 

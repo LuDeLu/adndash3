@@ -3693,7 +3693,7 @@ export const domeProjectInfo = {
   totalUnits: 95,
   floors: 5, // 5 niveles principales
   nucleos: 3, // A, B, C
-  image: "/planos/lagos/lagosedi.jpg",
+  image: "/images/edificio/lagosedi.webp",
   logo: "/planos/lagos/lagoslogo.png",
   brochure: "https://adndevelopers.com.ar/wp-content/uploads/2025/07/DPL-Digital-v10.pdf",
 

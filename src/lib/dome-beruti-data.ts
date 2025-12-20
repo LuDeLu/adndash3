@@ -53,7 +53,7 @@ export const berutiProjectInfo = {
   totalUnits: 43,
   floors: 14,
   garageSublevels: 3,
-  image: "/images/edificio/beruti.png",
+  image: "/images/edificio/beruti.webp",
   logo: "/images/logo/berutilogo.png",
   brochure: "/documents/beruti-brochure.pdf",
 

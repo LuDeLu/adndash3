@@ -55,8 +55,8 @@ export const domePalermoData = {
     id: 17,
     name: "DOME Palermo Residence",
     location: "Cabello & R. Arabe Siria",
-    image: "https://adndash.vercel.app/images/logo/palermoresi.png",
-    edificio: "https://adndevelopers.com.ar/wp-content/uploads/2024/12/edi-1.png",
+    image: "https://adndash.vercel.app/images/logo/palermoresi.webp",
+    edificio: "/images/edificio/resi.webp",
     totalUnits: 26, // 26 departamentos + 3 locales = 29 unidades totales
     commercialUnits: 3,
     availableUnits: 16, // Contando disponibles de la lista

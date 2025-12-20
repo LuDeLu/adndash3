@@ -57,7 +57,7 @@ const staticProjects: StaticProject[] = [
   {
     id: "palermo",
     name: "DOME Palermo Residence",
-    image: "/images/logo/palermoresi.png",
+    image: "/images/logo/palermoresi.webp",
     location: "Cabello & R. Arabe Siria",
     type: "palermo",
   },
@@ -71,7 +71,7 @@ const staticProjects: StaticProject[] = [
   {
     id: "apart",
     name: "DOME Palermo Apartament",
-    image: "/images/logo/palermoapart.png",
+    image: "/images/logo/palermoapart.webp",
     location: "Cabello & Lafinur",
     type: "apart",
   },

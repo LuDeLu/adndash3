@@ -122,7 +122,7 @@ export function DomeSuitesProjectModal({
     return {
       name: "DOME Suites & Residences",
       location: "Paraguay & Humboldt",
-      image: "/images/edificio/suitesedi.png",
+      image: "/images/edificio/suitesedi.webp",
       description:
         "Exclusivo desarrollo de suites y residencias en el corazón de Palermo con amenities de primer nivel.",
       totalUnits: totals.total,

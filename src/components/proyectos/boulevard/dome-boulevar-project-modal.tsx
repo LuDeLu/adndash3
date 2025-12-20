@@ -114,7 +114,7 @@ export function DomeBoulevardProjectModal({
               {/* Imagen del edificio con overlay de pisos */}
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
-                  src="/images/edificio/cerviño.png"
+                  src="/images/edificio/boulevard.webp"
                   alt="DOME Boulevard"
                   fill
                   style={{ objectFit: "cover" }}
