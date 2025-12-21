@@ -115,7 +115,7 @@ export function DomeBoulevardProjectModal({
               <div className="w-full h-1/3 sm:h-64 md:h-96 lg:w-1/2 lg:h-full relative">
                 <Image
                   src="/images/edificio/boulevard.webp"
-                  alt="DOME Boulevard"
+                  alt="DOME Cerviño Boulevard"
                   fill
                   style={{ objectFit: "cover" }}
                   className="rounded-t-lg lg:rounded-l-lg lg:rounded-tr-none"
@@ -236,14 +236,14 @@ export function DomeBoulevardProjectModal({
                   <DialogHeader className="space-y-2 pb-4">
                     <div className="flex items-center space-x-3">
                       <Image
-                        src="/images/logo/palermobou.png"
+                        src="/images/logo/palermobou.webp"
                         alt="DOME Logo"
                         width={50}
                         height={50}
                         className="object-contain"
                       />
                       <div>
-                        <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">DOME Boulevard</DialogTitle>
+                        <DialogTitle className="text-xl sm:text-2xl font-bold leading-tight">DOME Cerviño Boulevard</DialogTitle>
                         <p className="text-sm sm:text-base text-muted-foreground">Cerviño 3941, Palermo</p>
                       </div>
                     </div>

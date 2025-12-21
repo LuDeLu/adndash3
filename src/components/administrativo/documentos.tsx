@@ -142,8 +142,8 @@ const sampleFolders: Folder[] = [
     type: 'project',
     documents: [],
     subfolders: [
-      generateBuildingFolders('DOME Palermo Apartments'),
-      generateBuildingFolders('DOME Palermo Residence'),
+      generateBuildingFolders('DOME Cabello Apartments'),
+      generateBuildingFolders('DOME Cabello Residence'),
       generateBuildingFolders('DOME Suites & Residence')
     ]
   },

@@ -18,10 +18,10 @@ type CrearTicketProps = {
 }
 
 const EDIFICIOS = [
-  "DOME Palermo Residence",
+  "DOME Cabello Residence",
   "DOME Suites & Residence",
-  "DOME Palermo Boulevard",
-  "DOME Palermo Apartments",
+  "DOME Cerviño Boulevard",
+  "DOME Cabello Apartments",
   "DOME Beruti",
 ]
 const UBICACIONES = [

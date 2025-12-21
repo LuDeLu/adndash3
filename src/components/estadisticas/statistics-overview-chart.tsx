@@ -41,7 +41,7 @@ export function StatisticsOverviewChart({ data }: StatisticsOverviewChartProps) 
   const projectColors: { [key: string]: string } = {
     "Dome Apart": "#a855f7",
     "Dome Beruti": "#3b82f6",
-    "Dome Boulevard": "#10b981",
+    "DOME Cerviño Boulevard": "#10b981",
     "Dome Palermo": "#f59e0b",
     "Dome Puertos": "#ef4444",
     "Dome Suites": "#8b5cf6",

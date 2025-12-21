@@ -31,11 +31,11 @@ export interface ClienteCriteria {
 }
 
 const emprendimientosMap: Record<number, string> = {
-  1: "DOME Palermo Apartament",
+  1: "DOME Cabello Apartments",
   2: "DOME Torre Beruti",
-  3: "DOME Boulevard",
+  3: "DOME Cerviño Boulevard",
   4: "DOME Puertos del Lago",
-  5: "DOME Palermo Residence",
+  5: "DOME Cabello Residence",
   6: "DOME Suites & Residence",
 }
 
@@ -198,7 +198,7 @@ export function generateRecommendations(cliente: ClienteCriteria): UnitRecommend
   const shouldAnalyzeProject = (projectId: number) =>
     cliente.emprendimientos.length === 0 || cliente.emprendimientos.includes(projectId)
 
-  // PROJECT 1: DOME Palermo Apartament
+  // PROJECT 1: DOME Cabello Apartments
   if (shouldAnalyzeProject(1)) {
     apartUnits
       .filter((unit) => unit.status === "DISPONIBLE")
@@ -215,7 +215,7 @@ export function generateRecommendations(cliente: ClienteCriteria): UnitRecommend
         if (score >= 30) {
           recommendations.push({
             projectId: 1,
-            projectName: "DOME Palermo Apartament",
+            projectName: "DOME Cabello Apartments",
             unitNumber: unit.unitNumber,
             floor: unit.floor,
             matchScore: score,
@@ -266,7 +266,7 @@ export function generateRecommendations(cliente: ClienteCriteria): UnitRecommend
     })
   }
 
-  // PROJECT 3: DOME Boulevard
+  // PROJECT 3: DOME Cerviño Boulevard
   if (shouldAnalyzeProject(3)) {
     boulevardUnits
       .filter((unit) => unit.status === "DISPONIBLE")
@@ -283,7 +283,7 @@ export function generateRecommendations(cliente: ClienteCriteria): UnitRecommend
         if (score >= 30) {
           recommendations.push({
             projectId: 3,
-            projectName: "DOME Boulevard",
+            projectName: "DOME Cerviño Boulevard",
             unitNumber: unit.unitNumber,
             floor: unit.floor,
             matchScore: score,
@@ -336,7 +336,7 @@ export function generateRecommendations(cliente: ClienteCriteria): UnitRecommend
     })
   }
 
-  // PROJECT 5: DOME Palermo Residence
+  // PROJECT 5: DOME Cabello Residence
   if (shouldAnalyzeProject(5)) {
     Object.values(domePalermoData.apartmentData).forEach((floorData) => {
       Object.values(floorData).forEach((apt: any) => {
@@ -354,7 +354,7 @@ export function generateRecommendations(cliente: ClienteCriteria): UnitRecommend
           if (score >= 30) {
             recommendations.push({
               projectId: 5,
-              projectName: "DOME Palermo Residence",
+              projectName: "DOME Cabello Residence",
               unitNumber: apt.id,
               floor: Number.parseInt(apt.id) || 0,
               matchScore: score,

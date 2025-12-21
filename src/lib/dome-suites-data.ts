@@ -58,7 +58,7 @@ const piso1Data: SuitesFloor = {
       totalWithAmenities: 64.22,
       saleValue: 192800,
       pricePerM2: 3002,
-      status: "DISPONIBLE",
+      status: "VENDIDO", // Actualizado desde DISPONIBLE a VENDIDO según PDF
       coordinates: "414,154,145,100",
     },
     {
@@ -186,7 +186,7 @@ const piso1Data: SuitesFloor = {
       totalWithAmenities: 40.61,
       saleValue: 128300,
       pricePerM2: 3159,
-      status: "VENDIDO",
+      status: "VENDIDO", // Actualizado desde DISPONIBLE a VENDIDO según PDF
       coordinates: "569,214,625,417",
     },
     {
@@ -715,7 +715,7 @@ const generateFloor3to6Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 55.55,
         saleValue: floorLevel === 3 ? 196200 : floorLevel === 4 ? 200300 : floorLevel === 5 ? 204500 : 208700,
         pricePerM2: floorLevel === 3 ? 3532 : floorLevel === 4 ? 3606 : floorLevel === 5 ? 3681 : 3757,
-        status: floorLevel === 4 ? "RESERVADO" : floorLevel === 5 ? "RESERVADO" : "DISPONIBLE",
+        status: floorLevel === 4 ? "VENDIDO" : "DISPONIBLE",
         coordinates: "310,519,308,437,286,438,286,463,138,469,132,585,169,583,216,583,217,519",
       },
       {
@@ -747,7 +747,7 @@ const generateFloor3to6Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 34.16,
         saleValue: floorLevel === 3 ? 122900 : floorLevel === 4 ? 125500 : floorLevel === 5 ? 128100 : 133100,
         pricePerM2: floorLevel === 3 ? 3598 : floorLevel === 4 ? 3674 : floorLevel === 5 ? 3750 : 3896,
-        status: floorLevel === 3 ? "VENDIDO" : floorLevel === 6 ? "BLOQUEADO" : "DISPONIBLE",
+        status: floorLevel === 3 ? "VENDIDO" : "DISPONIBLE",
         coordinates: "282,408,132,356",
       },
       {
@@ -827,8 +827,7 @@ const generateFloor3to6Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 73.02,
         saleValue: floorLevel === 3 ? 228900 : floorLevel === 4 ? 233800 : floorLevel === 5 ? 238700 : 243500,
         pricePerM2: floorLevel === 3 ? 3135 : floorLevel === 4 ? 3202 : floorLevel === 5 ? 3269 : 3335,
-        status:
-          floorLevel === 3 ? "VENDIDO" : floorLevel === 4 ? "VENDIDO" : floorLevel === 5 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 6 ? "RESERVADO" : "VENDIDO",
         coordinates: "136,76,134,135,285,135,286,165,314,166,315,136,414,134,415,78",
       },
       {
@@ -844,8 +843,7 @@ const generateFloor3to6Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 51.84,
         saleValue: floorLevel === 3 ? 171100 : floorLevel === 4 ? 174700 : floorLevel === 5 ? 178400 : 178400,
         pricePerM2: floorLevel === 3 ? 3301 : floorLevel === 4 ? 3370 : floorLevel === 5 ? 3441 : 3441,
-        status:
-          floorLevel === 3 ? "VENDIDO" : floorLevel === 4 ? "VENDIDO" : floorLevel === 5 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 6 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "317,136,451,244",
       },
       {
@@ -861,7 +859,7 @@ const generateFloor3to6Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 54.36,
         saleValue: floorLevel === 3 ? 172200 : floorLevel === 4 ? 175900 : floorLevel === 5 ? 179600 : 183200,
         pricePerM2: floorLevel === 3 ? 3168 : floorLevel === 4 ? 3236 : floorLevel === 5 ? 3304 : 3370,
-        status: floorLevel === 3 ? "RESERVADO" : "DISPONIBLE",
+        status: floorLevel === 3 ? "VENDIDO" : "DISPONIBLE",
         coordinates: "307,436,309,517,216,519,217,581,340,581,339,436",
       },
       {
@@ -1111,7 +1109,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 55.55,
         saleValue: floorLevel === 7 ? 213900 : floorLevel === 8 ? 219100 : 224300,
         pricePerM2: floorLevel === 7 ? 3851 : floorLevel === 8 ? 3944 : 4038,
-        status: "DISPONIBLE",
+        status: floorLevel === 7 ? "VENDIDO" : "DISPONIBLE",
         coordinates: "202,594,202,529,255,528,254,499,300,496,299,441,274,444,276,470,114,474,114,596",
       },
       {
@@ -1127,7 +1125,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 104.18,
         saleValue: floorLevel === 7 ? 374900 : floorLevel === 8 ? 384000 : 393100,
         pricePerM2: floorLevel === 7 ? 3599 : floorLevel === 8 ? 3686 : 3773,
-        status: "VENDIDO",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "273,468,115,300",
       },
       {
@@ -1143,7 +1141,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 104.18,
         saleValue: floorLevel === 7 ? 374900 : floorLevel === 8 ? 384000 : 393100,
         pricePerM2: floorLevel === 7 ? 3599 : floorLevel === 8 ? 3686 : 3773,
-        status: "VENDIDO",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "273,293,117,126",
       },
       {
@@ -1159,7 +1157,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 68.46,
         saleValue: floorLevel === 7 ? 234000 : floorLevel === 8 ? 239700 : 245500,
         pricePerM2: floorLevel === 7 ? 3418 : floorLevel === 8 ? 3501 : 3586,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "146,57,144,119,277,124,276,153,304,154,309,121,415,121,413,61",
       },
       {
@@ -1175,7 +1173,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 51.84,
         saleValue: floorLevel === 7 ? 182800 : floorLevel === 8 ? 187300 : 191700,
         pricePerM2: floorLevel === 7 ? 3526 : floorLevel === 8 ? 3613 : 3698,
-        status: floorLevel === 7 ? "DISPONIBLE" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
         coordinates: "310,121,454,232",
       },
       {
@@ -1223,7 +1221,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 30.21,
         saleValue: floorLevel === 7 ? 119600 : floorLevel === 8 ? 122500 : 125400,
         pricePerM2: floorLevel === 7 ? 3959 : floorLevel === 8 ? 4055 : 4151,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "456,264,515,400",
       },
       {
@@ -1239,7 +1237,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 63.43,
         saleValue: floorLevel === 7 ? 228300 : floorLevel === 8 ? 233800 : 239400,
         pricePerM2: floorLevel === 7 ? 3599 : floorLevel === 8 ? 3686 : 3774,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "515,430,398,568",
       },
       {
@@ -1255,7 +1253,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 40.61,
         saleValue: floorLevel === 7 ? 146200 : floorLevel === 8 ? 149700 : 153300,
         pricePerM2: floorLevel === 7 ? 3600 : floorLevel === 8 ? 3686 : 3775,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "516,209,573,397",
       },
       {
@@ -1271,7 +1269,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 63.43,
         saleValue: floorLevel === 7 ? 228300 : floorLevel === 8 ? 233800 : 239400,
         pricePerM2: floorLevel === 7 ? 3599 : floorLevel === 8 ? 3686 : 3774,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "VENDIDO" : "VENDIDO",
+        status: "VENDIDO",
         coordinates: "636,431,518,569",
       },
       {
@@ -1287,7 +1285,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 40.61,
         saleValue: floorLevel === 7 ? 146200 : floorLevel === 8 ? 149700 : 153300,
         pricePerM2: floorLevel === 7 ? 3600 : floorLevel === 8 ? 3686 : 3775,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "576,212,633,398",
       },
       {
@@ -1303,7 +1301,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 63.43,
         saleValue: floorLevel === 7 ? 228300 : floorLevel === 8 ? 233800 : 239400,
         pricePerM2: floorLevel === 7 ? 3599 : floorLevel === 8 ? 3686 : 3774,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "DISPONIBLE" : "VENDIDO",
+        status: floorLevel === 8 ? "DISPONIBLE" : "VENDIDO",
         coordinates: "754,432,641,567",
       },
       {
@@ -1319,7 +1317,7 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 40.61,
         saleValue: floorLevel === 7 ? 146200 : floorLevel === 8 ? 149700 : 153300,
         pricePerM2: floorLevel === 7 ? 3600 : floorLevel === 8 ? 3686 : 3775,
-        status: floorLevel === 7 ? "DISPONIBLE" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
+        status: floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
         coordinates: "635,211,694,397",
       },
       {
@@ -1335,8 +1333,8 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 40.61,
         saleValue: floorLevel === 7 ? 146200 : floorLevel === 8 ? 149700 : 153300,
         pricePerM2: floorLevel === 7 ? 3600 : floorLevel === 8 ? 3686 : 3775,
-        status: floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
-        coordinates: "700,214,757,398",
+        status: floorLevel === 7 ? "VENDIDO" : "DISPONIBLE",
+        coordinates: "690,209,751,397",
       },
       {
         id: `${floorLevel}16`,
@@ -1351,8 +1349,8 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 40.61,
         saleValue: floorLevel === 7 ? 146200 : floorLevel === 8 ? 149700 : 153300,
         pricePerM2: floorLevel === 7 ? 3600 : floorLevel === 8 ? 3686 : 3775,
-        status: floorLevel === 7 ? "DISPONIBLE" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
-        coordinates: "758,215,818,398",
+        status: "DISPONIBLE",
+        coordinates: "751,210,807,397",
       },
       {
         id: `${floorLevel}17`,
@@ -1367,12 +1365,22 @@ const generateFloor7to9Data = (floorLevel: number): SuitesFloor => {
         totalWithAmenities: 31.11,
         saleValue: floorLevel === 7 ? 128800 : floorLevel === 8 ? 131900 : 135000,
         pricePerM2: floorLevel === 7 ? 4140 : floorLevel === 8 ? 4240 : 4339,
-        status: floorLevel === 7 ? "VENDIDO" : floorLevel === 8 ? "VENDIDO" : "DISPONIBLE",
-        coordinates: "817,433,759,566",
+        status: floorLevel === 9 ? "DISPONIBLE" : "VENDIDO",
+        coordinates: "753,437,806,568",
       },
     ],
   }
 }
+
+// Generate pisos 3-9
+const piso3Data: SuitesFloor = generateFloor3to6Data(3)
+const piso4Data: SuitesFloor = generateFloor3to6Data(4)
+const piso5Data: SuitesFloor = generateFloor3to6Data(5)
+const piso6Data: SuitesFloor = generateFloor3to6Data(6)
+
+const piso7Data: SuitesFloor = generateFloor7to9Data(7)
+const piso8Data: SuitesFloor = generateFloor7to9Data(8)
+const piso9Data: SuitesFloor = generateFloor7to9Data(9)
 
 // Floor 10 data
 const piso10Data: SuitesFloor = {
@@ -1408,7 +1416,7 @@ const piso10Data: SuitesFloor = {
       totalWithAmenities: 104.73,
       saleValue: 404400,
       pricePerM2: 3861,
-      status: "VENDIDO",
+      status: "DISPONIBLE",
       coordinates: "273,468,115,300",
     },
     {
@@ -1424,7 +1432,7 @@ const piso10Data: SuitesFloor = {
       totalWithAmenities: 104.73,
       saleValue: 404400,
       pricePerM2: 3861,
-      status: "VENDIDO",
+      status: "DISPONIBLE",
       coordinates: "273,293,117,126",
     },
     {
@@ -1456,7 +1464,7 @@ const piso10Data: SuitesFloor = {
       totalWithAmenities: 51.84,
       saleValue: 196200,
       pricePerM2: 3785,
-      status: "VENDIDO",
+      status: "DISPONIBLE",
       coordinates: "310,121,454,232",
     },
     {
@@ -1617,7 +1625,7 @@ const piso10Data: SuitesFloor = {
       saleValue: 153700,
       pricePerM2: 3785,
       status: "DISPONIBLE",
-      coordinates: "700,214,757,398",
+      coordinates: "690,209,751,397",
     },
     {
       id: "1016",
@@ -1632,8 +1640,8 @@ const piso10Data: SuitesFloor = {
       totalWithAmenities: 40.61,
       saleValue: 153700,
       pricePerM2: 3785,
-      status: "DISPONIBLE",
-      coordinates: "758,215,818,398",
+      status: "VENDIDO",
+      coordinates: "751,210,807,397",
     },
     {
       id: "1017",
@@ -1648,8 +1656,8 @@ const piso10Data: SuitesFloor = {
       totalWithAmenities: 31.11,
       saleValue: 132200,
       pricePerM2: 4249,
-      status: "RESERVADO",
-      coordinates: "817,433,759,566",
+      status: "DISPONIBLE",
+      coordinates: "753,437,806,568",
     },
   ],
 }
@@ -1737,7 +1745,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 200700,
       pricePerM2: 3872,
       status: "DISPONIBLE",
-      coordinates: "450,234,306,123",
+      coordinates: "310,121,454,232",
     },
     {
       id: "1106",
@@ -1753,7 +1761,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 132100,
       pricePerM2: 4227,
       status: "DISPONIBLE",
-      coordinates: "510,263,456,405",
+      coordinates: "450,560,450,435",
     },
     {
       id: "1107",
@@ -1769,7 +1777,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 346200,
       pricePerM2: 3949,
       status: "DISPONIBLE",
-      coordinates: "453,434,634,560",
+      coordinates: "450,320,590,438",
     },
     {
       id: "1108",
@@ -1785,7 +1793,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 143800,
       pricePerM2: 4030,
       status: "DISPONIBLE",
-      coordinates: "572,236,516,401",
+      coordinates: "454,234,534,310",
     },
     {
       id: "1109",
@@ -1801,7 +1809,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 346200,
       pricePerM2: 3949,
       status: "VENDIDO",
-      coordinates: "636,433,635,560,815,564,816,416,781,415,782,436",
+      coordinates: "592,312,734,438",
     },
     {
       id: "1110",
@@ -1817,7 +1825,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 143800,
       pricePerM2: 4030,
       status: "DISPONIBLE",
-      coordinates: "634,234,578,400",
+      coordinates: "534,312,614,232",
     },
     {
       id: "1111",
@@ -1833,7 +1841,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 143800,
       pricePerM2: 4030,
       status: "DISPONIBLE",
-      coordinates: "694,235,637,398",
+      coordinates: "614,310,694,232",
     },
     {
       id: "1112",
@@ -1849,7 +1857,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 143800,
       pricePerM2: 4030,
       status: "DISPONIBLE",
-      coordinates: "695,234,756,400",
+      coordinates: "696,308,774,232",
     },
     {
       id: "1113",
@@ -1865,7 +1873,7 @@ const piso11Data: SuitesFloor = {
       saleValue: 151100,
       pricePerM2: 4028,
       status: "DISPONIBLE",
-      coordinates: "754,235,816,235,816,413,780,412,778,400,754,400",
+      coordinates: "734,442,794,322",
     },
   ],
 }
@@ -1953,7 +1961,7 @@ const piso12Data: SuitesFloor = {
       saleValue: 285700,
       pricePerM2: 4037,
       status: "DISPONIBLE",
-      coordinates: "624,565,436,455",
+      coordinates: "436,316,592,462",
     },
     {
       id: "1206",
@@ -1969,7 +1977,7 @@ const piso12Data: SuitesFloor = {
       saleValue: 295600,
       pricePerM2: 4037,
       status: "DISPONIBLE",
-      coordinates: "818,439,818,312,628,316,626,422,691,422,692,440",
+      coordinates: "594,460,734,340",
     },
     {
       id: "1207",
@@ -1985,29 +1993,45 @@ const piso12Data: SuitesFloor = {
       saleValue: 310600,
       pricePerM2: 4037,
       status: "DISPONIBLE",
-      coordinates: "818,565,626,564,623,455,689,456,692,442,815,439",
+      coordinates: "736,338,806,472",
     },
   ],
 }
 
-// Generate all floors data
+// Export all floor data
 export const suitesFloorsData: SuitesFloor[] = [
   piso1Data,
   piso2Data,
-  generateFloor3to6Data(3),
-  generateFloor3to6Data(4),
-  generateFloor3to6Data(5),
-  generateFloor3to6Data(6),
-  generateFloor7to9Data(7),
-  generateFloor7to9Data(8),
-  generateFloor7to9Data(9),
+  piso3Data,
+  piso4Data,
+  piso5Data,
+  piso6Data,
+  piso7Data,
+  piso8Data,
+  piso9Data,
   piso10Data,
   piso11Data,
   piso12Data,
 ]
 
-// Rest of the file remains the same (garage data, helper functions, etc.)
-// ... [Keep all the existing garage data and helper functions as they were]
+// Helper function to get apartment by unit number
+export function getApartmentByUnitNumber(unitNumber: string): SuitesApartment | undefined {
+  for (const floor of suitesFloorsData) {
+    const apartment = floor.apartments.find((apt) => apt.unitNumber === unitNumber)
+    if (apartment) return apartment
+  }
+  return undefined
+}
+
+// Helper function to get all apartments with a specific status
+export function getApartmentsByStatus(status: SuitesApartmentStatus): SuitesApartment[] {
+  return suitesFloorsData.flatMap((floor) => floor.apartments.filter((apt) => apt.status === status))
+}
+
+// Helper function to get floor data by level
+export function getFloorByLevel(level: number): SuitesFloor | undefined {
+  return suitesFloorsData.find((floor) => floor.level === level)
+}
 
 // Datos de cocheras para Dome Suites
 export interface SuitesGarageSpot {

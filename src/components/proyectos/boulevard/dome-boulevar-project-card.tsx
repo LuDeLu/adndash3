@@ -41,8 +41,8 @@ export function DomeBoulevardProjectCard({
       {/* Imagen principal */}
       <div className="relative h-48 overflow-hidden">
         <Image
-          src="/images/logo/palermobou.png"
-          alt="DOME Boulevard"
+          src="/images/logo/palermobou.webp"
+          alt="DOME Cerviño Boulevard"
           fill
           className={`object-cover transition-transform duration-300 ${isHovered ? "scale-110" : "scale-100"}`}
         />
@@ -66,14 +66,14 @@ export function DomeBoulevardProjectCard({
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-2">
             <Image
-              src="/images/logo/palermobou.png"
+              src="/images/logo/palermobou.webp"
               alt="DOME Boulevar Logo"
               width={40}
               height={40}
               className="object-contain"
             />
             <div>
-              <CardTitle className="text-lg font-bold text-gray-900">DOME Boulevard</CardTitle>
+              <CardTitle className="text-lg font-bold text-gray-900">DOME Cerviño Boulevard</CardTitle>
               <div className="flex items-center text-sm text-gray-600 mt-1">
                 <MapPin className="h-4 w-4 mr-1" />
                 Cerviño 3941, Palermo

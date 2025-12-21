@@ -93,7 +93,7 @@ const floors = Array.from({ length: 12 }, (_, i) => i + 1)
 const garageLevels = [1, 2, 3] as const
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
-// Garage plan images for Dome Boulevard
+// Garage plan images for DOME Cerviño Boulevard
 const garagePlans: Record<(typeof garageLevels)[number], string> = {
   1: "/planos/boulevard/cochera/nivel1.png",
   2: "/planos/boulevard/cochera/nivel2.png",

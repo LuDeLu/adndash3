@@ -151,7 +151,7 @@ const galleryItems = [
             <ChevronLeft className="mr-2 h-4 w-4" />
             Volver al proyecto
           </Button>
-          <h1 className="text-2xl font-bold">Galería - DOME Palermo Apartament</h1>
+          <h1 className="text-2xl font-bold">Galería - DOME Cabello Apartments</h1>
           <div></div>
         </div>
 

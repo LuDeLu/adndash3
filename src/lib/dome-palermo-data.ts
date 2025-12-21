@@ -1,4 +1,4 @@
-// Datos completos del proyecto DOME Palermo Residence basados en la lista de precios actualizada
+// Datos completos del proyecto DOME Cabello Residence basados en la lista de precios actualizada
 
 // Tipos para el proyecto
 export type ApartmentStatus = "available" | "reserved" | "sold" | "blocked"
@@ -53,7 +53,7 @@ export interface FloorData {
 export const domePalermoData = {
   projectInfo: {
     id: 17,
-    name: "DOME Palermo Residence",
+    name: "DOME Cabello Residence",
     location: "Cabello & R. Arabe Siria",
     image: "https://adndash.vercel.app/images/logo/palermoresi.webp",
     edificio: "/images/edificio/resi.webp",

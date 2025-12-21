@@ -37,7 +37,7 @@ function getApartStats(): ProjectStats {
   const totalSalesValue = apartUnits.filter((u) => u.status === "VENDIDO").reduce((sum, u) => sum + u.saleValue, 0)
 
   return {
-    name: "DOME Palermo Apartament",
+    name: "DOME Cabello Apartments",
     totalUnits,
     availableUnits,
     soldUnits,
@@ -78,7 +78,7 @@ function getBerutiStats(): ProjectStats {
   }
 }
 
-// Procesar datos de DOME Boulevard
+// Procesar datos de DOME Cerviño Boulevard
 function getBoulevardStats(): ProjectStats {
   const totalUnits = boulevardUnits.length
   const availableUnits = boulevardUnits.filter((u) => u.status === "DISPONIBLE").length
@@ -87,7 +87,7 @@ function getBoulevardStats(): ProjectStats {
   const totalSalesValue = boulevardUnits.filter((u) => u.status === "VENDIDO").reduce((sum, u) => sum + u.saleValue, 0)
 
   return {
-    name: "DOME Palermo Boulevard",
+    name: "DOME Cerviño Boulevard",
     totalUnits,
     availableUnits,
     soldUnits,
@@ -97,7 +97,7 @@ function getBoulevardStats(): ProjectStats {
   }
 }
 
-// Procesar datos de DOME Palermo Residence
+// Procesar datos de DOME Cabello Residence
 function getPalermoStats(): ProjectStats {
   let totalUnits = 0
   let availableUnits = 0
@@ -127,7 +127,7 @@ function getPalermoStats(): ProjectStats {
   })
 
   return {
-    name: "DOME Palermo Residence",
+    name: "DOME Cabello Residence",
     totalUnits,
     availableUnits,
     soldUnits,
@@ -253,10 +253,10 @@ export function getProjectsPriceComparison() {
 
 function getProjectColor(projectName: string): string {
   const colorMap: { [key: string]: string } = {
-    "DOME Palermo Apartament": "#06b6d4",
+    "DOME Cabello Apartments": "#06b6d4",
     "DOME Torre Beruti": "#8b5cf6",
-    "DOME Palermo Boulevard": "#f59e0b",
-    "DOME Palermo Residence": "#10b981",
+    "DOME Cerviño Boulevard": "#f59e0b",
+    "DOME Cabello Residence": "#10b981",
     "DOME Puertos del Lago": "#ef4444",
     "DOME Suites & Residences": "#ec4899",
   }
