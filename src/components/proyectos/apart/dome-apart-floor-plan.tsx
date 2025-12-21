@@ -1,5 +1,5 @@
 "use client"
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useRef, useMemo } from "react"
 import type React from "react"
 import Image from "next/image"
 import { motion } from "framer-motion"
@@ -18,8 +18,8 @@ import {
   Plus,
   User,
   RefreshCw,
-  Phone,
   Mail,
+  Phone,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -121,7 +121,7 @@ const apartGarageCoordinates = {
     },
     {
       id: "b3",
-      coords: "231,316,241,288,353,296,358,301,372,304,378,313,376,330,375,348,372,356,364,363,349,359,345,364,233,346",
+      coords: "231,316,241,288,353,296,358,301,372,304,378,313,376,330,375,348,372,356,364,359,349,359,345,364,233,346",
     },
     {
       id: "b4",
@@ -244,13 +244,20 @@ interface NewClienteData {
   estado: string
 }
 
+interface ActivityEntry {
+  timestamp: Date
+  description: string
+  unitId: string
+  action: string
+  user: string
+}
+
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: DomeApartFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
   const [selectedUnit, setSelectedUnit] = useState<ApartUnit | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [activityLog, setActivityLog] = useState<string[]>([])
   const { user } = useAuth()
   const [action, setAction] = useState<
     | "block"
@@ -262,6 +269,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     | "release"
     | "addOwner"
     | "assignParking"
+    | "removeOwner" // Agregado removeOwner action
     | null
   >(null)
   const [formData, setFormData] = useState({
@@ -312,6 +320,8 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     getUnitParking,
     isParkingSpotAssigned,
     getParkingSpotUnit,
+    updateStatus,
+    unitStatuses,
   } = useUnitStorage("apart")
 
   // Initialize Notyf
@@ -323,6 +333,82 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
       })
     }
   }, [])
+
+  const activityLog = useMemo(() => {
+    const activities: ActivityEntry[] = []
+
+    // Procesar cambios de estado de unidades
+    Object.entries(unitStatuses).forEach(([unitId, status]) => {
+      if (status.changedAt && status.changedBy) {
+        const actionLabel =
+          status.status === "VENDIDO"
+            ? "marcó como VENDIDA"
+            : status.status === "RESERVADO"
+              ? "marcó como RESERVADA"
+              : status.status === "BLOQUEADO"
+                ? "marcó como BLOQUEADA"
+                : "liberó (DISPONIBLE)"
+
+        activities.push({
+          timestamp: new Date(status.changedAt),
+          description: actionLabel,
+          unitId,
+          action: status.status,
+          user: status.changedBy,
+        })
+      }
+    })
+
+    // Procesar asignaciones de propietarios
+    Object.entries(unitOwners).forEach(([unitId, owner]) => {
+      if (owner.assignedAt) {
+        activities.push({
+          timestamp: new Date(owner.assignedAt),
+          description: `asignó a "${owner.name}" como propietario de`,
+          unitId,
+          action: "OWNER_ASSIGNED",
+          user: (owner as UnitOwner).assignedBy || "Sistema",
+        })
+      }
+    })
+
+    // Procesar asignaciones de cocheras
+    Object.entries(parkingAssignments).forEach(([unitId, assignment]) => {
+      if (assignment.assignedAt && assignment.parkingSpots.length > 0) {
+        activities.push({
+          timestamp: new Date(assignment.assignedAt),
+          description: `asignó cocheras (${assignment.parkingSpots.join(", ")}) a`,
+          unitId,
+          action: "PARKING_ASSIGNED",
+          user: "Sistema",
+        })
+      }
+    })
+
+    // Ordenar por fecha más reciente primero
+    return activities.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+  }, [unitStatuses, unitOwners, parkingAssignments])
+
+  const formatActivityDate = (date: Date) => {
+    return date.toLocaleString("es-AR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
+
+  const getRealStatus = useCallback(
+    (unit: ApartUnit) => {
+      const override = unitStatuses[unit.unitNumber]
+      if (override && override.status) {
+        return override.status as ApartUnit["status"]
+      }
+      return unit.status
+    },
+    [unitStatuses],
+  )
 
   // Obtener datos del piso seleccionado
   const getCurrentFloorUnits = useCallback(() => {
@@ -346,6 +432,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     setConfirmReservation(false)
     setConfirmCancelReservation(false)
     setConfirmRelease(false)
+    setSelectedCliente(null)
   }, [])
 
   const handleFloorClick = (floor: number) => {
@@ -456,10 +543,13 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
       | "cancelReservation"
       | "release"
       | "addOwner"
-      | "assignParking",
+      | "assignParking"
+      | "removeOwner", // Agregado removeOwner
   ) => {
     setAction(actionType)
-    setConfirmReservation(actionType === "reserve" && selectedUnit !== null && selectedUnit.status === "BLOQUEADO")
+    setConfirmReservation(
+      actionType === "reserve" && selectedUnit !== null && getRealStatus(selectedUnit) === "BLOQUEADO",
+    )
     setConfirmCancelReservation(actionType === "cancelReservation")
     setConfirmRelease(actionType === "release")
 
@@ -490,7 +580,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
         phone: selectedCliente.telefono,
         type: selectedCliente.tipo,
         assignedAt: new Date().toISOString(),
-        assignedBy: "",
+        assignedBy: user?.name || "Usuario", // Agregando assignedBy con el usuario actual
       })
 
       if (notyf) {
@@ -539,15 +629,11 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
 
       if (notyf) {
         if (parkingSpotIds.length > 0) {
-          notyf.success(`Cocheras asignadas a la unidad ${selectedUnit.unitNumber}: ${parkingSpotIds.join(", ")}`)
+          notyf.success(`Cocheras asignadas a la unidad ${selectedUnit.unitNumber}`)
         } else {
           notyf.success(`Se removieron las cocheras de la unidad ${selectedUnit.unitNumber}`)
         }
       }
-
-      const timestamp = new Date().toLocaleString()
-      const description = `${user?.name || "Usuario"} ${parkingSpotIds.length > 0 ? `asignó cocheras (${parkingSpotIds.join(", ")})` : "removió cocheras"} de la unidad ${selectedUnit.unitNumber}`
-      setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
 
       setAction(null)
       setSelectedParkingsForAssignment({})
@@ -575,6 +661,11 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     e.preventDefault()
     if (!selectedUnit || !user) return
 
+    if (action === "removeOwner") {
+      await handleRemoveOwner()
+      return
+    }
+
     try {
       let newStatus: ApartUnit["status"] = selectedUnit.status
 
@@ -599,6 +690,14 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
       const success = updateApartUnitStatus(selectedUnit.id, newStatus)
 
       if (success) {
+        await updateStatus(selectedUnit.unitNumber, {
+          id: selectedUnit.id,
+          status: newStatus,
+          changedAt: new Date().toISOString(),
+          changedBy: user.name || user.email,
+          notes: formData.note || undefined,
+        })
+
         if (notyf) {
           switch (action) {
             case "block":
@@ -622,18 +721,6 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
               break
           }
         }
-
-        const timestamp = new Date().toLocaleString()
-        const description = `${user.name} ${
-          action === "block"
-            ? "bloqueó"
-            : action === "reserve" || action === "directReserve"
-              ? "reservó"
-              : action === "sell"
-                ? "vendió"
-                : "liberó"
-        } la unidad ${selectedUnit.unitNumber}`
-        setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
 
         setIsModalOpen(false)
         setAction(null)
@@ -660,18 +747,13 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     }
   }
 
-  const handleParkingClick = (parkingId: string) => {
-    setSelectedParking(parkingId)
-    setIsParkingModalOpen(true)
-  }
-
   const handleDownloadFloorPlan = () => {
     if (!selectedUnit) return
 
-    const filePath = "/general/planosgenerales/Plano_DOME-Palermo-Apartaments.pdf"
+    const filePath = "/general/planosgenerales/Planos_DOME-Apart.pdf"
     const link = document.createElement("a")
     link.href = filePath
-    link.download = "Plano_Apart_Palermo.pdf"
+    link.download = "Plano_Apart.pdf"
     link.target = "_blank"
     document.body.appendChild(link)
     link.click()
@@ -685,19 +767,19 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
 
     switch (type) {
       case "Presupuestos":
-        filePath = "/general/precios/Lista_DOME-Palermo-Apartaments.pdf"
+        filePath = "/general/precios/Lista_DOME-Apart.pdf"
         break
       case "Plano del edificio":
-        filePath = "/general/planosgenerales/Plano_DOME-Palermo-Apartaments.pdf"
+        filePath = "/general/planosgenerales/Planos_DOME-Apart.pdf"
         break
       case "Plano de la cochera":
-        filePath = "/general/cocheras/Cochera_DOME-Palermo-Apartaments.pdf"
+        filePath = "/general/cocheras/Cochera_DOME-Apart.pdf"
         break
       case "Brochure":
-        filePath = "/general/brochures/Brochure_DOME-Palermo-Apartaments.pdf"
+        filePath = "/general/brochures/Brochure_DOME-Apart.pdf"
         break
       case "Ficha técnica":
-        filePath = "/general/especificaciones/Especificaciones_DOME-Palermo-Apartaments.pdf"
+        filePath = "/general/especificaciones/Especificaciones_DOME-Apart.pdf"
         break
       default:
         if (notyf) notyf.error("Archivo no encontrado")
@@ -723,7 +805,10 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   }
 
   const getUnitStats = () => {
-    const units = currentFloorUnits
+    const units = currentFloorUnits.map((unit) => ({
+      ...unit,
+      status: getRealStatus(unit), // Usando getRealStatus
+    }))
     return {
       available: units.filter((unit) => unit.status === "DISPONIBLE").length,
       reserved: units.filter((unit) => unit.status === "RESERVADO").length,
@@ -733,6 +818,12 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
   }
 
   const stats = getUnitStats()
+
+  // New function to handle parking clicks
+  const handleParkingClick = (parkingId: string) => {
+    setSelectedParking(parkingId)
+    setIsParkingModalOpen(true)
+  }
 
   return (
     <div className="min-h-screen  text-white">
@@ -840,14 +931,17 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                         const unit = currentFloorUnits.find((u) => u.id === unitCoord.id)
                         if (!unit) return null
 
+                        // Usando getRealStatus para el color
+                        const status = getRealStatus(unit)
+
                         return (
                           <polygon
                             key={unit.id}
                             points={unitCoord.coords}
-                            fill={getApartStatusColor(unit.status)}
+                            fill={getApartStatusColor(status)}
                             stroke="black"
                             strokeWidth="2"
-                            opacity="0.7"
+                            opacity="0.4"
                             onClick={() => handleUnitClick(unit)}
                             style={{ cursor: "pointer" }}
                             className="hover:opacity-100 transition-opacity"
@@ -940,6 +1034,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -965,7 +1060,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                                 fill={isAssigned ? "#ef4444" : "#22c55e"}
                                 stroke="black"
                                 strokeWidth="2"
-                                opacity="0.7"
+                                opacity="0.4"
                                 onClick={() => handleParkingClick(parkingCoord.id)}
                                 style={{ cursor: "pointer" }}
                                 className="hover:opacity-100 transition-opacity"
@@ -1009,10 +1104,10 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getApartStatusColor(selectedUnit.status) }}
+                        style={{ backgroundColor: getApartStatusColor(getRealStatus(selectedUnit)) }} // Usando getRealStatus
                       />
                       <Badge variant="outline" className="capitalize">
-                        {getApartStatusLabel(selectedUnit.status)}
+                        {getApartStatusLabel(getRealStatus(selectedUnit))} {/* Usando getRealStatus */}
                       </Badge>
                     </div>
                   </div>
@@ -1084,7 +1179,14 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       <Badge variant="secondary" className="mt-2">
                         {unitOwners[selectedUnit.unitNumber].type}
                       </Badge>
-                      <Button onClick={handleRemoveOwner} variant="destructive" size="sm" className="mt-2">
+                      <Button
+                        onClick={() => handleActionClick("removeOwner")}
+                        variant="destructive"
+                        size="sm"
+                        className="mt-2"
+                      >
+                        {" "}
+                        {/* Usando handleActionClick con removeOwner */}
                         Remover Propietario
                       </Button>
                     </div>
@@ -1285,7 +1387,12 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                         )}
 
                         {unitOwners[selectedUnit.unitNumber] && (
-                          <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
+                          <Button
+                            onClick={() => handleActionClick("removeOwner")}
+                            className="w-full bg-red-600 hover:bg-red-700"
+                          >
+                            {" "}
+                            {/* Usando handleActionClick con removeOwner */}
                             Remover Propietario Actual
                           </Button>
                         )}
@@ -1690,7 +1797,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
               <div className="space-y-2">
                 {activityLog.map((activity, index) => (
                   <p key={index} className="text-sm text-zinc-300">
-                    {activity}
+                    {formatActivityDate(activity.timestamp)} - {activity.user} {activity.description} {activity.unitId}
                   </p>
                 ))}
               </div>

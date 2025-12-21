@@ -34,14 +34,18 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import {
-  getBoulevardUnitsByFloor,
-  getBoulevardUnitById,
-  getBoulevardFloorImage,
-  boulevardFloorCoordinates,
-  getBoulevardGarageSpotsByLevel,
-  type BoulevardUnit,
-  type BoulevardGarageSpot,
-} from "@/lib/dome-boulevar-data"
+  arcosFloorsData,
+  arcosFloorPlans,
+  type ArcosApartment,
+  getArcosStatusLabel,
+  formatArcosPrice,
+  formatArcosArea,
+  updateArcosApartmentStatus,
+  getArcosStatusColor,
+  type ArcosGarageSpot,
+  getArcosGarageSpotsByLevel,
+  type ArcosApartmentStatus,
+} from "@/lib/dome-arcos-data"
 import { useUnitStorage } from "@/lib/hooks/useUnitStorage"
 
 let notyf: Notyf | null = null
@@ -82,27 +86,25 @@ interface ActivityEntry {
   user: string
 }
 
-type BoulevardUnitStatus = "DISPONIBLE" | "RESERVADO" | "VENDIDO" | "BLOQUEADO"
-
-type DomeBoulevardFloorPlanProps = {
+type ArcosFloorPlanProps = {
   floorNumber?: number | null
   onReturnToProjectModal: () => void
 }
 
-const floors = Array.from({ length: 12 }, (_, i) => i + 1)
-const garageLevels = [1, 2, 3] as const
+const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
 const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
-// Garage plan images for DOME Cerviño Boulevard
+const garageLevels = [1, 2, 3, 4] as const
 const garagePlans: Record<(typeof garageLevels)[number], string> = {
-  1: "/planos/boulevard/cochera/nivel1.png",
-  2: "/planos/boulevard/cochera/nivel2.png",
-  3: "/planos/boulevard/cochera/nivel3.png",
+  1: "/planos/arcos/cocheras/nivel1.png",
+  2: "/planos/arcos/cocheras/nivel2.png",
+  3: "/planos/arcos/cocheras/nivel3.png",
+  4: "/planos/arcos/cocheras/nivel4.png",
 }
 
-export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: DomeBoulevardFloorPlanProps) {
+export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: ArcosFloorPlanProps) {
   const [currentFloor, setCurrentFloor] = useState(floorNumber || 1)
-  const [selectedUnit, setSelectedUnit] = useState<BoulevardUnit | null>(null)
+  const [selectedApartment, setSelectedApartment] = useState<ArcosApartment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const { user } = useAuth()
   const [action, setAction] = useState<
@@ -131,7 +133,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   const [confirmRelease, setConfirmRelease] = useState(false)
   const [activeView, setActiveView] = useState<"apartments" | "garage">("apartments")
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [selectedParking, setSelectedParking] = useState<BoulevardGarageSpot | null>(null)
+  const [selectedParking, setSelectedParking] = useState<ArcosGarageSpot | null>(null)
   const [currentGarageLevel, setCurrentGarageLevel] = useState<(typeof garageLevels)[number]>(1)
   const [isParkingModalOpen, setIsParkingModalOpen] = useState(false)
   const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
@@ -155,7 +157,6 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
   const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState<(typeof garageLevels)[number]>(1)
 
-  // Initialize Notyf
   useEffect(() => {
     if (typeof window !== "undefined" && !notyf) {
       notyf = new Notyf({
@@ -176,7 +177,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     getParkingSpotUnit,
     updateStatus,
     unitStatuses,
-  } = useUnitStorage("boulevard")
+  } = useUnitStorage("arcos")
 
   const activityLog = useMemo(() => {
     const activities: ActivityEntry[] = []
@@ -240,23 +241,19 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }
 
   const getRealStatus = useCallback(
-    (unit: BoulevardUnit): BoulevardUnitStatus => {
-      const override = unitStatuses[unit.unitNumber]
+    (apartment: ArcosApartment): ArcosApartmentStatus => {
+      const override = unitStatuses[apartment.unitNumber]
       if (override && override.status) {
-        return override.status as BoulevardUnitStatus
+        return override.status as ArcosApartmentStatus
       }
-      return unit.status as BoulevardUnitStatus
+      return apartment.status
     },
     [unitStatuses],
   )
 
   const getCurrentFloorData = useCallback(() => {
-    const units = getBoulevardUnitsByFloor(currentFloor)
-    return {
-      level: currentFloor,
-      name: `Piso ${currentFloor}`,
-      apartments: units,
-    }
+    const floorData = arcosFloorsData.find((floor) => floor.level === currentFloor)
+    return floorData || null
   }, [currentFloor])
 
   const currentFloorData = getCurrentFloorData()
@@ -265,8 +262,8 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     if (!currentFloorData) return { available: 0, reserved: 0, sold: 0, blocked: 0 }
 
     return currentFloorData.apartments.reduce(
-      (acc, unit) => {
-        const realStatus = getRealStatus(unit)
+      (acc, apt) => {
+        const realStatus = getRealStatus(apt)
         switch (realStatus) {
           case "DISPONIBLE":
             acc.available++
@@ -287,13 +284,13 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     )
   }, [currentFloorData, getRealStatus])
 
-  const handleParkingClick = useCallback((spot: BoulevardGarageSpot) => {
+  const handleParkingClick = useCallback((spot: ArcosGarageSpot) => {
     setSelectedParking(spot)
     setIsParkingModalOpen(true)
   }, [])
 
-  const handleUnitClick = useCallback((unit: BoulevardUnit) => {
-    setSelectedUnit(unit)
+  const handleApartmentClick = useCallback((apartment: ArcosApartment) => {
+    setSelectedApartment(apartment)
     setIsModalOpen(true)
     setAction(null)
     setFormData({
@@ -312,14 +309,14 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
   const handleFloorClick = (floor: number) => {
     setCurrentFloor(floor)
-    setSelectedUnit(null)
+    setSelectedApartment(null)
     setIsModalOpen(false)
   }
 
   const handleActionClick = (newAction: typeof action) => {
     setAction(newAction)
-    if (newAction === "assignParking" && selectedUnit) {
-      const currentParkings = getUnitParking(selectedUnit.unitNumber)
+    if (newAction === "assignParking" && selectedApartment) {
+      const currentParkings = getUnitParking(selectedApartment.unitNumber)
       const initialSelection: { [key: string]: boolean } = {}
       currentParkings.forEach((parkingId) => {
         initialSelection[parkingId] = true
@@ -328,10 +325,13 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       setParkingAssignmentLevel(1)
     }
     setConfirmReservation(
-      newAction === "reserve" && selectedUnit !== null && getRealStatus(selectedUnit) === "BLOQUEADO",
+      newAction === "reserve" && selectedApartment !== null && getRealStatus(selectedApartment) === "BLOQUEADO",
     )
     setConfirmCancelReservation(newAction === "cancelReservation")
     setConfirmRelease(newAction === "release")
+    if (newAction === "removeOwner") {
+      // Action is set, no additional state needed
+    }
   }
 
   const loadClientes = async () => {
@@ -427,10 +427,10 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }, [action])
 
   const handleAssignOwner = async () => {
-    if (!selectedCliente || !selectedUnit) return
+    if (!selectedCliente || !selectedApartment) return
 
     try {
-      addOwner(selectedUnit.unitNumber, {
+      addOwner(selectedApartment.unitNumber, {
         name: `${selectedCliente.nombre} ${selectedCliente.apellido}`,
         email: selectedCliente.email,
         phone: selectedCliente.telefono,
@@ -440,7 +440,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
       })
 
       if (notyf) {
-        notyf.success(`Propietario asignado a la unidad ${selectedUnit.unitNumber}`)
+        notyf.success(`Propietario asignado a la unidad ${selectedApartment.unitNumber}`)
       }
 
       setAction(null)
@@ -454,13 +454,13 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }
 
   const handleRemoveOwner = async () => {
-    if (!selectedUnit) return
+    if (!selectedApartment) return
 
     try {
-      removeOwner(selectedUnit.unitNumber)
+      removeOwner(selectedApartment.unitNumber)
 
       if (notyf) {
-        notyf.success(`Propietario removido de la unidad ${selectedUnit.unitNumber}`)
+        notyf.success(`Propietario removido de la unidad ${selectedApartment.unitNumber}`)
       }
 
       setAction(null)
@@ -474,20 +474,20 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }
 
   const handleConfirmParkingAssignment = async () => {
-    if (!selectedUnit) return
+    if (!selectedApartment) return
 
     try {
       const parkingSpotIds = Object.entries(selectedParkingsForAssignment)
         .filter(([_, isSelected]) => isSelected)
         .map(([parkingId]) => parkingId)
 
-      await assignParking(selectedUnit.unitNumber, parkingSpotIds)
+      await assignParking(selectedApartment.unitNumber, parkingSpotIds)
 
       if (notyf) {
         if (parkingSpotIds.length > 0) {
-          notyf.success(`Cocheras asignadas a la unidad ${selectedUnit.unitNumber}`)
+          notyf.success(`Cocheras asignadas a la unidad ${selectedApartment.unitNumber}`)
         } else {
-          notyf.success(`Se removieron las cocheras de la unidad ${selectedUnit.unitNumber}`)
+          notyf.success(`Se removieron las cocheras de la unidad ${selectedApartment.unitNumber}`)
         }
       }
 
@@ -501,33 +501,26 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
   const getParkingInfo = (parkingId: string) => {
     const allSpots = [
-      ...getBoulevardGarageSpotsByLevel(1),
-      ...getBoulevardGarageSpotsByLevel(2),
-      ...getBoulevardGarageSpotsByLevel(3),
+      ...getArcosGarageSpotsByLevel(1),
+      ...getArcosGarageSpotsByLevel(2),
+      ...getArcosGarageSpotsByLevel(3),
+      ...getArcosGarageSpotsByLevel(4),
     ]
     return allSpots.find((p) => p.id === parkingId)
   }
 
   const getAvailableParkingForLevel = (level: number) => {
-    const spots = getBoulevardGarageSpotsByLevel(level)
+    const spots = getArcosGarageSpotsByLevel(level)
     return spots.filter((parking) => {
       const assignedToUnit = getParkingSpotUnit(parking.id)
-      const isAvailable = !assignedToUnit || (selectedUnit && assignedToUnit === selectedUnit.unitNumber)
+      const isAvailable = !assignedToUnit || (selectedApartment && assignedToUnit === selectedApartment.unitNumber)
       return isAvailable
     })
   }
 
-  const formatBoulevardPrice = (price: number) => {
-    return `USD ${price.toLocaleString()}`
-  }
-
-  const formatBoulevardArea = (area: number) => {
-    return `${area} m²`
-  }
-
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedUnit || !user) return
+    if (!selectedApartment || !user) return
 
     if (action === "removeOwner") {
       await handleRemoveOwner()
@@ -535,7 +528,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
     }
 
     try {
-      let newStatus: BoulevardUnitStatus = selectedUnit.status as BoulevardUnitStatus
+      let newStatus: ArcosApartment["status"] = selectedApartment.status
 
       switch (action) {
         case "block":
@@ -555,50 +548,56 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
           break
       }
 
-      await updateStatus(selectedUnit.unitNumber, {
-        id: selectedUnit.id,
-        status: newStatus,
-        changedAt: new Date().toISOString(),
-        changedBy: user.name || user.email,
-        notes: formData.note || undefined,
-      })
+      const success = updateArcosApartmentStatus(selectedApartment.id, newStatus)
 
-      if (notyf) {
-        switch (action) {
-          case "block":
-            notyf.success("Unidad bloqueada con éxito")
-            break
-          case "reserve":
-          case "directReserve":
-            notyf.success("Unidad reservada con éxito")
-            break
-          case "sell":
-            notyf.success("Unidad vendida con éxito")
-            break
-          case "unblock":
-            notyf.success("Bloqueo liberado con éxito")
-            break
-          case "cancelReservation":
-            notyf.success("Reserva cancelada con éxito")
-            break
-          case "release":
-            notyf.success("Unidad liberada con éxito")
-            break
+      if (success) {
+        await updateStatus(selectedApartment.unitNumber, {
+          id: selectedApartment.id,
+          status: newStatus,
+          changedAt: new Date().toISOString(),
+          changedBy: user.name || user.email,
+          notes: formData.note || undefined,
+        })
+
+        if (notyf) {
+          switch (action) {
+            case "block":
+              notyf.success("Unidad bloqueada con éxito")
+              break
+            case "reserve":
+            case "directReserve":
+              notyf.success("Unidad reservada con éxito")
+              break
+            case "sell":
+              notyf.success("Unidad vendida con éxito")
+              break
+            case "unblock":
+              notyf.success("Bloqueo liberado con éxito")
+              break
+            case "cancelReservation":
+              notyf.success("Reserva cancelada con éxito")
+              break
+            case "release":
+              notyf.success("Unidad liberada con éxito")
+              break
+          }
         }
-      }
 
-      setIsModalOpen(false)
-      setAction(null)
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        reservationOrder: null,
-        price: "",
-        note: "",
-      })
+        setIsModalOpen(false)
+        setAction(null)
+        setFormData({
+          name: "",
+          phone: "",
+          email: "",
+          reservationOrder: null,
+          price: "",
+          note: "",
+        })
+      } else {
+        if (notyf) notyf.error("Error al actualizar la unidad")
+      }
     } catch (err) {
-      console.error("Error updating unit:", err)
+      console.error("Error updating apartment:", err)
       if (notyf) notyf.error("Error al actualizar la unidad")
     }
   }
@@ -610,12 +609,12 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }
 
   const handleDownloadFloorPlan = () => {
-    if (!selectedUnit) return
+    if (!selectedApartment) return
 
-    const filePath = "/general/planosgenerales/Planos_DOME-Palermo-Boulevard.pdf"
+    const filePath = "/general/planosgenerales/Plano_Torre_Arcos.pdf"
     const link = document.createElement("a")
     link.href = filePath
-    link.download = "Plano_Boulevard.pdf"
+    link.download = "Plano_Torre_Arcos.pdf"
     link.target = "_blank"
     document.body.appendChild(link)
     link.click()
@@ -629,19 +628,19 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
 
     switch (type) {
       case "Presupuestos":
-        filePath = "/general/precios/Lista_DOME-Palermo-Boulevard.pdf"
+        filePath = "/general/precios/Lista_DOME-Torre-Arcos.pdf"
         break
       case "Plano del edificio":
-        filePath = "/general/planosgenerales/Planos_DOME-Palermo-Boulevard.pdf"
+        filePath = "/general/planosgenerales/Plano_Torre_Arcos.pdf"
         break
       case "Plano de la cochera":
-        filePath = "/general/cocheras/Cochera_DOME-Palermo-Boulevard.pdf"
+        filePath = "/general/cocheras/Cochera_DOME-Torre-Arcos.pdf"
         break
       case "Brochure":
-        filePath = "/general/brochures/Brochure_DOME-Palermo-Boulevard.pdf"
+        filePath = "/general/brochures/Brochure_DOME-Torre-Arcos.pdf"
         break
       case "Ficha técnica":
-        filePath = "/general/especificaciones/Especificaciones_DOME-Palermo-Boulevard.pdf"
+        filePath = "/general/especificaciones/Especificaciones_DOME-Torre-Arcos.pdf"
         break
       default:
         if (notyf) notyf.error("Archivo no encontrado")
@@ -667,37 +666,8 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
   }
 
   const getFloorPlanImage = () => {
-    return getBoulevardFloorImage(currentFloor) || "/placeholder.svg?height=600&width=800"
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "DISPONIBLE":
-        return "#10B981"
-      case "VENDIDO":
-        return "#EF4444"
-      case "RESERVADO":
-        return "#F59E0B"
-      case "BLOQUEADO":
-        return "#3B82F6"
-      default:
-        return "#6B7280"
-    }
-  }
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case "DISPONIBLE":
-        return "Disponible"
-      case "VENDIDO":
-        return "Vendido"
-      case "RESERVADO":
-        return "Reservado"
-      case "BLOQUEADO":
-        return "Bloqueado"
-      default:
-        return status
-    }
+    const floorPlan = arcosFloorPlans[currentFloor as keyof typeof arcosFloorPlans]
+    return floorPlan || `/plano-piso-${currentFloor}.jpg`
   }
 
   if (!currentFloorData) {
@@ -772,7 +742,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                     </button>
                     <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
                     <button
-                      onClick={() => handleFloorClick(Math.min(12, currentFloor + 1))}
+                      onClick={() => handleFloorClick(Math.min(24, currentFloor + 1))}
                       className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
                     >
                       <ChevronRight />
@@ -807,28 +777,52 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   className="pointer-events-none"
                 />
 
-                {/* SVG overlay for clickable areas - using getRealStatus for colors */}
+                {/* SVG overlay for clickable areas */}
                 <div className="absolute inset-0 z-10">
-                  <svg viewBox="0 0 920 860" className="w-full h-full" style={{ pointerEvents: "all" }}>
-                    {boulevardFloorCoordinates[currentFloor as keyof typeof boulevardFloorCoordinates]?.map((coord) => {
-                      const unit = getBoulevardUnitById(coord.id)
-                      if (!unit) return null
+                  <svg viewBox="0 0 910 850" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                    {currentFloorData.apartments.map((apartment) => {
+                      if (!apartment.coordinates) return null
 
-                      const realStatus = getRealStatus(unit)
+                      const coords = apartment.coordinates.split(",").map(Number)
+                      const realStatus = getRealStatus(apartment)
 
-                      return (
-                        <polygon
-                          key={unit.id}
-                          points={coord.coords}
-                          fill={getStatusColor(realStatus)}
-                          stroke="white"
-                          strokeWidth="2"
-                          opacity="0.4"
-                          onClick={() => handleUnitClick(unit)}
-                          style={{ cursor: "pointer" }}
-                          className="hover:opacity-100 transition-opacity"
-                        />
-                      )
+                      if (coords.length === 4) {
+                        const [x1, y1, x2, y2] = coords
+                        const points = `${x1},${y1} ${x2},${y1} ${x2},${y2} ${x1},${y2}`
+
+                        return (
+                          <polygon
+                            key={apartment.id}
+                            points={points}
+                            fill={getArcosStatusColor(realStatus)}
+                            stroke="white"
+                            strokeWidth="2"
+                            opacity="0.4"
+                            onClick={() => handleApartmentClick(apartment)}
+                            style={{ cursor: "pointer" }}
+                            className="hover:opacity-100 transition-opacity"
+                          />
+                        )
+                      } else {
+                        const points = []
+                        for (let i = 0; i < coords.length; i += 2) {
+                          points.push(`${coords[i]},${coords[i + 1]}`)
+                        }
+
+                        return (
+                          <polygon
+                            key={apartment.id}
+                            points={points.join(" ")}
+                            fill={getArcosStatusColor(realStatus)}
+                            stroke="white"
+                            strokeWidth="2"
+                            opacity="0.7"
+                            onClick={() => handleApartmentClick(apartment)}
+                            style={{ cursor: "pointer" }}
+                            className="hover:opacity-100 transition-opacity"
+                          />
+                        )
+                      }
                     })}
                   </svg>
                 </div>
@@ -838,7 +832,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                 <h3 className="text-lg font-bold">{currentFloorData.name}</h3>
                 <p className="text-zinc-400 text-sm">Selecciona las unidades para ver su estado.</p>
               </div>
-              <div className="grid grid-cols-4 gap-2 mb-4 text-center text-sm px-4 pb-4">
+              <div className="grid grid-cols-4 gap-2 mb-4 text-center text-sm">
                 <div className="bg-green-500/20 p-2 rounded">
                   <p className="text-green-400 font-bold">{unitStats.available}</p>
                   <p className="text-zinc-400">Disponibles</p>
@@ -887,14 +881,12 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   />
 
                   <div className="absolute inset-0 z-10">
-                    <svg viewBox="0 0 975 860" className="w-full h-full" style={{ pointerEvents: "all" }}>
-                      {getBoulevardGarageSpotsByLevel(currentGarageLevel).map((spot) => {
-                        const coords = spot.coords.split(",").map(Number)
-                        if (coords.length >= 4) {
-                          const points = []
-                          for (let i = 0; i < coords.length; i += 2) {
-                            points.push(`${coords[i]},${coords[i + 1]}`)
-                          }
+                    <svg viewBox="0 3 910 855" className="w-full h-full" style={{ pointerEvents: "all" }}>
+                      {getArcosGarageSpotsByLevel(currentGarageLevel).map((spot) => {
+                        const coords = spot.coordinates.split(",").map(Number)
+                        if (coords.length === 4) {
+                          const [x1, y1, x2, y2] = coords
+                          const points = `${x1},${y1} ${x2},${y1} ${x2},${y2} ${x1},${y2}`
 
                           const assignedToUnit = getParkingSpotUnit(spot.id)
                           const isAssigned = !!assignedToUnit
@@ -902,7 +894,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                           return (
                             <polygon
                               key={spot.id}
-                              points={points.join(" ")}
+                              points={points}
                               fill={isAssigned ? "#EF4444" : "#10B981"}
                               stroke="white"
                               strokeWidth="2"
@@ -933,14 +925,14 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
           </TabsContent>
         </Tabs>
 
-        {/* Apartment Modal */}
+        {/* Apartment Modal  */}
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
           <DialogContent className="sm:max-w-[500px] bg-zinc-900 text-white border-zinc-800 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Unidad {selectedUnit?.unitNumber}</DialogTitle>
+              <DialogTitle>Unidad {selectedApartment?.unitNumber}</DialogTitle>
             </DialogHeader>
 
-            {selectedUnit && (
+            {selectedApartment && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -948,26 +940,24 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                     <div className="flex items-center mt-1">
                       <div
                         className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getStatusColor(getRealStatus(selectedUnit)) }}
+                        style={{ backgroundColor: getArcosStatusColor(getRealStatus(selectedApartment)) }}
                       />
                       <Badge variant="outline" className="capitalize">
-                        {getStatusLabel(getRealStatus(selectedUnit))}
+                        {getArcosStatusLabel(getRealStatus(selectedApartment))}
                       </Badge>
                     </div>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Superficie Total</Label>
-                    <p className="font-semibold">{formatBoulevardArea(selectedUnit.totalArea)}</p>
+                    <p className="font-semibold">{formatArcosArea(selectedApartment.totalArea)}</p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">{formatBoulevardPrice(selectedUnit.saleValue)}</p>
+                    <p className="font-semibold text-green-400">{formatArcosPrice(selectedApartment.salePrice)}</p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio por m²</Label>
-                    <p className="font-semibold">
-                      {formatBoulevardPrice(Math.round(selectedUnit.saleValue / selectedUnit.totalArea))}
-                    </p>
+                    <p className="font-semibold">{formatArcosPrice(selectedApartment.pricePerSqm)}</p>
                   </div>
                 </div>
 
@@ -976,15 +966,27 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   <div className="grid grid-cols-1 gap-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Descripción:</span>
-                      <span>{selectedUnit.description}</span>
+                      <span>{selectedApartment.description}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-zinc-400">Orientación:</span>
-                      <span>{selectedUnit.orientation}</span>
+                      <span>{selectedApartment.orientation}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-zinc-400">Piso:</span>
-                      <span>{selectedUnit.floor}</span>
+                      <span className="text-zinc-400">Superficie Cubierta:</span>
+                      <span>{formatArcosArea(selectedApartment.coveredArea)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Balcón:</span>
+                      <span>{formatArcosArea(selectedApartment.balconyArea)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Terraza:</span>
+                      <span>{formatArcosArea(selectedApartment.terraceArea)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-zinc-400">Con Amenities:</span>
+                      <span>{formatArcosArea(selectedApartment.totalArea)}</span>
                     </div>
                   </div>
                 </div>
@@ -995,22 +997,22 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                     <User className="w-4 h-4 mr-2" />
                     Propietario Actual
                   </h4>
-                  {unitOwners[selectedUnit.unitNumber] ? (
+                  {unitOwners[selectedApartment.unitNumber] ? (
                     <div className="space-y-1 text-sm">
                       <p className="flex items-center">
                         <User className="w-3 h-3 mr-2" />
-                        {unitOwners[selectedUnit.unitNumber].name}
+                        {unitOwners[selectedApartment.unitNumber].name}
                       </p>
                       <p className="flex items-center">
                         <Mail className="w-3 h-3 mr-2" />
-                        {unitOwners[selectedUnit.unitNumber].email}
+                        {unitOwners[selectedApartment.unitNumber].email}
                       </p>
                       <p className="flex items-center">
                         <Phone className="w-3 h-3 mr-2" />
-                        {unitOwners[selectedUnit.unitNumber].phone}
+                        {unitOwners[selectedApartment.unitNumber].phone}
                       </p>
                       <Badge variant="secondary" className="mt-2">
-                        {unitOwners[selectedUnit.unitNumber].type}
+                        {unitOwners[selectedApartment.unitNumber].type}
                       </Badge>
                     </div>
                   ) : (
@@ -1018,13 +1020,14 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   )}
                 </div>
 
+                {/* Parking Section */}
                 <div className="p-4 bg-zinc-800 rounded-lg">
                   <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
                     <Car className="w-4 h-4 mr-2" />
                     Cocheras Asignadas
                   </h4>
                   {(() => {
-                    const assignedParkings = getUnitParking(selectedUnit.unitNumber)
+                    const assignedParkings = getUnitParking(selectedApartment.unitNumber)
                     if (assignedParkings.length > 0) {
                       return (
                         <div className="space-y-2">
@@ -1037,7 +1040,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                                   {parkingId}
                                 </span>
                                 <span className="text-zinc-400">
-                                  Nivel {parkingInfo?.level} - {formatBoulevardPrice(parkingInfo?.price || 0)}
+                                  Nivel {parkingInfo?.garageLevel} - {formatArcosPrice(parkingInfo?.price || 0)}
                                 </span>
                               </div>
                             )
@@ -1049,7 +1052,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   })()}
                 </div>
 
-                {/* Action Buttons - Using getRealStatus for conditions */}
+                {/* Action Buttons */}
                 {!action && (
                   <div className="space-y-2">
                     <Button
@@ -1057,7 +1060,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       className="bg-purple-600 hover:bg-purple-700 w-full"
                     >
                       <User className="mr-2 h-4 w-4" />
-                      {unitOwners[selectedUnit.unitNumber] ? "Cambiar Propietario" : "Añadir Propietario"}
+                      {unitOwners[selectedApartment.unitNumber] ? "Cambiar Propietario" : "Añadir Propietario"}
                     </Button>
 
                     <Button
@@ -1065,7 +1068,9 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       className="bg-blue-600 hover:bg-blue-700 w-full"
                     >
                       <Car className="mr-2 h-4 w-4" />
-                      {getUnitParking(selectedUnit.unitNumber).length > 0 ? "Gestionar Cocheras" : "Asignar Cocheras"}
+                      {getUnitParking(selectedApartment.unitNumber).length > 0
+                        ? "Gestionar Cocheras"
+                        : "Asignar Cocheras"}
                     </Button>
 
                     <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
@@ -1073,7 +1078,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       Descargar plano
                     </Button>
 
-                    {getRealStatus(selectedUnit) === "DISPONIBLE" && (
+                    {getRealStatus(selectedApartment) === "DISPONIBLE" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("block")}
@@ -1090,7 +1095,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       </>
                     )}
 
-                    {getRealStatus(selectedUnit) === "BLOQUEADO" && (
+                    {getRealStatus(selectedApartment) === "BLOQUEADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("reserve")}
@@ -1107,7 +1112,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       </>
                     )}
 
-                    {getRealStatus(selectedUnit) === "RESERVADO" && (
+                    {getRealStatus(selectedApartment) === "RESERVADO" && (
                       <>
                         <Button
                           onClick={() => handleActionClick("sell")}
@@ -1124,7 +1129,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       </>
                     )}
 
-                    {getRealStatus(selectedUnit) === "VENDIDO" && (
+                    {getRealStatus(selectedApartment) === "VENDIDO" && (
                       <>
                         <Button onClick={handleDownloadFloorPlan} className="w-full bg-slate-600 hover:bg-slate-700">
                           Descargar contrato
@@ -1209,7 +1214,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                           </Button>
                         )}
 
-                        {unitOwners[selectedUnit.unitNumber] && (
+                        {unitOwners[selectedApartment.unitNumber] && (
                           <Button onClick={handleRemoveOwner} className="w-full bg-red-600 hover:bg-red-700">
                             Remover Propietario Actual
                           </Button>
@@ -1295,12 +1300,13 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </div>
                 )}
 
+                {/* Assign Parking Action */}
                 {action === "assignParking" && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <h4 className="font-semibold flex items-center">
                         <Car className="w-4 h-4 mr-2" />
-                        Asignar Cocheras a Unidad {selectedUnit.unitNumber}
+                        Asignar Cocheras a Unidad {selectedApartment.unitNumber}
                       </h4>
                     </div>
 
@@ -1325,7 +1331,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                         {getAvailableParkingForLevel(parkingAssignmentLevel).map((parking) => {
                           const isSelected = selectedParkingsForAssignment[parking.id] || false
                           const assignedToUnit = getParkingSpotUnit(parking.id)
-                          const isAssignedToOther = assignedToUnit && assignedToUnit !== selectedUnit.unitNumber
+                          const isAssignedToOther = assignedToUnit && assignedToUnit !== selectedApartment.unitNumber
 
                           return (
                             <div
@@ -1363,11 +1369,13 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                                   />
                                   <div>
                                     <p className="font-medium text-white">{parking.id}</p>
-                                    <p className="text-sm text-zinc-400">Nivel {parking.level}</p>
+                                    <p className="text-sm text-zinc-400">
+                                      Nivel {parking.garageLevel} - {parking.condition}
+                                    </p>
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <p className="font-semibold text-green-400">{formatBoulevardPrice(parking.price)}</p>
+                                  <p className="font-semibold text-green-400">{formatArcosPrice(parking.price)}</p>
                                   {isAssignedToOther && (
                                     <p className="text-xs text-red-400">Asignada a {assignedToUnit}</p>
                                   )}
@@ -1449,7 +1457,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                       <Input
                         id="price"
                         type="text"
-                        value={formData.price || formatBoulevardPrice(selectedUnit.saleValue)}
+                        value={formData.price || formatArcosPrice(selectedApartment.salePrice)}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         className="text-white bg-zinc-800 border-zinc-700"
                       />
@@ -1559,11 +1567,15 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
                   </div>
                   <div>
                     <Label className="text-zinc-400">Nivel</Label>
-                    <p className="font-semibold">Nivel {selectedParking.level}</p>
+                    <p className="font-semibold">Nivel {selectedParking.garageLevel}</p>
+                  </div>
+                  <div>
+                    <Label className="text-zinc-400">Condición</Label>
+                    <p className="font-semibold">{selectedParking.condition}</p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">{formatBoulevardPrice(selectedParking.price)}</p>
+                    <p className="font-semibold text-green-400">{formatArcosPrice(selectedParking.price)}</p>
                   </div>
                 </div>
 
@@ -1629,6 +1641,7 @@ export function DomeBoulevardFloorPlan({ floorNumber, onReturnToProjectModal }: 
           </div>
         </div>
 
+        {/* Activity Log */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-zinc-900 p-4 rounded-lg">
             <h4 className="font-semibold mb-4">Registro de Actividades</h4>

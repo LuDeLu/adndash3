@@ -799,7 +799,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                               fill={isAssigned ? "#ef4444" : "#22c55e"}
                               stroke="white"
                               strokeWidth="2"
-                              opacity="0.7"
+                              opacity="0.4"
                               onClick={() => handleParkingSpotClick(spot)}
                               style={{ cursor: "pointer" }}
                               className="hover:opacity-100 transition-opacity"
@@ -895,7 +895,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                           fill={getRealStatusColor(apartment)}
                           stroke="white"
                           strokeWidth="2"
-                          opacity="0.7"
+                          opacity="0.4"
                           onClick={() => handleApartmentClick(apartment)}
                           style={{ cursor: "pointer" }}
                           className="hover:opacity-100 transition-opacity"
@@ -1314,21 +1314,7 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
                         className="text-white bg-zinc-800 border-zinc-700"
                       />
                     </div>
-                    {action === "sell" && (
-                      <div>
-                        <Label htmlFor="reservationOrder" className="text-white">
-                          Contrato de Venta
-                        </Label>
-                        <Input
-                          id="reservationOrder"
-                          type="file"
-                          onChange={handleFileChange}
-                          required
-                          className="text-white bg-zinc-800 border-zinc-700"
-                          ref={fileInputRef}
-                        />
-                      </div>
-                    )}
+
                     <Button type="submit" className="bg-green-600 hover:bg-green-700 w-full">
                       {action === "block"
                         ? "Confirmar Bloqueo"

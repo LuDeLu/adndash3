@@ -4,7 +4,7 @@ export const apartProjectInfo = {
   location: "Cabello & Lafinur, Palermo",
   description:
     "Emprendimiento de viviendas de primera categoría, cuenta con 26 unidades funcionales en 10 niveles y 3 subsuelos de cocheras.",
-  image: "/images/edificio/apart.png",
+  image: "/images/edificio/apart.webp",
   logo: "/images/logo/palermoapart.jpg",
   totalUnits: 26,
   floors: 10,

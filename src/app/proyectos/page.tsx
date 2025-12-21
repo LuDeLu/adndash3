@@ -9,6 +9,7 @@ import { DomeBerutiFloorPlan } from "@/components/proyectos/beruti/dome-beruti-f
 import { DomeFloorPlan } from "@/components/proyectos/lagos/dome-floor-plan"
 import { DomeSuitesFloorPlan } from "@/components/proyectos/suites/dome-suites-floor-plan"
 import { DomePalermoFloorPlan } from "@/components/proyectos/resi/dome-resi-floor-plan"
+import { DomeArcosFloorPlan } from "@/components/proyectos/arcos/dome-arcos-floor-plan"
 import Image from "next/image"
 
 // Importar todos los modales (usando named exports)
@@ -18,6 +19,7 @@ import { DomePalermoProjectModal } from "@/components/proyectos/resi/dome-resi-p
 import { DomeBoulevardProjectModal } from "@/components/proyectos/boulevard/dome-boulevar-project-modal"
 import { ApartProjectModal } from "@/components/proyectos/apart/dome-apart-project-modal"
 import { DomeBerutiProjectModal } from "@/components/proyectos/beruti/dome-beruti-project-modal"
+import { DomeArcosProjectModal } from "@/components/proyectos/arcos/dome-arcos-project-modal"
 
 // Importar galerías (usando named exports)
 import { DomeGallery } from "@/components/proyectos/lagos/dome-gallery"
@@ -26,8 +28,9 @@ import { DomeResiGallery } from "@/components/proyectos/resi/dome-resi-gallery"
 import { DomeBoulevardGallery } from "@/components/proyectos/boulevard/dome-boulevar-gallery"
 import { DomeApartGallery } from "@/components/proyectos/apart/dome-apart-gallery"
 import { DomeBerutiGallery } from "@/components/proyectos/beruti/dome-beruti-gallery"
+import { DomeArcosGallery } from "@/components/proyectos/arcos/dome-arcos-gallery"
 
-type ProjectType = "lagos" | "suites" | "palermo" | "boulevar" | "apart" | "beruti"
+type ProjectType = "lagos" | "suites" | "arcos" | "palermo" | "boulevar" | "apart" | "beruti"
 type ViewMode = "cards" | "floorplan" | "gallery"
 
 type StaticProject = {
@@ -46,6 +49,13 @@ const staticProjects: StaticProject[] = [
     image: "/images/logo/suitelogo.png",
     location: "Paraguay & Humboldt",
     type: "suites",
+  },
+  {
+    id: "arcos",
+    name: "DOME Torre Arcos",
+    image: "/images/logo/arcoslogo.webp",
+    location: "Paraguay & Humboldt",
+    type: "arcos",
   },
   {
     id: "lagos",
@@ -134,6 +144,7 @@ export default function DomePuertosPage() {
   // Estados para controlar los modales
   const [isLagosModalOpen, setIsLagosModalOpen] = useState(false)
   const [isSuitesModalOpen, setIsSuitesModalOpen] = useState(false)
+  const [isArcosModalOpen, setIsArcosModalOpen] = useState(false)
   const [isPalermoModalOpen, setIsPalermoModalOpen] = useState(false)
   const [isBoulevardModalOpen, setIsBoulevardModalOpen] = useState(false)
   const [isApartModalOpen, setIsApartModalOpen] = useState(false)
@@ -142,6 +153,7 @@ export default function DomePuertosPage() {
   const closeAllModals = () => {
     setIsLagosModalOpen(false)
     setIsSuitesModalOpen(false)
+    setIsArcosModalOpen(false)
     setIsPalermoModalOpen(false)
     setIsBoulevardModalOpen(false)
     setIsApartModalOpen(false)
@@ -157,6 +169,9 @@ export default function DomePuertosPage() {
         break
       case "suites":
         setIsSuitesModalOpen(true)
+        break
+      case "arcos":
+        setIsArcosModalOpen(true)
         break
       case "palermo":
         setIsPalermoModalOpen(true)
@@ -230,6 +245,9 @@ export default function DomePuertosPage() {
       case "suites":
         setIsSuitesModalOpen(true)
         break
+      case "arcos":
+        setIsArcosModalOpen(true)
+        break
       case "palermo":
         setIsPalermoModalOpen(true)
         break
@@ -257,6 +275,8 @@ export default function DomePuertosPage() {
         return <DomeFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "suites":
         return <DomeSuitesFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
+      case "arcos":
+        return <DomeArcosFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "palermo":
         return <DomePalermoFloorPlan onBack={handleBackToProjectModal} />
       case "boulevar":
@@ -277,6 +297,8 @@ export default function DomePuertosPage() {
         return <DomeGallery onReturnToProject={handleBackToProjectModal} />
       case "suites":
         return <DomeSuitesGallery onReturnToProject={handleBackToProjectModal} />
+      case "arcos":
+        return <DomeArcosGallery onReturnToProject={handleBackToProjectModal} />
       case "palermo":
         return <DomeResiGallery onReturnToProject={handleBackToProjectModal} />
       case "boulevar":
@@ -322,6 +344,14 @@ export default function DomePuertosPage() {
 
       <DomeSuitesProjectModal
         isOpen={isSuitesModalOpen}
+        onClose={closeAllModals}
+        onViewProject={handleModalViewProject}
+        onViewGallery={handleViewGallery}
+        onViewPlanes={handleViewFloorPlan}
+      />
+
+      <DomeArcosProjectModal
+        isOpen={isArcosModalOpen}
         onClose={closeAllModals}
         onViewProject={handleModalViewProject}
         onViewGallery={handleViewGallery}
