@@ -180,18 +180,18 @@ export function DomeArcosProjectModal({
 
                 {/* SVG Overlay para pisos - Updated to use real data */}
                 <svg
-                  viewBox="-300 -100 1800 1000"
+                  viewBox="120 72 100 800"
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ pointerEvents: "all" }}
                 >
-                  <g transform="scale(1, 1) translate(-200, 100)">
+                  <g transform="scale(1, 1) translate(-410, 100)">
                     <AnimatePresence>
                       {floors.map((floor) => {
                         const totalUnits =
                           floor.availableUnits + floor.reservedUnits + floor.soldUnits + floor.blockedUnits
                         if (totalUnits === 0) return null
 
-                        const floorWidth = 850
+                        const floorWidth = 250
                         const soldWidth = totalUnits > 0 ? (floor.soldUnits / totalUnits) * floorWidth : 0
                         const reservedWidth = totalUnits > 0 ? (floor.reservedUnits / totalUnits) * floorWidth : 0
                         const blockedWidth = totalUnits > 0 ? (floor.blockedUnits / totalUnits) * floorWidth : 0

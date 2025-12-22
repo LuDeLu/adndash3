@@ -548,7 +548,7 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
           break
       }
 
-      const success = updateArcosApartmentStatus(selectedApartment.id, newStatus)
+      const success = updateArcosApartmentStatus(selectedApartment.unitNumber, newStatus)
 
       if (success) {
         await updateStatus(selectedApartment.unitNumber, {
