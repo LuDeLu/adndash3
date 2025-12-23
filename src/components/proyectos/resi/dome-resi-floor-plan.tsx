@@ -242,6 +242,9 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     unitStatuses,
   } = useUnitStorage("resi")
 
+  const [isAssigningApartmentFromParking, setIsAssigningApartmentFromParking] = useState(false)
+  const [assigningApartmentFloor, setAssigningApartmentFloor] = useState(1)
+
   const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
   const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState<GarageLevel>(1)
 
@@ -255,12 +258,15 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   }, [])
 
   const getRealStatus = useCallback(
-    (apartmentId: string, originalStatus: ApartmentStatus): UnitStatusType => {
+    (apartmentId: string, originalStatus?: ApartmentStatus): UnitStatusType => {
       const override = unitStatuses[apartmentId]
       if (override && override.status) {
         return override.status
       }
-      return statusToInternal(originalStatus)
+      if (originalStatus) {
+        return statusToInternal(originalStatus)
+      }
+      return "DISPONIBLE"
     },
     [unitStatuses],
   )
@@ -502,6 +508,8 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     setSelectedCliente(null)
     setSearchTerm("")
     setShowCreateClient(false)
+    // Reset apartment assignment state when opening apartment modal
+    setIsAssigningApartmentFromParking(false)
   }
 
   const handleParkingSpotClick = (spotId: string) => {
@@ -509,6 +517,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
     setSelectedApartment(null)
     setIsModalOpen(true)
     setAction(null)
+    setIsAssigningApartmentFromParking(false)
     setFormData({
       name: "",
       phone: "",
@@ -588,6 +597,31 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       const isAvailable = !assignedToUnit || (selectedApartment && assignedToUnit === selectedApartment)
       return isAvailable
     })
+  }
+
+  const handleAssignApartmentFromParking = () => {
+    setIsAssigningApartmentFromParking(true)
+    setAssigningApartmentFloor(1)
+  }
+
+  const handleSelectApartmentForParking = async (apartmentId: string) => {
+    if (!selectedParkingSpot || !user) return
+
+    try {
+      const currentAssignments = parkingAssignments[apartmentId] || { parkingSpots: [] }
+      const updatedParkingSpots = [...currentAssignments.parkingSpots, selectedParkingSpot]
+
+      await assignParking(apartmentId, updatedParkingSpots)
+
+      notyf?.success(`Cochera ${selectedParkingSpot} asignada al departamento ${apartmentId} exitosamente`)
+
+      setIsAssigningApartmentFromParking(false)
+      setIsModalOpen(false)
+      setSelectedParkingSpot(null)
+    } catch (error) {
+      console.error("Error assigning parking from parking modal:", error)
+      notyf?.error("Error al asignar la cochera al departamento")
+    }
   }
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -697,6 +731,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
       setSelectedCliente(null)
       setSearchTerm("")
       setShowCreateClient(false)
+      setSelectedParkingSpot(null) // Clear selected parking spot after form submit
     } catch (error) {
       console.error("Error during form submission:", error)
       if (notyf) notyf.error("Error al procesar la acción")
@@ -795,6 +830,11 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
   const selectedApartmentData = selectedApartment && floorData ? floorData.apartments[selectedApartment] : null
   const selectedApartmentRealStatus =
     selectedApartment && selectedApartmentData ? getRealStatus(selectedApartment, selectedApartmentData.status) : null
+
+  const getApartmentsByFloor = useCallback((floor: number) => {
+    const floorData = domePalermoData.getFloorData(floor)
+    return floorData ? Object.entries(floorData.apartments) : []
+  }, [])
 
   return (
     <div className="min-h-screen  text-white">
@@ -998,6 +1038,9 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg"
@@ -1716,44 +1759,151 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
             {/* Parking Spot Modal Content */}
             {selectedParkingSpot && selectedSpot && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <Label className="text-zinc-400">Estado</Label>
-                    <div className="flex items-center mt-1">
-                      <div
-                        className="w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: getParkingSpotUnit(selectedParkingSpot) ? "#ef4444" : "#22c55e" }}
-                      />
-                      <Badge variant="outline" className="capitalize">
-                        {getParkingSpotUnit(selectedParkingSpot) ? "Asignada" : "Disponible"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Nivel</Label>
-                    <p className="font-semibold">{selectedSpot.level}</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">{selectedSpot.price}</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">ID</Label>
-                    <p className="font-semibold">{selectedSpot.id}</p>
-                  </div>
-                </div>
+                {isAssigningApartmentFromParking ? (
+                  <>
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Seleccionar departamento</h3>
+                      <div className="space-y-2">
+                        <Label className="text-zinc-400">Seleccionar Piso</Label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((floor) => (
+                            <Button
+                              key={floor}
+                              onClick={() => setAssigningApartmentFloor(floor)}
+                              variant={assigningApartmentFloor === floor ? "default" : "outline"}
+                              size="sm"
+                              className={assigningApartmentFloor === floor ? "bg-blue-600" : "border-zinc-600"}
+                            >
+                              {floor}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      <ScrollArea className="h-[300px] w-full rounded-md border border-zinc-700 p-4">
+                        <div className="space-y-2">
+                          {getApartmentsByFloor(assigningApartmentFloor).map(([id, apt]) => {
+                            const realStatus = getRealStatus(id)
+                            const hasOwner = unitOwners && unitOwners[id]
+                            const currentAssignedParkings = getUnitParking(id)
+                            const isAlreadyAssigned = currentAssignedParkings.includes(selectedParkingSpot)
 
-                {getParkingSpotUnit(selectedParkingSpot) && (
-                  <div className="p-4 bg-zinc-800 rounded-lg">
-                    <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
-                      <Building className="w-4 h-4 mr-2" />
-                      Asignada a
-                    </h4>
-                    <p className="font-medium">Departamento {getParkingSpotUnit(selectedParkingSpot)}</p>
-                  </div>
+                            return (
+                              <div
+                                key={id}
+                                className={cn(
+                                  "p-3 rounded-lg border cursor-pointer transition-colors",
+                                  "bg-zinc-800 border-zinc-700 hover:bg-zinc-700",
+                                  isAlreadyAssigned && "opacity-50",
+                                )}
+                                onClick={() => !isAlreadyAssigned && handleSelectApartmentForParking(id)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-semibold">{id}</p>
+                                    <p className="text-sm text-zinc-400">
+                                      {apt.surface} - {apt.price}
+                                    </p>
+                                    {hasOwner && <p className="text-xs text-blue-400 mt-1">{unitOwners[id].name}</p>}
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <Badge
+                                      variant="outline"
+                                      style={{
+                                        borderColor: getStatusColor(realStatus),
+                                      }}
+                                    >
+                                      {realStatus}
+                                    </Badge>
+                                    {currentAssignedParkings.length > 0 && (
+                                      <span className="text-xs text-zinc-400">
+                                        {isAlreadyAssigned
+                                          ? "Ya tiene esta cochera"
+                                          : `${currentAssignedParkings.length} cochera(s)`}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <Label className="text-zinc-400">Estado</Label>
+                        <div className="flex items-center mt-1">
+                          <div
+                            className="w-3 h-3 rounded-full mr-2"
+                            style={{ backgroundColor: getParkingSpotUnit(selectedParkingSpot) ? "#ef4444" : "#22c55e" }}
+                          />
+                          <Badge variant="outline" className="capitalize">
+                            {getParkingSpotUnit(selectedParkingSpot) ? "Asignada" : "Disponible"}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-zinc-400">Nivel</Label>
+                        <p className="font-semibold">{selectedSpot.level}</p>
+                      </div>
+                      <div>
+                        <Label className="text-zinc-400">Precio</Label>
+                        <p className="font-semibold text-green-400">{selectedSpot.price}</p>
+                      </div>
+                      <div>
+                        <Label className="text-zinc-400">ID</Label>
+                        <p className="font-semibold">{selectedSpot.id}</p>
+                      </div>
+                    </div>
+
+                    {getParkingSpotUnit(selectedParkingSpot) && (
+                      <div className="p-4 bg-zinc-800 rounded-lg">
+                        <h4 className="font-semibold text-blue-400 mb-2 flex items-center">
+                          <Building className="w-4 h-4 mr-2" />
+                          Asignada a
+                        </h4>
+                        <p className="font-medium">Departamento {getParkingSpotUnit(selectedParkingSpot)}</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
+
+            {/* Footer buttons */}
+            <div className="flex gap-2 mt-4">
+              {selectedParkingSpot && !isAssigningApartmentFromParking && (
+                <>
+                  <Button onClick={handleAssignApartmentFromParking} className="flex-1 bg-blue-600 hover:bg-blue-700">
+                    <Building className="w-4 h-4 mr-2" />
+                    Asignar departamento
+                  </Button>
+                  <Button onClick={() => setIsModalOpen(false)} variant="outline" className="flex-1">
+                    Cerrar
+                  </Button>
+                </>
+              )}
+              {isAssigningApartmentFromParking && (
+                <>
+                  <Button
+                    onClick={() => setIsAssigningApartmentFromParking(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              )}
+              {/* Close button for apartment modal if not assigning */}
+              {selectedApartment && !action && !isAssigningApartmentFromParking && (
+                <Button onClick={() => setIsModalOpen(false)} variant="outline" className="flex-1">
+                  Cerrar
+                </Button>
+              )}
+            </div>
           </DialogContent>
         </Dialog>
         {/* Additional Information */}

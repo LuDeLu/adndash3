@@ -173,6 +173,9 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
   const [selectedParkingSpot, setSelectedParkingSpot] = useState<ParkingSpot | null>(null)
   const [isParkingSpotModalOpen, setIsParkingSpotModalOpen] = useState(false)
 
+  const [isAssigningApartmentFromParking, setIsAssigningApartmentFromParking] = useState(false)
+  const [assigningApartmentFloor, setAssigningApartmentFloor] = useState(1)
+
   const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
   const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState(1)
 
@@ -635,9 +638,40 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
     return floorPlan?.complete || "/planos/lagos/lagospb.jpg"
   }
 
+  const handleAssignApartmentFromParking = useCallback(() => {
+    setIsAssigningApartmentFromParking(true)
+    setAssigningApartmentFloor(1)
+  }, [])
+
+  const handleSelectApartmentForParking = useCallback(
+    async (apartment: DomeApartment) => {
+      if (!selectedParkingSpot || !user) return
+
+      try {
+        const currentAssignments = parkingAssignments[apartment.unitNumber] || { parkingSpots: [] }
+        const updatedParkingSpots = [...currentAssignments.parkingSpots, selectedParkingSpot.id]
+
+        await assignParking(apartment.unitNumber, updatedParkingSpots)
+
+        notyf?.success(
+          `Cochera ${selectedParkingSpot.number} asignada al departamento ${apartment.unitNumber} exitosamente`,
+        )
+
+        setIsAssigningApartmentFromParking(false)
+        setIsParkingSpotModalOpen(false)
+        setSelectedParkingSpot(null)
+      } catch (error) {
+        console.error("Error assigning parking from parking modal:", error)
+        notyf?.error("Error al asignar la cochera al departamento")
+      }
+    },
+    [selectedParkingSpot, user, parkingAssignments, assignParking],
+  )
+
   const handleParkingSpotClick = useCallback((parkingSpot: ParkingSpot) => {
     setSelectedParkingSpot(parkingSpot)
     setIsParkingSpotModalOpen(true)
+    setIsAssigningApartmentFromParking(false)
   }, [])
 
   const activityLog = useMemo(() => {
@@ -1481,31 +1515,130 @@ export function DomeFloorPlan({ floorNumber, onReturnToProjectModal }: DomeFloor
             </DialogHeader>
             {selectedParkingSpot && (
               <div className="space-y-4">
-                <DialogDescription className="text-zinc-300 space-y-2">
-                  <p>
-                    <strong>Tipo:</strong> {selectedParkingSpot.type === "simple" ? "Simple" : "Doble"}
-                  </p>
-                  <p>
-                    <strong>Estado:</strong>{" "}
-                    <span className={getParkingSpotUnit(selectedParkingSpot.id) ? "text-red-400" : "text-green-400"}>
-                      {getParkingSpotUnit(selectedParkingSpot.id) ? "Asignada" : "Libre"}
-                    </span>
-                  </p>
-                  <p>
-                    <strong>Precio:</strong> {formatPrice(selectedParkingSpot.price)}
-                  </p>
-                  {getParkingSpotUnit(selectedParkingSpot.id) && (
-                    <p>
-                      <strong>Asignada a:</strong> Unidad {getParkingSpotUnit(selectedParkingSpot.id)}
-                    </p>
-                  )}
-                </DialogDescription>
+                {isAssigningApartmentFromParking ? (
+                  <>
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-semibold">Seleccionar departamento</h3>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setAssigningApartmentFloor((prev) => Math.max(0, prev - 1))}
+                          disabled={assigningApartmentFloor === 0}
+                          className="bg-zinc-800 hover:bg-zinc-700"
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm font-medium flex-1 text-center">
+                          {assigningApartmentFloor === 0 ? "Planta Baja" : `Piso ${assigningApartmentFloor}`}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => setAssigningApartmentFloor((prev) => Math.min(5, prev + 1))}
+                          disabled={assigningApartmentFloor === 5}
+                          className="bg-zinc-800 hover:bg-zinc-700"
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <ScrollArea className="h-[300px] w-full rounded-md border border-zinc-700 p-4">
+                        <div className="space-y-2">
+                          {(assigningApartmentFloor === 0
+                            ? domePlantaBajaData
+                            : domeFloorsData.find(f => f.level === assigningApartmentFloor)?.sections ? [...domeFloorsData.find(f => f.level === assigningApartmentFloor)!.sections.A, ...domeFloorsData.find(f => f.level === assigningApartmentFloor)!.sections.B, ...domeFloorsData.find(f => f.level === assigningApartmentFloor)!.sections.C] : []
+                          ).map((apt) => {
+                            const realStatus = getRealStatus(apt)
+                            const hasOwner = unitOwners && unitOwners[apt.unitNumber]
+                            const currentAssignedParkings = getUnitParking(apt.unitNumber)
+                            const isAlreadyAssigned = currentAssignedParkings.includes(selectedParkingSpot.id)
+
+                            return (
+                              <div
+                                key={apt.unitNumber}
+                                className={cn(
+                                  "p-3 rounded-lg border cursor-pointer transition-colors",
+                                  "bg-zinc-800 border-zinc-700 hover:bg-zinc-700",
+                                  isAlreadyAssigned && "opacity-50",
+                                )}
+                                onClick={() => !isAlreadyAssigned && handleSelectApartmentForParking(apt)}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="font-semibold">{apt.unitNumber}</p>
+                                    {hasOwner && (
+                                      <p className="text-xs text-blue-400 mt-1">{unitOwners[apt.unitNumber].name}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <Badge
+                                      variant="outline"
+                                      style={{
+                                        backgroundColor: getStatusColor(realStatus),
+                                        color: "#000",
+                                        borderColor: getStatusColor(realStatus),
+                                      }}
+                                    >
+                                      {getStatusLabel(realStatus)}
+                                    </Badge>
+                                    {isAlreadyAssigned && <span className="text-xs text-zinc-500">Ya asignada</span>}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </ScrollArea>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <DialogDescription className="text-zinc-300 space-y-2">
+                      <p>
+                        <strong>Tipo:</strong> {selectedParkingSpot.type === "simple" ? "Simple" : "Doble"}
+                      </p>
+                      <p>
+                        <strong>Estado:</strong>{" "}
+                        <span
+                          className={getParkingSpotUnit(selectedParkingSpot.id) ? "text-red-400" : "text-green-400"}
+                        >
+                          {getParkingSpotUnit(selectedParkingSpot.id) ? "Asignada" : "Libre"}
+                        </span>
+                      </p>
+                      <p>
+                        <strong>Precio:</strong> {formatPrice(selectedParkingSpot.price)}
+                      </p>
+                      {getParkingSpotUnit(selectedParkingSpot.id) && (
+                        <p>
+                          <strong>Asignada a:</strong> Unidad {getParkingSpotUnit(selectedParkingSpot.id)}
+                        </p>
+                      )}
+                    </DialogDescription>
+                  </>
+                )}
               </div>
             )}
             <DialogFooter>
-              <Button onClick={() => setIsParkingSpotModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
-                Cerrar
-              </Button>
+              {isAssigningApartmentFromParking ? (
+                <>
+                  <Button
+                    onClick={() => setIsAssigningApartmentFromParking(false)}
+                    className="bg-zinc-700 hover:bg-zinc-600"
+                  >
+                    Cancelar
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button onClick={handleAssignApartmentFromParking} className="bg-blue-600 hover:bg-blue-700">
+                    <Building className="w-4 h-4 mr-2" />
+                    Asignar departamento
+                  </Button>
+                  <Button onClick={() => setIsParkingSpotModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                    Cerrar
+                  </Button>
+                </>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

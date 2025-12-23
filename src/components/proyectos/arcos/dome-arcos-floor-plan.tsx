@@ -140,6 +140,9 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
 
+  const [isAssigningApartmentFromParking, setIsAssigningApartmentFromParking] = useState(false)
+  const [apartmentAssignmentFloor, setApartmentAssignmentFloor] = useState(1)
+
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
   const [searchTerm, setSearchTerm] = useState("")
@@ -287,6 +290,8 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
   const handleParkingClick = useCallback((spot: ArcosGarageSpot) => {
     setSelectedParking(spot)
     setIsParkingModalOpen(true)
+    setIsAssigningApartmentFromParking(false)
+    setApartmentAssignmentFloor(1)
   }, [])
 
   const handleApartmentClick = useCallback((apartment: ArcosApartment) => {
@@ -496,6 +501,34 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
     } catch (error) {
       console.error("Error al asignar cocheras:", error)
       if (notyf) notyf.error("Error al asignar cocheras")
+    }
+  }
+
+  const handleAssignApartmentToParking = async (apartmentUnitNumber: string) => {
+    if (!selectedParking) return
+
+    try {
+      const currentAssignments = parkingAssignments[apartmentUnitNumber]?.parkingSpots || []
+
+      if (!currentAssignments.includes(selectedParking.id)) {
+        const updatedParkings = [...currentAssignments, selectedParking.id]
+        await assignParking(apartmentUnitNumber, updatedParkings)
+
+        if (notyf) {
+          notyf.success(`Cochera ${selectedParking.id} asignada a la unidad ${apartmentUnitNumber}`)
+        }
+
+        setIsAssigningApartmentFromParking(false)
+        setIsParkingModalOpen(false)
+        setSelectedParking(null)
+      } else {
+        if (notyf) {
+          notyf.error("Esta cochera ya está asignada a esta unidad")
+        }
+      }
+    } catch (error) {
+      console.error("Error al asignar departamento a cochera:", error)
+      if (notyf) notyf.error("Error al asignar departamento")
     }
   }
 
@@ -1538,12 +1571,12 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
 
         {/* Parking Spot Modal */}
         <Dialog open={isParkingModalOpen} onOpenChange={setIsParkingModalOpen}>
-          <DialogContent className="sm:max-w-[400px] bg-zinc-900 text-white border-zinc-800">
+          <DialogContent className="sm:max-w-[600px] bg-zinc-900 text-white border-zinc-800">
             <DialogHeader>
               <DialogTitle>Cochera {selectedParking?.id}</DialogTitle>
             </DialogHeader>
 
-            {selectedParking && (
+            {selectedParking && !isAssigningApartmentFromParking && (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
@@ -1594,10 +1627,131 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
               </div>
             )}
 
+            {isAssigningApartmentFromParking && selectedParking && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 mb-4">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsAssigningApartmentFromParking(false)}
+                    className="text-zinc-400 hover:text-white"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Volver
+                  </Button>
+                </div>
+
+                <div>
+                  <Label className="text-white mb-2 block">Seleccionar piso</Label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {floors.map((floor) => (
+                      <Button
+                        key={floor}
+                        onClick={() => setApartmentAssignmentFloor(floor)}
+                        variant={apartmentAssignmentFloor === floor ? "default" : "outline"}
+                        size="sm"
+                        className={cn(
+                          "min-w-[60px]",
+                          apartmentAssignmentFloor === floor
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : "bg-zinc-800 hover:bg-zinc-700 border-zinc-700",
+                        )}
+                      >
+                        Piso {floor}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="text-white mb-2 block">Seleccionar departamento</Label>
+                  <ScrollArea className="h-[300px] rounded-md border border-zinc-800 p-4">
+                    <div className="space-y-2">
+                      {arcosFloorsData
+                        .find((f) => f.level === apartmentAssignmentFloor)
+                        ?.apartments.map((apt) => {
+                          const realStatus = getRealStatus(apt)
+                          const isAlreadyAssigned = parkingAssignments[apt.unitNumber]?.parkingSpots.includes(
+                            selectedParking.id,
+                          )
+
+                          return (
+                            <div
+                              key={apt.unitNumber}
+                              onClick={() => {
+                                if (!isAlreadyAssigned) {
+                                  handleAssignApartmentToParking(apt.unitNumber)
+                                }
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer transition-all",
+                                isAlreadyAssigned
+                                  ? "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
+                                  : "bg-zinc-800/50 border-zinc-700 hover:bg-zinc-800 hover:border-zinc-600",
+                              )}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: getArcosStatusColor(realStatus) }}
+                                  />
+                                  <div>
+                                    <p className="font-semibold">Unidad {apt.unitNumber}</p>
+                                    <p className="text-sm text-zinc-400">dorm • {formatArcosArea(apt.totalArea)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <Badge
+                                    variant="outline"
+                                    className={cn(
+                                      "capitalize",
+                                      realStatus === "DISPONIBLE" && "border-green-500 text-green-500",
+                                      realStatus === "RESERVADO" && "border-yellow-500 text-yellow-500",
+                                      realStatus === "VENDIDO" && "border-red-500 text-red-500",
+                                      realStatus === "BLOQUEADO" && "border-gray-500 text-gray-500",
+                                    )}
+                                  >
+                                    {getArcosStatusLabel(realStatus)}
+                                  </Badge>
+                                  {isAlreadyAssigned && <p className="text-xs text-zinc-500 mt-1">Ya asignada</p>}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                    </div>
+                  </ScrollArea>
+                </div>
+              </div>
+            )}
+
             <DialogFooter>
-              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
-                Cerrar
-              </Button>
+              {!isAssigningApartmentFromParking ? (
+                <>
+                  <Button
+                    onClick={() => {
+                      setIsAssigningApartmentFromParking(true)
+                      setApartmentAssignmentFloor(1)
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Building className="h-4 w-4 mr-2" />
+                    Asignar departamento
+                  </Button>
+                  <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                    Cerrar
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  onClick={() => setIsAssigningApartmentFromParking(false)}
+                  className="bg-zinc-700 hover:bg-zinc-600"
+                >
+                  Cancelar
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

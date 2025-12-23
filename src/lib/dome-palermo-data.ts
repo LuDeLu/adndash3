@@ -1057,7 +1057,7 @@ export const domePalermoData = {
 
     // Nivel 2 - Cocheras A16-A30 ($55,000)
     {
-      id: "A16",
+      id: "B16",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1065,7 +1065,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A17",
+      id: "B17",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1073,7 +1073,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A18",
+      id: "B18",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1081,7 +1081,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A19",
+      id: "B19",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1089,7 +1089,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A20",
+      id: "B20",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1097,7 +1097,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A21",
+      id: "B21",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1105,7 +1105,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A22",
+      id: "B22",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1113,7 +1113,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A23",
+      id: "B23",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1121,7 +1121,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A24",
+      id: "B24",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1129,7 +1129,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A25",
+      id: "B25",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1137,7 +1137,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A26",
+      id: "B26",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1145,7 +1145,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A27",
+      id: "B27",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1153,7 +1153,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A28",
+      id: "B28",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1161,7 +1161,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A29",
+      id: "B29",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1169,7 +1169,7 @@ export const domePalermoData = {
       price: "$55,000",
     },
     {
-      id: "A30",
+      id: "B30",
       level: 2 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1179,7 +1179,7 @@ export const domePalermoData = {
 
     // Nivel 3 - Cocheras A31-A45 ($50,000)
     {
-      id: "A31",
+      id: "C31",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1187,7 +1187,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A32",
+      id: "C32",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1195,7 +1195,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A33",
+      id: "C33",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1203,7 +1203,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A34",
+      id: "C34",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1211,7 +1211,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A35",
+      id: "C35",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1219,7 +1219,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A36",
+      id: "C36",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1227,7 +1227,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A37",
+      id: "C37",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1235,7 +1235,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A38",
+      id: "C38",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1243,7 +1243,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A39",
+      id: "C39",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1251,7 +1251,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A40",
+      id: "C40",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1259,7 +1259,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A41",
+      id: "C41",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1267,7 +1267,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A42",
+      id: "C42",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1275,7 +1275,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A43",
+      id: "C43",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1283,7 +1283,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A44",
+      id: "C44",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,
@@ -1291,7 +1291,7 @@ export const domePalermoData = {
       price: "$50,000",
     },
     {
-      id: "A45",
+      id: "C45",
       level: 3 as GarageLevel,
       status: "available" as ApartmentStatus,
       assignedTo: null,

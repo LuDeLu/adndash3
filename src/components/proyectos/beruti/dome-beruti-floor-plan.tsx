@@ -108,19 +108,19 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
   const [selectedUnit, setSelectedUnit] = useState<BerutiApartment | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const { user } = useAuth()
-type Action =
-  | "block"
-  | "reserve"
-  | "sell"
-  | "unblock"
-  | "directReserve"
-  | "cancelReservation"
-  | "release"
-  | "addOwner"
-  | "assignParking"
-  | "removeOwner";
+  type Action =
+    | "block"
+    | "reserve"
+    | "sell"
+    | "unblock"
+    | "directReserve"
+    | "cancelReservation"
+    | "release"
+    | "addOwner"
+    | "assignParking"
+    | "removeOwner"
 
-const [action, setAction] = useState<Action | null>(null);
+  const [action, setAction] = useState<Action | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -157,6 +157,8 @@ const [action, setAction] = useState<Action | null>(null);
 
   const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
   const [parkingAssignmentLevel, setParkingAssignmentLevel] = useState(1)
+  const [isAssigningApartmentFromParking, setIsAssigningApartmentFromParking] = useState(false)
+  const [apartmentAssignmentFloor, setApartmentAssignmentFloor] = useState(1)
 
   // Initialize Notyf
   useEffect(() => {
@@ -179,6 +181,7 @@ const [action, setAction] = useState<Action | null>(null);
     getParkingSpotUnit,
     updateStatus,
     unitStatuses,
+    refresh,
   } = useUnitStorage("beruti")
 
   const getRealStatus = useCallback(
@@ -587,6 +590,63 @@ const [action, setAction] = useState<Action | null>(null);
     setIsParkingModalOpen(true)
   }, [])
 
+  const getParkingSpotApartments = useCallback(
+    (parkingId: string): string[] => {
+      if (!parkingAssignments) return []
+      const apartmentIds: string[] = []
+      Object.entries(parkingAssignments).forEach(([apartmentId, assignment]) => {
+        // ParkingAssignment has parkingSpots array property
+        if (assignment && assignment.parkingSpots && assignment.parkingSpots.includes(parkingId)) {
+          apartmentIds.push(apartmentId)
+        }
+      })
+      return apartmentIds
+    },
+    [parkingAssignments],
+  )
+
+  const handleAssignApartmentFromParking = useCallback(
+    async (apartmentId: string) => {
+      if (!selectedParkingSpot) return
+
+      try {
+        const currentAssignments = parkingAssignments?.[apartmentId]?.parkingSpots || []
+
+        if (currentAssignments.includes(selectedParkingSpot.id)) {
+          notyf?.error("Esta cochera ya está asignada a este departamento")
+          return
+        }
+
+        const newAssignments = [...currentAssignments, selectedParkingSpot.id]
+        await assignParking(apartmentId, newAssignments)
+
+        await fetch(`${API_BASE_URL}/projects/beruti/activity-log`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+          body: JSON.stringify({
+            apartmentId,
+            action: "PARKING_ASSIGNED",
+            parkingId: selectedParkingSpot.id,
+            performedBy: user?.name || "Sistema",
+            timestamp: new Date().toISOString(),
+          }),
+        })
+
+        notyf?.success(`Cochera ${selectedParkingSpot.id} asignada a unidad ${apartmentId}`)
+        setIsAssigningApartmentFromParking(false)
+        setIsParkingModalOpen(false)
+        await refresh()
+      } catch (error) {
+        console.error("Error al asignar cochera:", error)
+        notyf?.error("Error al asignar la cochera")
+      }
+    },
+    [selectedParkingSpot, parkingAssignments, user, refresh, assignParking, notyf],
+  )
+
   const activityLog = useMemo(() => {
     const activities: ActivityEntry[] = []
 
@@ -624,13 +684,14 @@ const [action, setAction] = useState<Action | null>(null);
     })
 
     Object.entries(parkingAssignments).forEach(([unitId, assignment]) => {
-      if (assignment.assignedAt && assignment.parkingSpots.length > 0) {
+      // ParkingAssignment has parkingSpots array and assignedAt timestamp
+      if (assignment && assignment.parkingSpots && assignment.parkingSpots.length > 0 && assignment.assignedAt) {
         activities.push({
           timestamp: new Date(assignment.assignedAt),
           description: `asignó cocheras (${assignment.parkingSpots.join(", ")}) a`,
           unitId,
           action: "PARKING_ASSIGNED",
-          user: "Sistema",
+          user: assignment.assignedBy || "Sistema",
         })
       }
     })
@@ -862,6 +923,8 @@ const [action, setAction] = useState<Action | null>(null);
                     src={
                       garagePlans[currentGarageLevel as keyof typeof garagePlans] ||
                       "/placeholder.svg?height=600&width=800" ||
+                      "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg"
@@ -1408,34 +1471,6 @@ const [action, setAction] = useState<Action | null>(null);
                 {/* Block/Reserve/Sell Forms */}
                 {(action === "block" || action === "directReserve" || action === "reserve" || action === "sell") && (
                   <form onSubmit={handleFormSubmit} className="space-y-4">
-                    {action !== "sell" && (
-                      <>
-                        <div>
-                          <Label htmlFor="name" className="text-white">
-                            Nombre
-                          </Label>
-                          <Input
-                            id="name"
-                            value={formData.name}
-                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                            required
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="phone" className="text-white">
-                            Teléfono
-                          </Label>
-                          <Input
-                            id="phone"
-                            type="tel"
-                            value={formData.phone}
-                            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            className="text-white bg-zinc-800 border-zinc-700"
-                          />
-                        </div>
-                      </>
-                    )}
                     <div>
                       <Label htmlFor="price" className="text-white">
                         Precio
@@ -1606,15 +1641,15 @@ const [action, setAction] = useState<Action | null>(null);
                     <Label className="text-zinc-400">Estado</Label>
                     <div className="flex items-center mt-1">
                       {(() => {
-                        const assignedToUnit = getParkingSpotUnit(selectedParkingSpot.id)
+                        const assignedApartments = getParkingSpotApartments(selectedParkingSpot.id)
                         return (
                           <>
                             <div
                               className="w-3 h-3 rounded-full mr-2"
-                              style={{ backgroundColor: assignedToUnit ? "#ef4444" : "#22c55e" }}
+                              style={{ backgroundColor: assignedApartments.length > 0 ? "#ef4444" : "#22c55e" }}
                             />
                             <Badge variant="outline" className="capitalize">
-                              {assignedToUnit ? "Asignada" : "Libre"}
+                              {assignedApartments.length > 0 ? "Asignada" : "Libre"}
                             </Badge>
                           </>
                         )
@@ -1636,12 +1671,18 @@ const [action, setAction] = useState<Action | null>(null);
                 </div>
 
                 {(() => {
-                  const assignedToUnit = getParkingSpotUnit(selectedParkingSpot.id)
-                  if (assignedToUnit) {
+                  const assignedApartments = getParkingSpotApartments(selectedParkingSpot.id)
+                  if (assignedApartments.length > 0) {
                     return (
                       <div className="p-3 bg-zinc-800 rounded">
                         <Label className="text-zinc-400">Asignada a:</Label>
-                        <p className="font-semibold">Unidad {assignedToUnit}</p>
+                        <div className="space-y-1 mt-1">
+                          {assignedApartments.map((aptId) => (
+                            <p key={aptId} className="font-semibold">
+                              Unidad {aptId}
+                            </p>
+                          ))}
+                        </div>
                       </div>
                     )
                   }
@@ -1650,9 +1691,104 @@ const [action, setAction] = useState<Action | null>(null);
               </div>
             )}
 
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button
+                onClick={() => setIsAssigningApartmentFromParking(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Home className="w-4 h-4 mr-2" />
+                Asignar departamento
+              </Button>
               <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
                 Cerrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isAssigningApartmentFromParking} onOpenChange={setIsAssigningApartmentFromParking}>
+          <DialogContent className="sm:max-w-[600px] bg-zinc-900 text-white border-zinc-800">
+            <DialogHeader>
+              <DialogTitle>Asignar departamento a cochera {selectedParkingSpot?.id}</DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label className="text-zinc-400 mb-2 block">Seleccionar piso</Label>
+                <div className="grid grid-cols-7 gap-2">
+                  {floors.map((floor) => (
+                    <Button
+                      key={floor}
+                      variant={apartmentAssignmentFloor === floor ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setApartmentAssignmentFloor(floor)}
+                      className={cn(
+                        apartmentAssignmentFloor === floor
+                          ? "bg-blue-600 hover:bg-blue-700"
+                          : "bg-zinc-800 hover:bg-zinc-700 border-zinc-700",
+                      )}
+                    >
+                      {floor}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              <ScrollArea className="h-[300px] rounded-md border border-zinc-800 p-4">
+                <div className="space-y-2">
+                  {getBerutiFloorData(apartmentAssignmentFloor)?.apartments.map((apartment) => {
+                    const status = getRealStatus(apartment)
+                    const currentParkingSpots = parkingAssignments?.[apartment.id]?.parkingSpots || []
+                    const hasParkingSpot = currentParkingSpots.includes(selectedParkingSpot?.id || "")
+
+                    return (
+                      <div
+                        key={apartment.id}
+                        className={cn(
+                          "p-3 rounded-lg border cursor-pointer transition-colors",
+                          hasParkingSpot
+                            ? "bg-blue-900/20 border-blue-600"
+                            : "bg-zinc-800 border-zinc-700 hover:bg-zinc-700",
+                        )}
+                        onClick={() => !hasParkingSpot && handleAssignApartmentFromParking(apartment.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="w-3 h-3 rounded-full"
+                              style={{ backgroundColor: getBerutiStatusColor(status) }}
+                            />
+                            <div>
+                              {/* Use unitNumber instead of id for apartment display */}
+                              <p className="font-medium text-white">Unidad {apartment.unitNumber}</p>
+                              <p className="text-xs text-zinc-400">{apartment.totalArea}m²</p>
+                            </div>
+                          </div>
+                          {hasParkingSpot && (
+                            <Badge variant="outline" className="bg-blue-600">
+                              Ya asignada
+                            </Badge>
+                          )}
+                        </div>
+                        {currentParkingSpots.length > 0 && (
+                          <div className="mt-2 text-xs text-zinc-400">
+                            Cocheras:
+                            {currentParkingSpots.join(", ")}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </ScrollArea>
+            </div>
+
+            <DialogFooter>
+              <Button
+                onClick={() => setIsAssigningApartmentFromParking(false)}
+                className="bg-zinc-700 hover:bg-zinc-600"
+              >
+                Cancelar
               </Button>
             </DialogFooter>
           </DialogContent>

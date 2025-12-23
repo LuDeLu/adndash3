@@ -124,7 +124,7 @@ export type ApartParkingSpot = ApartParking & {
 export const apartUnits: ApartUnit[] = [
   // Piso 1
   {
-    id: "apart-1-01",
+    id: "101",
     unitNumber: "101",
     floor: 1,
     status: "VENDIDO",
@@ -142,7 +142,7 @@ export const apartUnits: ApartUnit[] = [
       "236,426,366,444,372,423,422,429,483,428,484,340,528,339,525,261,532,250,538,240,545,232,555,228,566,227,575,225,585,227,595,233,605,239,609,248,778,244,779,131,317,64,303,158,281,156",
   },
   {
-    id: "apart-1-02",
+    id: "102",
     unitNumber: "102",
     floor: 1,
     status: "VENDIDO",
@@ -159,7 +159,7 @@ export const apartUnits: ApartUnit[] = [
     coordinates: "241,428,203,677,727,677,726,499,673,499,671,448,652,448,655,431,413,430,374,425,365,445",
   },
   {
-    id: "apart-1-03",
+    id: "103",
     unitNumber: "103",
     floor: 1,
     status: "VENDIDO",
@@ -178,7 +178,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 2
   {
-    id: "apart-2-01",
+    id: "201",
     unitNumber: "201",
     floor: 2,
     status: "VENDIDO",
@@ -196,7 +196,7 @@ export const apartUnits: ApartUnit[] = [
       "489,426,375,421,373,441,248,421,286,150,309,152,325,56,786,122,788,238,615,238,602,226,590,219,572,216,557,219,546,228,539,237,534,250,531,333,491,336",
   },
   {
-    id: "apart-2-02",
+    id: "202",
     unitNumber: "202",
     floor: 2,
     status: "DISPONIBLE",
@@ -213,7 +213,7 @@ export const apartUnits: ApartUnit[] = [
     coordinates: "733,674,732,498,680,498,679,445,661,446,661,425,376,423,374,442,252,419,210,676",
   },
   {
-    id: "apart-2-03",
+    id: "203",
     unitNumber: "203",
     floor: 2,
     status: "VENDIDO",
@@ -231,7 +231,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 3
   {
-    id: "apart-3-01",
+    id: "301",
     unitNumber: "301",
     floor: 3,
     status: "VENDIDO",
@@ -249,7 +249,7 @@ export const apartUnits: ApartUnit[] = [
       "237,422,363,442,369,417,479,424,480,336,522,333,524,263,529,248,535,237,543,228,555,222,566,220,580,220,589,222,602,229,607,242,651,241,780,238,781,123,316,53,299,155,276,152",
   },
   {
-    id: "apart-3-02",
+    id: "302",
     unitNumber: "302",
     floor: 3,
     status: "VENDIDO",
@@ -266,7 +266,7 @@ export const apartUnits: ApartUnit[] = [
     coordinates: "236,424,198,675,730,677,727,497,676,494,675,448,653,443,653,429,370,420,363,445",
   },
   {
-    id: "apart-3-03",
+    id: "303",
     unitNumber: "303",
     floor: 3,
     status: "DISPONIBLE",
@@ -285,7 +285,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 4
   {
-    id: "apart-4-01",
+    id: "401",
     unitNumber: "401",
     floor: 4,
     status: "VENDIDO",
@@ -303,7 +303,7 @@ export const apartUnits: ApartUnit[] = [
       "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
   },
   {
-    id: "apart-4-02",
+    id: "402",
     unitNumber: "402",
     floor: 4,
     status: "DISPONIBLE",
@@ -320,7 +320,7 @@ export const apartUnits: ApartUnit[] = [
     coordinates: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442",
   },
   {
-    id: "apart-4-03",
+    id: "403",
     unitNumber: "403",
     floor: 4,
     status: "VENDIDO",
@@ -339,7 +339,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 5
   {
-    id: "apart-5-01",
+    id: "501",
     unitNumber: "501",
     floor: 5,
     status: "VENDIDO",
@@ -357,7 +357,7 @@ export const apartUnits: ApartUnit[] = [
       "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
   },
   {
-    id: "apart-5-02",
+    id: "502",
     unitNumber: "502",
     floor: 5,
     status: "VENDIDO",
@@ -374,7 +374,7 @@ export const apartUnits: ApartUnit[] = [
     coordinates: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442",
   },
   {
-    id: "apart-5-03",
+    id: "503",
     unitNumber: "503",
     floor: 5,
     status: "VENDIDO",
@@ -393,7 +393,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 6
   {
-    id: "apart-6-01",
+    id: "601",
     unitNumber: "601",
     floor: 6,
     status: "VENDIDO",
@@ -411,7 +411,7 @@ export const apartUnits: ApartUnit[] = [
       "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
   },
   {
-    id: "apart-6-02",
+    id: "602",
     unitNumber: "602",
     floor: 6,
     status: "VENDIDO",
@@ -428,7 +428,7 @@ export const apartUnits: ApartUnit[] = [
     coordinates: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442",
   },
   {
-    id: "apart-6-03",
+    id: "603",
     unitNumber: "603",
     floor: 6,
     status: "VENDIDO",
@@ -447,7 +447,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 7
   {
-    id: "apart-7-01",
+    id: "701",
     unitNumber: "701",
     floor: 7,
     status: "VENDIDO",
@@ -465,7 +465,7 @@ export const apartUnits: ApartUnit[] = [
       "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
   },
   {
-    id: "apart-7-02",
+    id: "702",
     unitNumber: "702",
     floor: 7,
     status: "DISPONIBLE",
@@ -483,7 +483,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 8
   {
-    id: "apart-8-01",
+    id: "801",
     unitNumber: "801",
     floor: 8,
     status: "VENDIDO",
@@ -501,7 +501,7 @@ export const apartUnits: ApartUnit[] = [
       "545,398,479,398,336,376,377,98,797,153,796,268,626,271,613,256,598,249,587,249,577,249,566,253,557,260,553,267,546,278",
   },
   {
-    id: "apart-8-02",
+    id: "802",
     unitNumber: "802",
     floor: 8,
     status: "VENDIDO",
@@ -520,7 +520,7 @@ export const apartUnits: ApartUnit[] = [
   },
   // Piso 9
   {
-    id: "apart-9-01",
+    id: "901",
     unitNumber: "901",
     floor: 9,
     status: "VENDIDO",
@@ -538,7 +538,7 @@ export const apartUnits: ApartUnit[] = [
       "334,265,489,292,496,272,499,263,505,253,519,246,532,241,546,242,560,244,570,247,580,253,585,263,595,265,797,264,798,126,363,63",
   },
   {
-    id: "apart-9-02",
+    id: "902",
     unitNumber: "902",
     floor: 9,
     status: "DISPONIBLE",
@@ -561,41 +561,41 @@ export const apartUnits: ApartUnit[] = [
 export const apartParking: ApartParking[] = [
   // Nivel 1
   { id: "a1", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "libre" },
-  { id: "a2", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "apart-1-01" },
+  { id: "a2", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "101" },
   { id: "a3", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "libre" },
-  { id: "a4", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "apart-2-02" },
+  { id: "a4", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "202" },
   { id: "a5", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "libre" },
-  { id: "a6", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "apart-3-01" },
+  { id: "a6", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "301" },
   { id: "a7", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "libre" },
-  { id: "a8", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "apart-4-02" },
+  { id: "a8", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "402" },
   { id: "a9", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "libre" },
-  { id: "a10", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "apart-5-01" },
+  { id: "a10", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "ocupado", assignedTo: "501" },
   { id: "a11", level: "Nivel 1", condition: "Cubierta", price: 55000, status: "libre" },
 
   // Nivel 2
   { id: "b1", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "libre" },
-  { id: "b2", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "apart-6-01" },
+  { id: "b2", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "601" },
   { id: "b3", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "libre" },
-  { id: "b4", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "apart-7-02" },
+  { id: "b4", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "702" },
   { id: "b5", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "libre" },
-  { id: "b6", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "apart-8-01" },
+  { id: "b6", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "801" },
   { id: "b7", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "libre" },
-  { id: "b8", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "apart-9-01" },
+  { id: "b8", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "901" },
   { id: "b9", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "libre" },
-  { id: "b10", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "apart-9-02" },
+  { id: "b10", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "ocupado", assignedTo: "902" },
   { id: "b11", level: "Nivel 2", condition: "Cubierta", price: 50000, status: "libre" },
 
   // Nivel 3
   { id: "c1", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "libre" },
-  { id: "c2", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-1-02" },
+  { id: "c2", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "102" },
   { id: "c3", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "libre" },
-  { id: "c4", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-2-03" },
+  { id: "c4", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "203" },
   { id: "c5", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "libre" },
-  { id: "c6", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-3-02" },
+  { id: "c6", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "302" },
   { id: "c7", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "libre" },
-  { id: "c8", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-4-01" },
+  { id: "c8", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "401" },
   { id: "c9", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "libre" },
-  { id: "c10", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "apart-5-02" },
+  { id: "c10", level: "Nivel 3", condition: "Cubierta", price: 48000, status: "ocupado", assignedTo: "502" },
 ]
 
 // Función para obtener unidades por piso
@@ -623,120 +623,120 @@ export const getApartFloorImage = (floor: number): string => {
 export const apartFloorCoordinates: { [key: number]: Array<{ id: string; coords: string }> } = {
   1: [
     {
-      id: "apart-1-01",
+      id: "101",
       coords:
         "236,426,366,444,372,423,422,429,483,428,484,340,528,339,525,261,532,250,538,240,545,232,555,228,566,227,575,225,585,227,595,233,605,239,609,248,778,244,779,131,317,64,303,158,281,156",
     },
     {
-      id: "apart-1-02",
+      id: "102",
       coords: "241,428,203,677,727,677,726,499,673,499,671,448,652,448,655,431,413,430,374,425,365,445",
     },
     {
-      id: "apart-1-03",
+      id: "103",
       coords:
         "931,679,727,681,726,497,674,496,673,449,689,449,689,429,664,425,666,355,726,353,726,250,668,251,667,245,829,245,931,246",
     },
   ],
   2: [
     {
-      id: "apart-2-01",
+      id: "201",
       coords:
         "489,426,375,421,373,441,248,421,286,150,309,152,325,56,786,122,788,238,615,238,602,226,590,219,572,216,557,219,546,228,539,237,534,250,531,333,491,336",
     },
-    { id: "apart-2-02", coords: "733,674,732,498,680,498,679,445,661,446,661,425,376,423,374,442,252,419,210,676" },
+    { id: "202", coords: "733,674,732,498,680,498,679,445,661,446,661,425,376,423,374,442,252,419,210,676" },
     {
-      id: "apart-2-03",
+      id: "203",
       coords: "676,351,677,423,659,426,660,445,680,445,683,498,736,498,734,676,936,675,939,243,736,241,734,351",
     },
   ],
   3: [
     {
-      id: "apart-3-01",
+      id: "301",
       coords:
         "237,422,363,442,369,417,479,424,480,336,522,333,524,263,529,248,535,237,543,228,555,222,566,220,580,220,589,222,602,229,607,242,651,241,780,238,781,123,316,53,299,155,276,152",
     },
-    { id: "apart-3-02", coords: "236,424,198,675,730,677,727,497,676,494,675,448,653,443,653,429,370,420,363,445" },
+    { id: "302", coords: "236,424,198,675,730,677,727,497,676,494,675,448,653,443,653,429,370,420,363,445" },
     {
-      id: "apart-3-03",
+      id: "303",
       coords:
         "730,678,830,675,831,551,932,547,933,242,730,242,726,353,665,354,667,425,689,424,690,443,675,446,676,494,730,499",
     },
   ],
   4: [
     {
-      id: "apart-4-01",
+      id: "401",
       coords:
         "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
     },
-    { id: "apart-4-02", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
+    { id: "402", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
     {
-      id: "apart-4-03",
+      id: "403",
       coords:
         "727,672,826,669,831,547,927,544,930,238,726,240,726,348,663,349,664,421,686,421,686,441,674,441,672,491,726,491",
     },
   ],
   5: [
     {
-      id: "apart-5-01",
+      id: "501",
       coords:
         "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
     },
-    { id: "apart-5-02", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
+    { id: "502", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
     {
-      id: "apart-5-03",
+      id: "503",
       coords:
         "727,672,826,669,831,547,927,544,930,238,726,240,726,348,663,349,664,421,686,421,686,441,674,441,672,491,726,491",
     },
   ],
   6: [
     {
-      id: "apart-6-01",
+      id: "601",
       coords:
         "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
     },
-    { id: "apart-6-02", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
+    { id: "602", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
     {
-      id: "apart-6-03",
+      id: "603",
       coords:
         "727,672,826,669,831,547,927,544,930,238,726,240,726,348,663,349,664,421,686,421,686,441,674,441,672,491,726,491",
     },
   ],
   7: [
     {
-      id: "apart-7-01",
+      id: "701",
       coords:
         "235,415,359,438,368,420,477,423,478,333,522,333,525,245,534,233,545,225,561,217,586,221,603,232,607,239,653,237,779,238,779,122,314,51,300,152,277,148",
     },
-    { id: "apart-7-02", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
+    { id: "702", coords: "239,420,199,671,727,673,726,493,671,494,672,444,651,444,653,424,371,420,363,442" },
     {
-      id: "apart-7-03",
+      id: "703",
       coords:
         "727,672,826,669,831,547,927,544,930,238,726,240,726,348,663,349,664,421,686,421,686,441,674,441,672,491,726,491",
     },
   ],
   8: [
     {
-      id: "apart-8-01",
+      id: "801",
       coords:
         "545,398,479,398,336,376,377,98,797,153,796,268,626,271,613,256,598,249,587,249,577,249,566,253,557,260,553,267,546,278",
     },
     {
-      id: "apart-8-02",
+      id: "802",
       coords: "333,378,476,400,634,396,635,419,683,418,682,381,740,380,742,276,946,270,946,577,845,579,845,641,293,638",
     },
   ],
   9: [
     {
-      id: "apart-9-01",
+      id: "901",
       coords:
         "334,265,489,292,496,272,499,263,505,253,519,246,532,241,546,242,560,244,570,247,580,253,585,263,595,265,797,264,798,126,363,63",
     },
     {
-      id: "apart-9-02",
+      id: "902",
       coords:
         "334,264,278,632,661,635,657,511,682,510,682,488,659,486,659,445,596,446,595,422,544,417,544,395,490,397,489,295",
     },
-    { id: "apart-9-03", coords: "661,635,978,639,979,268,735,271,733,400,660,400,662,445,686,444,687,511,662,513" },
+    { id: "903", coords: "661,635,978,639,979,268,735,271,733,400,660,400,662,445,686,444,687,511,662,513" },
   ],
 }
 

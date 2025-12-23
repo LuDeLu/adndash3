@@ -92,7 +92,7 @@ type SuitesFloorPlanProps = {
 }
 
 const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-const API_BASE_URL = "https://adndashboard.squareweb.app/api"
+const API_BASE_URL = "http://localhost:3001/api"
 
 // Garage plan images for Dome Suites
 const garageLevels = [1, 2, 3] as const
@@ -118,6 +118,7 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
     | "addOwner"
     | "assignParking"
     | "removeOwner" // Added removeOwner action
+    | "assignApartmentToParking"
     | null
   >(null)
   const [formData, setFormData] = useState({
@@ -139,6 +140,9 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
   const [selectedParkingsForAssignment, setSelectedParkingsForAssignment] = useState<{ [key: string]: boolean }>({})
   const [refreshing, setRefreshing] = useState(false)
   const [autoRefresh, setAutoRefresh] = useState(true)
+
+  const [selectedApartmentForParking, setSelectedApartmentForParking] = useState<SuitesApartment | null>(null)
+  const [apartmentSearchFloor, setApartmentSearchFloor] = useState(1)
 
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [filteredClientes, setFilteredClientes] = useState<Cliente[]>([])
@@ -523,6 +527,31 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
       return isAvailable
     })
   }
+
+  const handleAssignApartmentToParking = async () => {
+    if (!selectedParking || !selectedApartmentForParking) return
+
+    try {
+      // Assign the parking spot to the selected apartment
+      await assignParking(selectedApartmentForParking.unitNumber, [selectedParking.id])
+
+      if (notyf) {
+        notyf.success(`Cochera ${selectedParking.id} asignada a la unidad ${selectedApartmentForParking.unitNumber}`)
+      }
+
+      setAction(null)
+      setSelectedApartmentForParking(null)
+      setApartmentSearchFloor(1)
+    } catch (error) {
+      console.error("Error al asignar departamento a cochera:", error)
+      if (notyf) notyf.error("Error al asignar departamento a cochera")
+    }
+  }
+
+  const getApartmentsByFloor = useCallback((floor: number) => {
+    const floorData = suitesFloorsData.find((f) => f.level === floor)
+    return floorData ? floorData.apartments : []
+  }, [])
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -1552,60 +1581,190 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
 
             {selectedParking && (
               <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <Label className="text-zinc-400">Estado</Label>
-                    <div className="flex items-center mt-1">
-                      {(() => {
-                        const assignedToUnit = getParkingSpotUnit(selectedParking.id)
-                        return (
-                          <>
+                {action === "assignApartmentToParking" ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-semibold flex items-center">
+                        <Building className="w-4 h-4 mr-2" />
+                        Asignar Departamento a {selectedParking.id}
+                      </h4>
+                    </div>
+
+                    {/* Floor selector */}
+                    <div className="space-y-2">
+                      <Label className="text-zinc-400">Seleccionar Piso</Label>
+                      <div className="grid grid-cols-4 gap-2">
+                        {floors.map((floor) => (
+                          <Button
+                            key={floor}
+                            onClick={() => setApartmentSearchFloor(floor)}
+                            variant={apartmentSearchFloor === floor ? "default" : "outline"}
+                            size="sm"
+                            className={apartmentSearchFloor === floor ? "bg-blue-600" : "border-zinc-600"}
+                          >
+                            {floor}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Apartments list */}
+                    <ScrollArea className="h-60">
+                      <div className="space-y-2">
+                        {getApartmentsByFloor(apartmentSearchFloor).map((apartment) => {
+                          const isSelected = selectedApartmentForParking?.id === apartment.id
+                          const realStatus = getRealStatus(apartment)
+                          const parkingSpots = getUnitParking(apartment.unitNumber)
+                          const hasParkingAlready = parkingSpots.includes(selectedParking.id)
+
+                          return (
                             <div
-                              className="w-3 h-3 rounded-full mr-2"
-                              style={{ backgroundColor: assignedToUnit ? "#ef4444" : "#22c55e" }}
-                            />
-                            <Badge variant="outline" className="capitalize">
-                              {assignedToUnit ? "Asignada" : "Libre"}
-                            </Badge>
-                          </>
-                        )
-                      })()}
+                              key={apartment.id}
+                              onClick={() => {
+                                setSelectedApartmentForParking(apartment)
+                              }}
+                              className={cn(
+                                "p-3 rounded-lg border cursor-pointer transition-colors",
+                                isSelected
+                                  ? "border-blue-500 bg-blue-500/20"
+                                  : "border-zinc-700 bg-zinc-800 hover:bg-zinc-700",
+                              )}
+                            >
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center space-x-3">
+                                  <div>
+                                    <p className="font-medium text-white">{apartment.unitNumber}</p>
+                                    <Badge
+                                      variant="outline"
+                                      className="mt-1"
+                                      style={{ borderColor: getSuitesStatusColor(realStatus) }}
+                                    >
+                                      {getSuitesStatusLabel(realStatus)}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  {parkingSpots.length > 0 && (
+                                    <p className="text-xs text-zinc-400">
+                                      {hasParkingAlready ? "Ya tiene esta cochera" : `Cocheras: ${parkingSpots.length}`}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Selected apartment summary */}
+                    {selectedApartmentForParking && (
+                      <div className="p-3 bg-blue-500/20 border border-blue-500 rounded-lg">
+                        <p className="text-sm text-blue-300">Departamento seleccionado:</p>
+                        <p className="font-medium text-white">Unidad {selectedApartmentForParking.unitNumber}</p>
+                      </div>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={handleAssignApartmentToParking}
+                        disabled={!selectedApartmentForParking}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        Asignar Departamento
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setAction(null)
+                          setSelectedApartmentForParking(null)
+                          setApartmentSearchFloor(1)
+                        }}
+                        variant="outline"
+                        className="border-zinc-600 text-zinc-300 hover:bg-zinc-700"
+                      >
+                        Cancelar
+                      </Button>
                     </div>
                   </div>
-                  <div>
-                    <Label className="text-zinc-400">Nivel</Label>
-                    <p className="font-semibold">Nivel {selectedParking.level}</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Área</Label>
-                    <p className="font-semibold">{selectedParking.area} m²</p>
-                  </div>
-                  <div>
-                    <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">{formatSuitesPrice(selectedParking.price)}</p>
-                  </div>
-                </div>
-
-                {(() => {
-                  const assignedToUnit = getParkingSpotUnit(selectedParking.id)
-                  if (assignedToUnit) {
-                    return (
-                      <div className="p-3 bg-zinc-800 rounded">
-                        <Label className="text-zinc-400">Asignada a:</Label>
-                        <p className="font-semibold">Unidad {assignedToUnit}</p>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <Label className="text-zinc-400">Estado</Label>
+                        <div className="flex items-center mt-1">
+                          {(() => {
+                            const assignedToUnit = getParkingSpotUnit(selectedParking.id)
+                            return (
+                              <>
+                                <div
+                                  className="w-3 h-3 rounded-full mr-2"
+                                  style={{ backgroundColor: assignedToUnit ? "#ef4444" : "#22c55e" }}
+                                />
+                                <Badge variant="outline" className="capitalize">
+                                  {assignedToUnit ? "Asignada" : "Libre"}
+                                </Badge>
+                              </>
+                            )
+                          })()}
+                        </div>
                       </div>
+                      <div>
+                        <Label className="text-zinc-400">Nivel</Label>
+                        <p className="font-semibold">Nivel {selectedParking.level}</p>
+                      </div>
+                      <div>
+                        <Label className="text-zinc-400">Área</Label>
+                        <p className="font-semibold">{selectedParking.area} m²</p>
+                      </div>
+                      <div>
+                        <Label className="text-zinc-400">Precio</Label>
+                        <p className="font-semibold text-green-400">{formatSuitesPrice(selectedParking.price)}</p>
+                      </div>
+                    </div>
+
+                    {(() => {
+                      const assignedToUnit = getParkingSpotUnit(selectedParking.id)
+                      if (assignedToUnit) {
+                        return (
+                          <div className="p-3 bg-zinc-800 rounded">
+                            <Label className="text-zinc-400">Asignada a:</Label>
+                            <p className="font-semibold">Unidad {assignedToUnit}</p>
+                          </div>
+                        )
+                      }
+                      return null
+                    })()}
+                  </>
+                )}
+              </div>
+            )}
+
+            {action !== "assignApartmentToParking" && (
+              <DialogFooter className="flex-col sm:flex-row gap-2">
+                {(() => {
+                  const assignedToUnit = getParkingSpotUnit(selectedParking?.id || "")
+                  if (!assignedToUnit) {
+                    return (
+                      <Button
+                        onClick={() => {
+                          setAction("assignApartmentToParking")
+                          setApartmentSearchFloor(1)
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
+                      >
+                        <Building className="w-4 h-4" />
+                        Asignar departamento
+                      </Button>
                     )
                   }
                   return null
                 })()}
-              </div>
+                <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
+                  Cerrar
+                </Button>
+              </DialogFooter>
             )}
-
-            <DialogFooter>
-              <Button onClick={() => setIsParkingModalOpen(false)} className="bg-zinc-700 hover:bg-zinc-600">
-                Cerrar
-              </Button>
-            </DialogFooter>
           </DialogContent>
         </Dialog>
 
