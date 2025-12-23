@@ -92,7 +92,7 @@ type SuitesFloorPlanProps = {
 }
 
 const floors = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-const API_BASE_URL = "http://localhost:3001/api"
+const API_BASE_URL = "https://adndashboard.squareweb.app/api"
 
 // Garage plan images for Dome Suites
 const garageLevels = [1, 2, 3] as const
@@ -293,6 +293,46 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
       { available: 0, reserved: 0, sold: 0, blocked: 0 },
     )
   }, [currentFloorData, getRealStatus])
+
+  const getGarageStats = useCallback(() => {
+    const allSpots = [
+      ...getSuitesGarageSpotsByLevel(1),
+      ...getSuitesGarageSpotsByLevel(2),
+      ...getSuitesGarageSpotsByLevel(3),
+    ]
+
+    return allSpots.reduce(
+      (acc, spot) => {
+        const isAssigned = !!getParkingSpotUnit(spot.id)
+        if (isAssigned) {
+          acc.occupied++
+        } else {
+          acc.available++
+        }
+        acc.total++
+        return acc
+      },
+      { available: 0, occupied: 0, total: 0 },
+    )
+  }, [getParkingSpotUnit])
+
+  const getCurrentLevelGarageStats = useCallback(() => {
+    const spots = getSuitesGarageSpotsByLevel(currentGarageLevel)
+
+    return spots.reduce(
+      (acc, spot) => {
+        const isAssigned = !!getParkingSpotUnit(spot.id)
+        if (isAssigned) {
+          acc.occupied++
+        } else {
+          acc.available++
+        }
+        acc.total++
+        return acc
+      },
+      { available: 0, occupied: 0, total: 0 },
+    )
+  }, [currentGarageLevel, getParkingSpotUnit])
 
   const handleParkingClick = useCallback((spot: SuitesGarageSpot) => {
     setSelectedParking(spot)
@@ -895,6 +935,37 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                 <h2 className="text-xl md:text-2xl font-semibold mb-4">
                   Mapa de Cocheras - Nivel {currentGarageLevel}
                 </h2>
+
+                <div className="grid grid-cols-3 gap-2 mb-4 text-center text-sm">
+                  <div className="bg-zinc-700/50 p-2 rounded">
+                    <p className="text-zinc-300 font-bold">
+                      {(() => {
+                        const stats = getGarageStats()
+                        return stats.total
+                      })()}
+                    </p>
+                    <p className="text-zinc-400">Total Cocheras</p>
+                  </div>
+                  <div className="bg-green-500/20 p-2 rounded">
+                    <p className="text-green-400 font-bold">
+                      {(() => {
+                        const stats = getGarageStats()
+                        return stats.available
+                      })()}
+                    </p>
+                    <p className="text-zinc-400">Disponibles</p>
+                  </div>
+                  <div className="bg-red-500/20 p-2 rounded">
+                    <p className="text-red-400 font-bold">
+                      {(() => {
+                        const stats = getGarageStats()
+                        return stats.occupied
+                      })()}
+                    </p>
+                    <p className="text-zinc-400">Ocupadas</p>
+                  </div>
+                </div>
+
                 <div className="flex justify-center space-x-4 mb-4">
                   {garageLevels.map((level) => (
                     <Button
@@ -906,6 +977,37 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                     </Button>
                   ))}
                 </div>
+
+                <div className="grid grid-cols-3 gap-2 mb-4 text-center text-xs">
+                  <div className="bg-zinc-800/50 p-2 rounded">
+                    <p className="text-zinc-400 font-semibold">
+                      {(() => {
+                        const stats = getCurrentLevelGarageStats()
+                        return stats.total
+                      })()}
+                    </p>
+                    <p className="text-zinc-500">Este nivel</p>
+                  </div>
+                  <div className="bg-green-500/10 p-2 rounded">
+                    <p className="text-green-400 font-semibold">
+                      {(() => {
+                        const stats = getCurrentLevelGarageStats()
+                        return stats.available
+                      })()}
+                    </p>
+                    <p className="text-zinc-500">Disponibles</p>
+                  </div>
+                  <div className="bg-red-500/10 p-2 rounded">
+                    <p className="text-red-400 font-semibold">
+                      {(() => {
+                        const stats = getCurrentLevelGarageStats()
+                        return stats.occupied
+                      })()}
+                    </p>
+                    <p className="text-zinc-500">Ocupadas</p>
+                  </div>
+                </div>
+
                 <div className="relative aspect-video">
                   <Image
                     src={garagePlans[currentGarageLevel] || "/placeholder.svg"}

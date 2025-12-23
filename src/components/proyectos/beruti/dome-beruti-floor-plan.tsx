@@ -709,6 +709,31 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
     })
   }
 
+  const getGarageStatistics = () => {
+    const total = berutiParkingSpots.length
+    const occupied = berutiParkingSpots.filter((spot) => {
+      const assignedToUnit = getParkingSpotUnit(spot.id)
+      return !!assignedToUnit
+    }).length
+    const available = total - occupied
+
+    return { total, occupied, available }
+  }
+
+  const getGarageStatisticsByLevel = (level: number) => {
+    const levelSpots = berutiParkingSpots.filter((spot) => spot.level === level)
+    const total = levelSpots.length
+    const occupied = levelSpots.filter((spot) => {
+      const assignedToUnit = getParkingSpotUnit(spot.id)
+      return !!assignedToUnit
+    }).length
+    const available = total - occupied
+
+    return { total, occupied, available }
+  }
+
+  // Load initial data
+
   return (
     <div className="min-h-screen  text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -927,6 +952,7 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -982,6 +1008,52 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
                 </div>
               </div>
             </div>
+                            {/* Garage Statistics Indicators */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {/* Overall Garage Statistics */}
+                  <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Todas las Cocheras</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white">{getGarageStatistics().total}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-400">{getGarageStatistics().available}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Disponibles</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-400">{getGarageStatistics().occupied}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Ocupadas</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current Level Statistics */}
+                  <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Nivel {currentGarageLevel}</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white">
+                          {getGarageStatisticsByLevel(currentGarageLevel).total}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-400">
+                          {getGarageStatisticsByLevel(currentGarageLevel).available}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Disponibles</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-400">
+                          {getGarageStatisticsByLevel(currentGarageLevel).occupied}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Ocupadas</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
           </TabsContent>
         </Tabs>
 

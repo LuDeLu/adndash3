@@ -703,6 +703,35 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
     return floorPlan || `/plano-piso-${currentFloor}.jpg`
   }
 
+  const getGarageStatistics = () => {
+    const allParkingSpots = [
+      ...getArcosGarageSpotsByLevel(1),
+      ...getArcosGarageSpotsByLevel(2),
+      ...getArcosGarageSpotsByLevel(3),
+      ...getArcosGarageSpotsByLevel(4),
+    ]
+    const total = allParkingSpots.length
+    const occupied = allParkingSpots.filter((spot) => {
+      const assignedToUnit = getParkingSpotUnit(spot.id)
+      return !!assignedToUnit
+    }).length
+    const available = total - occupied
+
+    return { total, occupied, available }
+  }
+
+  const getGarageStatisticsByLevel = (level: number) => {
+    const levelSpots = getArcosGarageSpotsByLevel(level)
+    const total = levelSpots.length
+    const occupied = levelSpots.filter((spot) => {
+      const assignedToUnit = getParkingSpotUnit(spot.id)
+      return !!assignedToUnit
+    }).length
+    const available = total - occupied
+
+    return { total, occupied, available }
+  }
+
   if (!currentFloorData) {
     return (
       <div className="min-h-screen  text-white flex items-center justify-center">
@@ -955,6 +984,53 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
                 </div>
               </div>
             </div>
+             {/* Added garage statistics indicators */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {/* Overall Garage Statistics */}
+                  <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Todas las Cocheras</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white">{getGarageStatistics().total}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-400">{getGarageStatistics().available}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Disponibles</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-400">{getGarageStatistics().occupied}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Ocupadas</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current Level Statistics */}
+                  <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Nivel {currentGarageLevel}</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white">
+                          {getGarageStatisticsByLevel(currentGarageLevel).total}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-400">
+                          {getGarageStatisticsByLevel(currentGarageLevel).available}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Disponibles</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-400">
+                          {getGarageStatisticsByLevel(currentGarageLevel).occupied}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Ocupadas</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
           </TabsContent>
         </Tabs>
 
@@ -1698,7 +1774,8 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
                                   />
                                   <div>
                                     <p className="font-semibold">Unidad {apt.unitNumber}</p>
-                                    <p className="text-sm text-zinc-400">dorm • {formatArcosArea(apt.totalArea)}
+                                    <p className="text-sm text-zinc-400">
+                                    {formatArcosArea(apt.totalArea)}
                                     </p>
                                   </div>
                                 </div>

@@ -337,6 +337,30 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
     }
   }, [])
 
+  const getGarageStatistics = () => {
+    const allParkingSpots = [...apartGarageCoordinates[1], ...apartGarageCoordinates[2], ...apartGarageCoordinates[3]]
+    const total = allParkingSpots.length
+    const occupied = allParkingSpots.filter((spot) => {
+      const assignedToUnit = getParkingSpotUnit(spot.id)
+      return !!assignedToUnit
+    }).length
+    const available = total - occupied
+
+    return { total, occupied, available }
+  }
+
+  const getGarageStatisticsByLevel = (level: number) => {
+    const levelSpots = apartGarageCoordinates[level as keyof typeof apartGarageCoordinates] || []
+    const total = levelSpots.length
+    const occupied = levelSpots.filter((spot) => {
+      const assignedToUnit = getParkingSpotUnit(spot.id)
+      return !!assignedToUnit
+    }).length
+    const available = total - occupied
+
+    return { total, occupied, available }
+  }
+
   const activityLog = useMemo(() => {
     const activities: ActivityEntry[] = []
 
@@ -1069,6 +1093,7 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                       "/placeholder.svg?height=600&width=800" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -1120,6 +1145,52 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                 </div>
               </div>
             </div>
+                            {/* Added garage statistics indicators */}
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  {/* Overall Garage Statistics */}
+                  <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Todas las Cocheras</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white">{getGarageStatistics().total}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-400">{getGarageStatistics().available}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Disponibles</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-400">{getGarageStatistics().occupied}</div>
+                        <div className="text-xs text-zinc-400 mt-1">Ocupadas</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Current Level Statistics */}
+                  <div className="bg-zinc-800 p-4 rounded-lg border border-zinc-700">
+                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Nivel {currentGarageLevel}</h3>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-white">
+                          {getGarageStatisticsByLevel(currentGarageLevel).total}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Total</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-400">
+                          {getGarageStatisticsByLevel(currentGarageLevel).available}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Disponibles</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-red-400">
+                          {getGarageStatisticsByLevel(currentGarageLevel).occupied}
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-1">Ocupadas</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
           </TabsContent>
         </Tabs>
 
@@ -1866,6 +1937,8 @@ export function DomeApartFloorPlan({ floorNumber, onReturnToProjectModal }: Dome
                                 {getApartStatusLabel(realStatus)}
                               </Badge>
                               {hasParkingAssigned && <Badge className="bg-green-600">Cochera ya asignada</Badge>}
+                            </div>
+                            <div className="text-sm text-zinc-400 mt-1">
                             </div>
                             {parkingSpots.length > 0 && (
                               <div className="flex items-center gap-1 mt-1 text-xs text-zinc-500">
