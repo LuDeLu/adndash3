@@ -2597,7 +2597,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "316,252,342,306",
+    coordinates: "258,252,283,307",
     level: 1,
   },
   {
@@ -2606,7 +2606,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "342,252,368,307",
+    coordinates: "283,252,311,306",
     level: 1,
   },
   {
@@ -2615,7 +2615,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "368,252,395,305",
+    coordinates: "316,252,342,306",
     level: 1,
   },
   {
@@ -2624,7 +2624,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "399,252,426,305",
+    coordinates: "342,252,368,307",
     level: 1,
   },
   {
@@ -2633,7 +2633,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "468,432,524,458",
+    coordinates: "368,252,395,305",
     level: 1,
   },
   {
@@ -2642,7 +2642,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "469,459,522,485",
+    coordinates: "399,252,426,305",
     level: 1,
   },
   {
@@ -2651,7 +2651,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "470,485,522,514",
+    coordinates: "468,432,524,458",
     level: 1,
   },
   {
@@ -2660,7 +2660,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "470,542,521,570",
+    coordinates: "469,459,522,485",
     level: 1,
   },
   {
@@ -2669,7 +2669,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "469,570,521,596",
+    coordinates: "470,485,522,514",
     level: 1,
   },
   {
@@ -2678,7 +2678,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "426,253,454,308",
+    coordinates: "470,542,521,570",
     level: 1,
   },
   {
@@ -2687,7 +2687,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "451,252,478,305",
+    coordinates: "469,570,521,596",
     level: 1,
   },
   {
@@ -2696,7 +2696,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "484,253,509,305",
+    coordinates: "426,253,454,308",
     level: 1,
   },
   {
@@ -2705,7 +2705,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "508,252,536,306",
+    coordinates: "451,252,478,305",
     level: 1,
   },
   {
@@ -2714,7 +2714,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "536,253,563,306",
+    coordinates: "484,253,509,305",
     level: 1,
   },
   {
@@ -2723,7 +2723,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "566,253,594,307",
+    coordinates: "508,252,536,306",
     level: 1,
   },
   {
@@ -2732,7 +2732,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "592,252,620,306",
+    coordinates: "536,253,563,306",
     level: 1,
   },
   {
@@ -2741,7 +2741,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "620,253,645,306",
+    coordinates: "566,253,594,307",
     level: 1,
   },
   {
@@ -2750,7 +2750,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "651,252,678,308",
+    coordinates: "592,252,620,306",
     level: 1,
   },
   {
@@ -2759,7 +2759,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "678,252,703,306",
+    coordinates: "620,253,645,306",
     level: 1,
   },
   {
@@ -2768,7 +2768,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "703,252,730,307",
+    coordinates: "651,252,678,308",
     level: 1,
   },
   {
@@ -2777,7 +2777,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "734,252,761,306",
+    coordinates: "678,252,703,306",
     level: 1,
   },
   {
@@ -2786,7 +2786,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "763,253,788,306",
+    coordinates: "703,252,730,307",
     level: 1,
   },
   {
@@ -2795,7 +2795,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "787,252,815,309",
+    coordinates: "734,252,761,306",
     level: 1,
   },
   {
@@ -2804,7 +2804,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "818,252,846,306",
+    coordinates: "763,253,788,306",
     level: 1,
   },
   {
@@ -2813,7 +2813,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "846,252,872,308",
+    coordinates: "787,252,815,309",
     level: 1,
   },
   {
@@ -2822,7 +2822,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "872,252,897,309",
+    coordinates: "818,252,846,306",
     level: 1,
   },
   {
@@ -2831,7 +2831,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "903,253,930,307",
+    coordinates: "846,252,872,308",
     level: 1,
   },
   {
@@ -2840,7 +2840,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "928,252,957,307",
+    coordinates: "872,252,897,309",
     level: 1,
   },
   {
@@ -2849,7 +2849,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "957,252,982,306",
+    coordinates: "903,253,930,307",
     level: 1,
   },
   {
@@ -2858,7 +2858,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "988,253,1015,305",
+    coordinates: "928,252,957,307",
     level: 1,
   },
   {
@@ -2867,7 +2867,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1013,254,1039,305",
+    coordinates: "957,252,982,306",
     level: 1,
   },
   {
@@ -2876,7 +2876,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1040,252,1067,305",
+    coordinates: "988,253,1015,305",
     level: 1,
   },
   {
@@ -2885,7 +2885,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1071,253,1098,306",
+    coordinates: "1013,254,1039,305",
     level: 1,
   },
   {
@@ -2894,7 +2894,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1098,252,1124,306",
+    coordinates: "1040,252,1067,305",
     level: 1,
   },
   {
@@ -2903,7 +2903,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1124,252,1151,307",
+    coordinates: "1071,253,1098,306",
     level: 1,
   },
   {
@@ -2912,7 +2912,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1155,253,1180,305",
+    coordinates: "1098,252,1124,306",
     level: 1,
   },
   {
@@ -2921,7 +2921,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1180,253,1209,308",
+    coordinates: "1124,252,1151,307",
     level: 1,
   },
   {
@@ -2930,7 +2930,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1209,253,1234,307",
+    coordinates: "1155,253,1180,305",
     level: 1,
   },
   {
@@ -2939,7 +2939,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1240,253,1264,306",
+    coordinates: "1180,253,1209,308",
     level: 1,
   },
   {
@@ -2948,7 +2948,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1264,252,1291,306",
+    coordinates: "1209,253,1234,307",
     level: 1,
   },
   {
@@ -2957,7 +2957,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1291,252,1316,305",
+    coordinates: "1240,253,1264,306",
     level: 1,
   },
   {
@@ -2966,7 +2966,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "522,358,575,384",
+    coordinates: "1264,252,1291,306",
     level: 1,
   },
   {
@@ -2975,7 +2975,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "522,385,575,411",
+    coordinates: "1291,252,1316,305",
     level: 1,
   },
   {
@@ -2984,7 +2984,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "522,431,576,459",
+    coordinates: "522,358,575,384",
     level: 1,
   },
   {
@@ -2993,7 +2993,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "521,458,577,485",
+    coordinates: "522,385,575,411",
     level: 1,
   },
   {
@@ -3002,7 +3002,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "521,484,577,511",
+    coordinates: "522,431,576,459",
     level: 1,
   },
   {
@@ -3011,7 +3011,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "521,542,575,570",
+    coordinates: "521,458,577,485",
     level: 1,
   },
   {
@@ -3020,7 +3020,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "521,567,575,597",
+    coordinates: "521,484,577,511",
     level: 1,
   },
   {
@@ -3029,7 +3029,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "624,358,679,386",
+    coordinates: "521,542,575,570",
     level: 1,
   },
   {
@@ -3038,12 +3038,30 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "627,384,679,410",
+    coordinates: "521,567,575,597",
     level: 1,
   },
   {
     id: "P082",
     number: "82",
+    type: "simple",
+    status: "available",
+    price: 20000,
+    coordinates: "624,358,679,386",
+    level: 1,
+  },
+  {
+    id: "P083",
+    number: "83",
+    type: "simple",
+    status: "available",
+    price: 20000,
+    coordinates: "627,384,679,410",
+    level: 1,
+  },
+  {
+    id: "P084",
+    number: "84",
     type: "double",
     status: "available",
     price: 40000,
@@ -3051,30 +3069,12 @@ export const domeParkingSpots: ParkingSpot[] = [
     level: 1,
   },
   {
-    id: "P083",
-    number: "83",
+    id: "P085",
+    number: "85",
     type: "double",
     status: "available",
     price: 40000,
     coordinates: "736,357,761,412",
-    level: 1,
-  },
-  {
-    id: "P084",
-    number: "84",
-    type: "simple",
-    status: "available",
-    price: 20000,
-    coordinates: "771,355,826,386",
-    level: 1,
-  },
-  {
-    id: "P085",
-    number: "85",
-    type: "simple",
-    status: "available",
-    price: 20000,
-    coordinates: "773,385,825,413",
     level: 1,
   },
   {
@@ -3083,7 +3083,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "627,432,680,460",
+    coordinates: "771,355,826,386",
     level: 1,
   },
   {
@@ -3092,7 +3092,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "626,457,679,487",
+    coordinates: "773,385,825,413",
     level: 1,
   },
   {
@@ -3101,7 +3101,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "626,485,679,511",
+    coordinates: "627,432,680,460",
     level: 1,
   },
   {
@@ -3110,7 +3110,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "626,516,679,542",
+    coordinates: "626,457,679,487",
     level: 1,
   },
   {
@@ -3119,7 +3119,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "627,543,678,568",
+    coordinates: "626,485,679,511",
     level: 1,
   },
   {
@@ -3128,7 +3128,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "627,567,679,596",
+    coordinates: "626,516,679,542",
     level: 1,
   },
   {
@@ -3137,7 +3137,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "770,432,824,458",
+    coordinates: "627,543,678,568",
     level: 1,
   },
   {
@@ -3146,7 +3146,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "771,460,825,485",
+    coordinates: "627,567,679,596",
     level: 1,
   },
   {
@@ -3155,7 +3155,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "773,485,824,514",
+    coordinates: "770,432,824,458",
     level: 1,
   },
   {
@@ -3164,7 +3164,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "773,515,825,544",
+    coordinates: "771,460,825,485",
     level: 1,
   },
   {
@@ -3173,7 +3173,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "771,542,825,569",
+    coordinates: "773,485,824,514",
     level: 1,
   },
   {
@@ -3182,7 +3182,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "773,569,825,595",
+    coordinates: "773,515,825,544",
     level: 1,
   },
   {
@@ -3191,7 +3191,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "877,358,928,384",
+    coordinates: "771,542,825,569",
     level: 1,
   },
   {
@@ -3200,7 +3200,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "876,383,928,410",
+    coordinates: "773,569,825,595",
     level: 1,
   },
   {
@@ -3209,7 +3209,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "877,421,930,445",
+    coordinates: "877,358,928,384",
     level: 1,
   },
   {
@@ -3218,7 +3218,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "877,459,930,487",
+    coordinates: "876,383,928,410",
     level: 1,
   },
   {
@@ -3227,7 +3227,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "876,484,930,513",
+    coordinates: "877,421,930,445",
     level: 1,
   },
   {
@@ -3236,7 +3236,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "931,358,982,386",
+    coordinates: "877,459,930,487",
     level: 1,
   },
   {
@@ -3245,7 +3245,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "928,384,982,410",
+    coordinates: "876,484,930,513",
     level: 1,
   },
   {
@@ -3254,7 +3254,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "930,420,982,446",
+    coordinates: "931,358,982,386",
     level: 1,
   },
   {
@@ -3263,7 +3263,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "930,457,982,485",
+    coordinates: "928,384,982,410",
     level: 1,
   },
   {
@@ -3272,7 +3272,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "930,483,982,514",
+    coordinates: "930,420,982,446",
     level: 1,
   },
   {
@@ -3281,7 +3281,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "876,517,928,543",
+    coordinates: "930,457,982,485",
     level: 1,
   },
   {
@@ -3290,7 +3290,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "930,517,982,543",
+    coordinates: "930,483,982,514",
     level: 1,
   },
   {
@@ -3299,7 +3299,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "877,542,931,567",
+    coordinates: "876,517,928,543",
     level: 1,
   },
   {
@@ -3308,7 +3308,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "930,541,982,569",
+    coordinates: "930,517,982,543",
     level: 1,
   },
   {
@@ -3317,7 +3317,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "877,569,930,597",
+    coordinates: "877,542,931,567",
     level: 1,
   },
   {
@@ -3326,7 +3326,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "928,568,982,595",
+    coordinates: "930,541,982,569",
     level: 1,
   },
   {
@@ -3335,7 +3335,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1035,358,1087,383",
+    coordinates: "877,569,930,597",
     level: 1,
   },
   {
@@ -3344,7 +3344,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1035,383,1085,410",
+    coordinates: "928,568,982,595",
     level: 1,
   },
   {
@@ -3353,7 +3353,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1035,432,1087,458",
+    coordinates: "1035,358,1087,383",
     level: 1,
   },
   {
@@ -3362,7 +3362,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1033,458,1087,485",
+    coordinates: "1035,383,1085,410",
     level: 1,
   },
   {
@@ -3371,7 +3371,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1033,483,1087,512",
+    coordinates: "1035,432,1087,458",
     level: 1,
   },
   {
@@ -3380,7 +3380,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1035,514,1088,543",
+    coordinates: "1033,458,1087,485",
     level: 1,
   },
   {
@@ -3389,7 +3389,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1033,543,1088,570",
+    coordinates: "1033,483,1087,512",
     level: 1,
   },
   {
@@ -3398,12 +3398,30 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1033,567,1087,596",
+    coordinates: "1035,514,1088,543",
     level: 1,
   },
   {
     id: "P122",
     number: "122",
+    type: "simple",
+    status: "available",
+    price: 20000,
+    coordinates: "1033,543,1088,570",
+    level: 1,
+  },
+  {
+    id: "P123",
+    number: "123",
+    type: "simple",
+    status: "available",
+    price: 20000,
+    coordinates: "1033,567,1087,596",
+    level: 1,
+  },
+  {
+    id: "P124",
+    number: "124",
     type: "double",
     status: "available",
     price: 40000,
@@ -3411,30 +3429,12 @@ export const domeParkingSpots: ParkingSpot[] = [
     level: 1,
   },
   {
-    id: "P123",
-    number: "123",
+    id: "P125",
+    number: "125",
     type: "double",
     status: "available",
     price: 40000,
     coordinates: "1131,359,1160,412",
-    level: 1,
-  },
-  {
-    id: "P124",
-    number: "124",
-    type: "simple",
-    status: "available",
-    price: 20000,
-    coordinates: "1158,358,1211,384",
-    level: 1,
-  },
-  {
-    id: "P125",
-    number: "125",
-    type: "simple",
-    status: "available",
-    price: 20000,
-    coordinates: "1158,383,1210,410",
     level: 1,
   },
   {
@@ -3443,7 +3443,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1158,432,1211,458",
+    coordinates: "1158,358,1211,384",
     level: 1,
   },
   {
@@ -3452,7 +3452,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1158,460,1211,485",
+    coordinates: "1158,383,1210,410",
     level: 1,
   },
   {
@@ -3461,7 +3461,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1156,484,1211,511",
+    coordinates: "1158,432,1211,458",
     level: 1,
   },
   {
@@ -3470,7 +3470,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1158,515,1211,544",
+    coordinates: "1158,460,1211,485",
     level: 1,
   },
   {
@@ -3479,7 +3479,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1158,543,1209,567",
+    coordinates: "1156,484,1211,511",
     level: 1,
   },
   {
@@ -3488,7 +3488,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1156,569,1209,595",
+    coordinates: "1158,515,1211,544",
     level: 1,
   },
   {
@@ -3497,7 +3497,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1262,357,1313,383",
+    coordinates: "1158,543,1209,567",
     level: 1,
   },
   {
@@ -3506,7 +3506,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1261,382,1315,412",
+    coordinates: "1156,569,1209,595",
     level: 1,
   },
   {
@@ -3515,7 +3515,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1315,359,1367,385",
+    coordinates: "1262,357,1313,383",
     level: 1,
   },
   {
@@ -3524,7 +3524,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1313,384,1367,410",
+    coordinates: "1261,382,1315,412",
     level: 1,
   },
   {
@@ -3533,7 +3533,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1262,432,1313,458",
+    coordinates: "1315,359,1367,385",
     level: 1,
   },
   {
@@ -3542,7 +3542,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1316,431,1367,458",
+    coordinates: "1313,384,1367,410",
     level: 1,
   },
   {
@@ -3551,7 +3551,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1315,458,1367,484",
+    coordinates: "1262,432,1313,458",
     level: 1,
   },
   {
@@ -3560,7 +3560,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1263,458,1317,483",
+    coordinates: "1316,431,1367,458",
     level: 1,
   },
   {
@@ -3569,7 +3569,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1261,485,1315,514",
+    coordinates: "1315,458,1367,484",
     level: 1,
   },
   {
@@ -3578,7 +3578,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1316,485,1367,511",
+    coordinates: "1263,458,1317,483",
     level: 1,
   },
   {
@@ -3587,7 +3587,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1418,431,1472,459",
+    coordinates: "1261,485,1315,514",
     level: 1,
   },
   {
@@ -3596,7 +3596,7 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
-    coordinates: "1418,458,1472,485",
+    coordinates: "1316,485,1367,511",
     level: 1,
   },
   {
@@ -3605,11 +3605,28 @@ export const domeParkingSpots: ParkingSpot[] = [
     type: "simple",
     status: "available",
     price: 20000,
+    coordinates: "1418,431,1472,459",
+    level: 1,
+  },
+  {
+    id: "P145",
+    number: "145",
+    type: "simple",
+    status: "available",
+    price: 20000,
+    coordinates: "1418,458,1472,485",
+    level: 1,
+  },
+  {
+    id: "P146",
+    number: "146",
+    type: "simple",
+    status: "available",
+    price: 20000,
     coordinates: "1418,484,1472,510",
     level: 1,
   },
 ]
-
 // Add helper functions for parking spots
 export const getParkingSpotColor = (status: ParkingSpot["status"]): string => {
   switch (status) {
