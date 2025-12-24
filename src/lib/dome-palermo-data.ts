@@ -35,6 +35,8 @@ export interface CommercialUnit {
   status: ApartmentStatus
 }
 
+
+
 export interface ParkingSpot {
   id: string
   level: GarageLevel
@@ -48,6 +50,15 @@ export interface FloorData {
   apartments: Record<string, ApartmentData>
   svgPaths: Record<string, string>
   viewBox: string
+}
+export const formatPrice = (price: number | string): string => {
+  if (typeof price === "string") return price
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price)
 }
 
 export const domePalermoData = {

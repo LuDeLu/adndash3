@@ -1251,8 +1251,12 @@ export const getArcosGarageSpotsByLevel = (level: number): ArcosGarageSpot[] => 
 }
 
 export const formatArcosPrice = (price: number): string => {
-  return `USD ${price.toLocaleString("en-US")}`
+  return `USD ${price.toLocaleString("es-AR", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  })}`
 }
+
 
 export const formatArcosArea = (area: number): string => {
   return `${area.toFixed(2)} m²`

@@ -21,14 +21,15 @@ export function DomeBoulevardProjectCard({
   const [isHovered, setIsHovered] = useState(false)
   const stats = getBoulevardProjectStats()
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price)
-  }
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price)
+}
+
 
   const occupancyRate = Math.round(((stats.soldUnits + stats.reservedUnits) / stats.totalUnits) * 100)
 

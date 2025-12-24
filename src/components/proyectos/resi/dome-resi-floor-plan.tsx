@@ -29,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/app/auth/auth-context"
-import { domePalermoData, type GarageLevel, type ApartmentStatus } from "@/lib/dome-palermo-data"
+import { domePalermoData, formatPrice, type GarageLevel, type ApartmentStatus} from "@/lib/dome-palermo-data"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
@@ -121,15 +121,7 @@ const garagePlans = {
   3: "/planos/resi/cochera/nivel3.png",
 }
 
-const formatPrice = (price: number | string): string => {
-  if (typeof price === "string") return price
-  return new Intl.NumberFormat("es-AR", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price)
-}
+
 
 const statusToInternal = (status: ApartmentStatus): UnitStatusType => {
   switch (status) {
@@ -712,8 +704,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     ? "liberó"
                     : ""
       } ${itemType} ${itemId}${action === "sell" && formData.price ? ` por ${formatPrice(formData.price)}` : ""}`
-      // No longer using setActivityLog directly, it's computed
-      // setActivityLog((prevLog) => [`${timestamp} - ${description}`, ...prevLog])
+
 
       setIsModalOpen(false)
       setAction(null)
@@ -1186,7 +1177,16 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   </div>
                   <div>
                     <Label className="text-zinc-400">Precio</Label>
-                    <p className="font-semibold text-green-400">{floorData.apartments[selectedApartment].price}</p>
+                    <p className="font-semibold">
+                      {typeof floorData.apartments[selectedApartment].price === 'string' && floorData.apartments[selectedApartment].price.startsWith('$')
+                        ? floorData.apartments[selectedApartment].price
+                        : new Intl.NumberFormat('es-AR', {
+                            style: 'currency',
+                            currency: 'ARS',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0,
+                          }).format(parseInt(floorData.apartments[selectedApartment].price.replace(/\D/g, '')) || 0)}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-zinc-400">Piso</Label>
@@ -1700,7 +1700,11 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                         <Input
                           id="price"
                           value={formData.price}
-                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '')
+                          const formatted = value ? `$${parseInt(value).toLocaleString('es-AR')}` : ''
+                          setFormData({ ...formData, price: formatted })
+                        }}
                           className="text-white bg-zinc-800 border-zinc-700"
                         />
                       </div>

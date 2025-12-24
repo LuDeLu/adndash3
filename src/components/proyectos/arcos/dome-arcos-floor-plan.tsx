@@ -1567,8 +1567,11 @@ export function DomeArcosFloorPlan({ floorNumber, onReturnToProjectModal }: Arco
                         id="price"
                         type="text"
                         value={formData.price || formatArcosPrice(selectedApartment.salePrice)}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                        className="text-white bg-zinc-800 border-zinc-700"
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '')
+                          const formatted = value ? `$${parseInt(value).toLocaleString('es-AR')}` : ''
+                          setFormData({ ...formData, price: formatted })
+                        }}
                       />
                     </div>
 

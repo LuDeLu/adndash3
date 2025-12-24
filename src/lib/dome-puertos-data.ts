@@ -3885,13 +3885,14 @@ export const getStatusLabel = (status: DomeApartment["status"]): string => {
 }
 
 export const formatPrice = (price: number): string => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price)
 }
+
 
 export const formatArea = (area: number): string => {
   return `${area.toFixed(1)} m²`

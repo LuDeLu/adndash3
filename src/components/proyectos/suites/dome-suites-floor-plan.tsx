@@ -1596,8 +1596,13 @@ export function DomeSuitesFloorPlan({ floorNumber, onReturnToProjectModal }: Sui
                         id="price"
                         type="text"
                         value={formData.price || formatSuitesPrice(selectedApartment.saleValue)}
-                        onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/\D/g, '')
+                          const formatted = value ? `$${parseInt(value).toLocaleString('es-AR')}` : ''
+                          setFormData({ ...formData, price: formatted })
+                        }}
                         className="text-white bg-zinc-800 border-zinc-700"
+                        placeholder="$0"
                       />
                     </div>
 

@@ -17,14 +17,15 @@ export function DomePalermoProjectCard({ onViewProject, onViewFloorPlans, onView
   const [isHovered, setIsHovered] = useState(false)
   const projectData = domePalermoData.projectInfo
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price)
-  }
+const formatPrice = (price: number) => {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(price)
+}
+
 
   const occupancyRate = Math.round(((projectData.soldUnits + projectData.reservedUnits) / projectData.totalUnits) * 100)
   const priceRange = domePalermoData.getPriceRange()

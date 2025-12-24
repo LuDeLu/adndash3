@@ -2676,13 +2676,14 @@ export const getSuitesStatusLabel = (status: SuitesApartment["status"]): string 
 }
 
 export const formatSuitesPrice = (price: number): string => {
-  return new Intl.NumberFormat("en-US", {
+  return new Intl.NumberFormat("es-AR", {
     style: "currency",
     currency: "USD",
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price)
 }
+
 
 export const formatSuitesArea = (area: number): string => {
   return `${area.toFixed(1)} m²`
