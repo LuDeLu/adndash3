@@ -902,7 +902,7 @@ export function DomePalermoFloorPlan({ onBack, initialFloor }: DomePalermoFloorP
                     </button>
                     <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
                     <button
-                      onClick={() => handleFloorClick(Math.min(12, currentFloor + 1))}
+                      onClick={() => handleFloorClick(Math.min(9, currentFloor + 1))}
                       className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
                     >
                       <ChevronRight />
