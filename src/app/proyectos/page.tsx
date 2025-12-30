@@ -64,7 +64,7 @@ const staticProjects: StaticProject[] = [
     location: "Cabello & R. Arabe Siria",
     type: "palermo",
   },
-    {
+  {
     id: "arcos",
     name: "DOME Torre Arcos",
     image: "/images/logo/arcoslogo.webp",
@@ -278,7 +278,7 @@ export default function DomePuertosPage() {
       case "arcos":
         return <DomeArcosFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "palermo":
-        return <DomePalermoFloorPlan onBack={handleBackToProjectModal} />
+        return <DomePalermoFloorPlan initialFloor={selectedFloor} onBack={handleBackToProjectModal} />
       case "boulevar":
         return <DomeBoulevardFloorPlan floorNumber={selectedFloor} onReturnToProjectModal={handleBackToProjectModal} />
       case "apart":

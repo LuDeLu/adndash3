@@ -67,7 +67,12 @@ const Tooltip = React.forwardRef<
 ))
 Tooltip.displayName = TooltipPrimitive.Content.displayName
 
-export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan, onViewGallery }: DomePalermoProjectModalProps) {
+export function DomePalermoProjectModal({
+  isOpen,
+  onClose,
+  onOpenFloorPlan,
+  onViewGallery,
+}: DomePalermoProjectModalProps) {
   const [activeTab, setActiveTab] = useState<"overview" | "units" | "features" | "financial" | "location">("overview")
   const [refreshing, setRefreshing] = useState(false)
   const [currentFilter, setCurrentFilter] = useState<"all" | "available" | "reserved" | "sold">("all")
@@ -340,7 +345,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan, onVi
                 </svg>
 
                 {/* Leyenda de estados */}
-                <div className="absolute bottom-4 left-4  bg-opacity-50 p-2 rounded">
+                <div className="absolute bottom-4 left-4 bg-opacity-50 p-2 rounded">
                   <div className="flex items-center mb-1">
                     <div className="w-3 h-3 sm:w-4 sm:h-4" style={{ backgroundColor: getStatusColor("sold") }} />
                     <span className="ml-2 text-white text-xs sm:text-sm">Vendido</span>
@@ -362,7 +367,7 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan, onVi
                     disabled={refreshing || loadingProjectData}
                     size="sm"
                     variant="outline"
-                    className=" bg-opacity-50 text-white border-white hover:bg-opacity-75"
+                    className="bg-opacity-50 text-white border-white hover:bg-opacity-75"
                   >
                     <RefreshCw className={`h-4 w-4 mr-2 ${refreshing || loadingProjectData ? "animate-spin" : ""}`} />
                     {refreshing || loadingProjectData ? "Actualizando..." : "Actualizar"}
@@ -506,24 +511,24 @@ export function DomePalermoProjectModal({ isOpen, onClose, onOpenFloorPlan, onVi
                             ))}
                           </div>
                           {floors.length > 0 ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 sm:gap-2">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-1 sm:gap-2">
                               {floors.map((floor) => (
                                 <Button
                                   key={floor.number}
                                   variant="outline"
-                                  className="flex flex-col items-center justify-center p-2 sm:p-4 w-full h-full text-xs sm:text-sm bg-transparent"
+                                  className="flex flex-col items-center justify-center p-4 w-full h-full text-xs sm:text-sm bg-transparent"
                                   onClick={() => handleFloorClick(floor.number)}
                                 >
                                   <span className="font-medium">Piso {floor.number}</span>
-                                  <span className="text-[10px] sm:text-xs font-semibold mt-1 sm:mt-2">
+                                  <span className="text-[10px] sm:text-xs font-semibold mt-2">
                                     {getFilteredUnits(floor)}{" "}
                                     {currentFilter === "all"
                                       ? "Total"
                                       : currentFilter === "available"
-                                        ? "Libre"
+                                        ? "Disponible"
                                         : currentFilter === "reserved"
-                                          ? "Reserv."
-                                          : "Vend."}
+                                          ? "Reservado"
+                                          : "Vendido"}
                                   </span>
                                 </Button>
                               ))}

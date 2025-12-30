@@ -29,7 +29,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/app/auth/auth-context"
-import { domePalermoData, formatPrice, type GarageLevel, type ApartmentStatus} from "@/lib/dome-palermo-data"
+import { domePalermoData, formatPrice, type GarageLevel, type ApartmentStatus } from "@/lib/dome-palermo-data"
 import { Notyf } from "notyf"
 import "notyf/notyf.min.css"
 import { cn } from "@/lib/utils"
@@ -43,6 +43,7 @@ let notyf: Notyf | null = null
 
 interface DomePalermoFloorPlanProps {
   onBack: () => void
+  initialFloor?: number
 }
 
 type UnitStatusType = "DISPONIBLE" | "RESERVADO" | "VENDIDO" | "BLOQUEADO"
@@ -121,8 +122,6 @@ const garagePlans = {
   3: "/planos/resi/cochera/nivel3.png",
 }
 
-
-
 const statusToInternal = (status: ApartmentStatus): UnitStatusType => {
   switch (status) {
     case "available":
@@ -168,8 +167,8 @@ const getStatusColor = (status: UnitStatusType): string => {
   }
 }
 
-export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
-  const [currentFloor, setCurrentFloor] = useState(1)
+export function DomePalermoFloorPlan({ onBack, initialFloor }: DomePalermoFloorPlanProps) {
+  const [currentFloor, setCurrentFloor] = useState(initialFloor || 1)
   const [selectedApartment, setSelectedApartment] = useState<string | null>(null)
   const [selectedParkingSpot, setSelectedParkingSpot] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -705,7 +704,6 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     : ""
       } ${itemType} ${itemId}${action === "sell" && formData.price ? ` por ${formatPrice(formData.price)}` : ""}`
 
-
       setIsModalOpen(false)
       setAction(null)
       setFormData({
@@ -1046,6 +1044,7 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
                       "/placeholder.svg" ||
+                      "/placeholder.svg" ||
                       "/placeholder.svg"
                     }
                     alt={`Cocheras Nivel ${currentGarageLevel}`}
@@ -1098,43 +1097,43 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                 </div>
               </div>
             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                  <div className="bg-zinc-800 rounded-lg p-4">
-                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Todas las Cocheras</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <div className="text-2xl font-bold text-white">{garageStats.all.total}</div>
-                        <div className="text-xs text-zinc-400">Total</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-500">{garageStats.all.available}</div>
-                        <div className="text-xs text-zinc-400">Disponibles</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-red-500">{garageStats.all.occupied}</div>
-                        <div className="text-xs text-zinc-400">Ocupadas</div>
-                      </div>
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+              <div className="bg-zinc-800 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-zinc-400 mb-3">Todas las Cocheras</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <div className="text-2xl font-bold text-white">{garageStats.all.total}</div>
+                    <div className="text-xs text-zinc-400">Total</div>
                   </div>
-
-                  <div className="bg-zinc-800 rounded-lg p-4">
-                    <h3 className="text-sm font-medium text-zinc-400 mb-3">Nivel {currentGarageLevel}</h3>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <div className="text-2xl font-bold text-white">{garageStats.current.total}</div>
-                        <div className="text-xs text-zinc-400">Total</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-500">{garageStats.current.available}</div>
-                        <div className="text-xs text-zinc-400">Disponibles</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-red-500">{garageStats.current.occupied}</div>
-                        <div className="text-xs text-zinc-400">Ocupadas</div>
-                      </div>
-                    </div>
+                  <div>
+                    <div className="text-2xl font-bold text-green-500">{garageStats.all.available}</div>
+                    <div className="text-xs text-zinc-400">Disponibles</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-red-500">{garageStats.all.occupied}</div>
+                    <div className="text-xs text-zinc-400">Ocupadas</div>
                   </div>
                 </div>
+              </div>
+
+              <div className="bg-zinc-800 rounded-lg p-4">
+                <h3 className="text-sm font-medium text-zinc-400 mb-3">Nivel {currentGarageLevel}</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <div className="text-2xl font-bold text-white">{garageStats.current.total}</div>
+                    <div className="text-xs text-zinc-400">Total</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-green-500">{garageStats.current.available}</div>
+                    <div className="text-xs text-zinc-400">Disponibles</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-red-500">{garageStats.current.occupied}</div>
+                    <div className="text-xs text-zinc-400">Ocupadas</div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
 
@@ -1176,14 +1175,17 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                   <div>
                     <Label className="text-zinc-400">Precio</Label>
                     <p className="font-semibold">
-                      {typeof floorData.apartments[selectedApartment].price === 'string' && floorData.apartments[selectedApartment].price.startsWith('$')
+                      {typeof floorData.apartments[selectedApartment].price === "string" &&
+                      floorData.apartments[selectedApartment].price.startsWith("$")
                         ? floorData.apartments[selectedApartment].price
-                        : new Intl.NumberFormat('es-AR', {
-                            style: 'currency',
-                            currency: 'ARS',
+                        : new Intl.NumberFormat("es-AR", {
+                            style: "currency",
+                            currency: "ARS",
                             minimumFractionDigits: 0,
                             maximumFractionDigits: 0,
-                          }).format(parseInt(floorData.apartments[selectedApartment].price.replace(/\D/g, '')) || 0)}
+                          }).format(
+                            Number.parseInt(floorData.apartments[selectedApartment].price.replace(/\D/g, "")) || 0,
+                          )}
                     </p>
                   </div>
                   <div>
@@ -1698,11 +1700,11 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                         <Input
                           id="price"
                           value={formData.price}
-                        onChange={(e) => {
-                          const value = e.target.value.replace(/\D/g, '')
-                          const formatted = value ? `$${parseInt(value).toLocaleString('es-AR')}` : ''
-                          setFormData({ ...formData, price: formatted })
-                        }}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, "")
+                            const formatted = value ? `$${Number.parseInt(value).toLocaleString("es-AR")}` : ""
+                            setFormData({ ...formData, price: formatted })
+                          }}
                           className="text-white bg-zinc-800 border-zinc-700"
                         />
                       </div>
