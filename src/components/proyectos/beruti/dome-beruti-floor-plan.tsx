@@ -786,44 +786,42 @@ export function DomeBerutiFloorPlan({ floorNumber, onBack }: DomeBerutiFloorPlan
 
           <TabsContent value="apartments">
             {/* Floor Selection */}
-            <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
-              <div className="p-4 md:p-6">
-                <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
-                <div className="flex flex-col md:flex-row justify-between items-center mb-6">
-                  <div className="flex items-center mb-4 md:mb-0">
-                    <button
-                      onClick={() => handleFloorClick(Math.max(1, currentFloor - 1))}
-                      className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                      disabled={currentFloor === 1}
-                    >
-                      <ChevronLeft />
-                    </button>
-                    <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
-                    <button
-                      onClick={() => handleFloorClick(Math.min(14, currentFloor + 1))}
-                      className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                      disabled={currentFloor === 14}
-                    >
-                      <ChevronRight />
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap justify-center gap-2 max-h-32 overflow-y-auto">
-                    {floors.map((floor) => (
-                      <motion.button
-                        key={floor}
-                        onClick={() => handleFloorClick(floor)}
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold transition-colors ${
-                          currentFloor === floor ? "bg-blue-600 text-white" : "bg-zinc-800 hover:bg-zinc-700"
-                        }`}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        {floor}
-                      </motion.button>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                        <div className="max-w-4xl mx-auto rounded-lg shadow-lg overflow-hidden mb-8">
+                          <div className="p-4 md:p-6">
+                            <h2 className="text-xl md:text-2xl font-semibold mb-4">Selecciona un piso</h2>
+                            <div className="flex flex-col md:flex-row justify-between items-center mb-6">
+                              <div className="flex items-center mb-4 md:mb-0">
+                                <button
+                                  onClick={() => handleFloorClick(Math.max(1, currentFloor - 1))}
+                                  className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                                >
+                                  <ChevronLeft />
+                                </button>
+                                <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
+                                <button
+                                  onClick={() => handleFloorClick(Math.min(12, currentFloor + 1))}
+                                  className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
+                                >
+                                  <ChevronRight />
+                                </button>
+                              </div>
+                              <div className="flex flex-wrap justify-center gap-2">
+                                {floors.map((floor) => (
+                                  <motion.button
+                                    key={floor}
+                                    onClick={() => handleFloorClick(floor)}
+                                    className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold ${
+                                      currentFloor === floor ? "bg-zinc-800" : "bg-zinc-700 hover:bg-zinc-600"
+                                    }`}
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                  >
+                                    {floor}
+                                  </motion.button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
 
               {/* Floor Plan with Image Map */}
               <div className="relative aspect-video">

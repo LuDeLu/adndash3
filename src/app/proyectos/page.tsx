@@ -51,13 +51,6 @@ const staticProjects: StaticProject[] = [
     type: "suites",
   },
   {
-    id: "arcos",
-    name: "DOME Torre Arcos",
-    image: "/images/logo/arcoslogo.webp",
-    location: "Paraguay & Humboldt",
-    type: "arcos",
-  },
-  {
     id: "lagos",
     name: "DOME Puertos del Lago",
     image: "/images/logo/lagoslogo.png",
@@ -70,6 +63,13 @@ const staticProjects: StaticProject[] = [
     image: "/images/logo/palermoresi.webp",
     location: "Cabello & R. Arabe Siria",
     type: "palermo",
+  },
+    {
+    id: "arcos",
+    name: "DOME Torre Arcos",
+    image: "/images/logo/arcoslogo.webp",
+    location: "Arcos 1865",
+    type: "arcos",
   },
   {
     id: "boulevar",

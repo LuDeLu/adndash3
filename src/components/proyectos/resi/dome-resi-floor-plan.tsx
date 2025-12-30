@@ -899,26 +899,24 @@ export function DomePalermoFloorPlan({ onBack }: DomePalermoFloorPlanProps) {
                     <button
                       onClick={() => handleFloorClick(Math.max(1, currentFloor - 1))}
                       className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                      disabled={currentFloor === 1}
                     >
                       <ChevronLeft />
                     </button>
                     <span className="mx-4 text-lg font-bold">Piso {currentFloor}</span>
                     <button
-                      onClick={() => handleFloorClick(Math.min(9, currentFloor + 1))}
+                      onClick={() => handleFloorClick(Math.min(12, currentFloor + 1))}
                       className="p-2 rounded-full hover:bg-zinc-800 transition-colors"
-                      disabled={currentFloor === 9}
                     >
                       <ChevronRight />
                     </button>
                   </div>
-                  <div className="flex flex-wrap justify-center gap-2 max-h-32 overflow-y-auto">
+                  <div className="flex flex-wrap justify-center gap-2">
                     {floors.map((floor) => (
                       <motion.button
                         key={floor}
                         onClick={() => handleFloorClick(floor)}
-                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold transition-colors ${
-                          currentFloor === floor ? "bg-blue-600 text-white" : "bg-zinc-800 hover:bg-zinc-700"
+                        className={`w-10 h-10 md:w-12 md:h-12 rounded-full font-bold ${
+                          currentFloor === floor ? "bg-zinc-800" : "bg-zinc-700 hover:bg-zinc-600"
                         }`}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
